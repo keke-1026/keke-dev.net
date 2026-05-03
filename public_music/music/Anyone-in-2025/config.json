@@ -1,0 +1,8 @@
+{
+  "title": "Anyone in 2025?",
+  "bpm": 120,
+  "audioUrl": "Anyone_in_2025.mp3",
+  "difficulties": [
+    { "name": "EXPERT", "level": 9, "dataFile": "data.json" }
+  ]
+}

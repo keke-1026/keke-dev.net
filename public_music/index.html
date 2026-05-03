@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>music / music.keke-dev.net</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --note-color: #ffffff;
+      --note-border: #333333;
+      --target-border: #aaaaaa;
+      --primary-color: #4CAF50;
+      --primary-dark: #388E3C;
+      --flick-color: #FF9800;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'M PLUS Rounded 1c', 'Montserrat', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      background-color: var(--bg-color);
+      transition: opacity 0.3s ease;
+    }
+
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    h1, h2 {
+      margin: 0 0 20px 0;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    button {
+      padding: 15px 50px;
+      font-size: 20px;
+      font-family: inherit;
+      font-weight: 700;
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 6px 0 var(--primary-dark);
+      cursor: pointer;
+      border-radius: 50px;
+      transition: all 0.1s;
+    }
+
+    button:active {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 var(--primary-dark);
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: translateY(6px);
+      box-shadow: 0 0 0 var(--primary-dark);
+    }
+
+    #pause-trigger-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      padding: 0;
+      border-radius: 10px;
+      background-color: #eee;
+      color: #333;
+      box-shadow: 0 4px 0 #ccc;
+      z-index: 8;
+      pointer-events: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: none;
+      cursor: pointer;
+    }
+
+    #pause-trigger-btn.hidden { display: none; }
+
+    .selector-container {
+      position: relative;
+      width: 320px;
+      height: 180px;
+      margin: 10px 0;
+      background-color: #f9f9f9;
+      border-radius: 20px;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .song-list {
+      width: 100%;
+      height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      padding: 60px 0;
+      box-sizing: border-box;
+      scrollbar-width: none;
+    }
+    .song-list::-webkit-scrollbar { display: none; }
+
+    .song-item {
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: 700;
+      scroll-snap-align: center;
+      color: #aaaaaa;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .song-item.selected {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+
+    .song-info {
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 16px;
+      color: #555;
+      background: #f0f0f0;
+      padding: 10px 20px;
+      border-radius: 20px;
+    }
+    .song-info span { font-weight: 700; color: #333; }
+
+    /* ランキングエリア */
+    #ranking-container {
+      width: 320px;
+      height: 120px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    #ranking-container::-webkit-scrollbar { width: 6px; }
+    #ranking-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+    .diff-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background-color: var(--primary-dark);
+      color: #fff !important;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-left: 5px;
+    }
+
+    .diff-btn {
+      padding: 8px 16px;
+      border: 2px solid var(--primary-color);
+      background-color: transparent;
+      color: var(--primary-color);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .diff-btn.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .settings-item {
+      margin: 20px 0;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+      margin: 15px 0;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+      margin-top: -10px;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #ddd;
+      border-radius: 3px;
+    }
+
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    #ui-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .ui-top {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    #combo-display {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: 700;
+      opacity: 0;
+      transition: opacity 0.1s;
+      color: var(--primary-color);
+      text-align: center;
+    }
+
+    #target-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      z-index: 2;
+      pointer-events: none;
+      transition: transform 0.05s ease-out;
+    }
+
+    #target-button.pressed {
+      transform: translate(-50%, -50%) scale(0.85);
+    }
+
+    #notes-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .note {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60px;
+      height: 60px;
+      will-change: transform;
+    }
+
+    .judge-text {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      font-weight: 700;
+      pointer-events: none;
+      z-index: 6;
+      animation: floatUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    .judge-critical { color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.8); }
+    .judge-perfect { color: #FF9800; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .judge-great { color: var(--primary-color); }
+    .judge-good { color: #888; }
+    .judge-miss { color: #ccc; }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+      50% { transform: translate(-50%, -70%) scale(1.1); }
+      100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+    }
+
+    .guide-line {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.05);
+      z-index: 0;
+    }
+    .guide-v { top: 0; left: 50%; width: 2px; height: 100%; transform: translateX(-50%); }
+    .guide-h { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
+
+    #clear-badge {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .judgment-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 280px;
+      margin: 15px 0;
+      background: #f8f8f8;
+      padding: 15px;
+      border-radius: 15px;
+    }
+    .judgment-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    /* 特別演出用アニメーション */
+    @keyframes specialPopup {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes specialGlow {
+      0% { text-shadow: 0 0 10px currentColor; }
+      50% { text-shadow: 0 0 40px currentColor, 0 0 80px currentColor; }
+      100% { text-shadow: 0 0 10px currentColor; }
+    }
+    .special-text {
+      font-size: 60px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-align: center;
+      animation: specialPopup 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, specialGlow 1s ease-in-out infinite alternate;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- タイトル画面 -->
+  <div id="title-screen" class="screen">
+    <h1 style="font-size: 40px; color: var(--text-color); margin-bottom: 50px;">music.keke-dev.net</h1>
+    <button id="title-start-btn">スタート</button>
+  </div>
+
+  <!-- 特別演出画面 -->
+  <div id="special-effect-screen" class="screen hidden" style="background-color: rgba(0, 0, 0, 0.85); z-index: 30;">
+    <div id="special-effect-text" class="special-text"></div>
+  </div>
+
+  <!-- ゲームメイン画面 -->
+  <div id="game-container">
+    <div class="guide-line guide-v"></div>
+    <div class="guide-line guide-h"></div>
+    <div id="notes-container"></div>
+    <div id="target-button">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="56" fill="var(--bg-color)" stroke="var(--target-border)" stroke-width="4"/>
+        <circle cx="60" cy="60" r="15" fill="var(--target-border)"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ゲーム内UI -->
+  <div id="ui-container">
+    <div class="ui-top">スコア: <span id="score">0</span></div>
+    <div id="combo-display"><span id="combo">0</span><br><span style="font-size:20px;">コンボ</span></div>
+    <div id="judge-container"></div>
+    <button id="pause-trigger-btn" class="hidden">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16" />
+        <rect x="14" y="4" width="4" height="16" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- 一時停止メニュー -->
+  <div id="pause-screen" class="screen hidden" style="background-color: rgba(255, 255, 255, 0.95); z-index: 20;">
+    <h2>一時停止中</h2>
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <button id="resume-btn">再開する</button>
+      <button id="restart-btn" style="background-color:#999; box-shadow:0 6px 0 #666;">最初からやり直す</button>
+      <button id="quit-btn" style="background-color:#ccc; box-shadow:0 6px 0 #999;">曲選択にもどる</button>
+    </div>
+  </div>
+
+  <!-- 曲選択画面 -->
+  <div id="start-screen" class="screen hidden">
+    <h2>曲をえらぶ</h2>
+    <div class="selector-container">
+      <div class="song-list" id="song-list"></div>
+    </div>
+    <div id="diff-selector" style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; justify-content:center;"></div>
+    
+    <div class="song-info">
+      曲名: <span id="info-title">-</span><br>
+      難易度: <span id="info-diff" class="diff-badge">-</span> レベル: <span id="info-level" class="diff-badge">-</span>
+    </div>
+
+    <!-- ランキングエリア -->
+    <div id="ranking-container">
+      <div style="text-align: center; font-weight: bold; margin-bottom: 5px; color: var(--primary-color);">ランキング TOP 5</div>
+      <ul id="ranking-list" style="list-style: none; padding: 0; margin: 0;">
+        <li style="text-align:center; padding: 10px 0;">読み込み中...</li>
+      </ul>
+    </div>
+
+    <div style="display:flex; gap:15px;">
+      <button id="settings-btn" style="background-color:#999; box-shadow:0 6px 0 #666; padding: 15px 25px;">設定</button>
+      <button id="back-to-title-btn" style="background-color:#ccc; box-shadow:0 6px 0 #999; padding: 15px 25px;">もどる</button>
+      <button id="start-btn" style="padding: 15px 30px;">あそぶ</button>
+    </div>
+  </div>
+
+  <!-- 設定画面 -->
+  <div id="settings-screen" class="screen hidden">
+    <h2>設定</h2>
+    <div class="settings-item">
+      <label style="font-size: 18px; font-weight: 700;">ノーツスピード</label>
+      <p style="font-size: 14px; color: #666; margin: 5px 0;">画面端から到達まで: <span id="speed-display">1.2</span>秒</p>
+      <input type="range" id="speed-slider" min="500" max="2500" step="100" value="1200">
+    </div>
+    <div class="settings-item">
+      <label style="font-size: 18px; font-weight: 700;">判定オフセット</label>
+      <p style="font-size: 14px; color: #666; margin: 5px 0;">音楽とノーツのズレを調整: <span id="offset-display">0</span>ms</p>
+      <input type="range" id="offset-slider" min="-200" max="200" step="10" value="0">
+    </div>
+    <button id="close-settings-btn" style="margin-top: 30px;">とじる</button>
+  </div>
+
+  <!-- リザルト画面 -->
+  <div id="result-screen" class="screen hidden">
+    <h2>けっか発表</h2>
+    <div id="clear-badge"></div>
+    <div style="font-size: 22px; margin-bottom: 5px;">スコア: <span id="final-score">0</span></div>
+    <div style="font-size: 18px; color: #666;">最大コンボ: <span id="max-combo">0</span></div>
+    
+    <!-- 判定の内訳表示エリア -->
+    <div class="judgment-details">
+      <div class="judgment-item" style="color:#FFD700;"><span>CRITICAL</span><span id="count-critical">0</span></div>
+      <div class="judgment-item" style="color:#FF9800;"><span>PERFECT</span><span id="count-perfect">0</span></div>
+      <div class="judgment-item" style="color:#4CAF50;"><span>GREAT</span><span id="count-great">0</span></div>
+      <div class="judgment-item" style="color:#888888;"><span>GOOD</span><span id="count-good">0</span></div>
+      <div class="judgment-item" style="color:#cccccc;"><span>MISS</span><span id="count-miss">0</span></div>
+    </div>
+
+    <!-- ランキング登録フォーム -->
+    <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+      <input type="text" id="player-name-input" placeholder="プレイヤー名を入力" style="padding: 10px; border-radius: 10px; border: 2px solid #ddd; text-align: center; font-family: inherit; font-size: 16px;">
+      <button id="submit-score-btn" style="padding: 10px 20px; font-size: 16px; background-color: #2196F3; box-shadow: 0 4px 0 #1976D2;">ランキングに登録</button>
+    </div>
+    
+    <button id="retry-btn">曲選択にもどる</button>
+  </div>
+
+  <script>
+    // --- Firebase Initialization ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tapNoteSVG = `<svg width="60" height="60" viewBox="0 0 60 60"><path d="M30,5 L55,30 L30,55 L5,30 Z" fill="var(--note-color)" stroke="var(--note-border)" stroke-width="4" stroke-linejoin="round"/></svg>`;
+    const flickNoteSVG = `<svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" fill="var(--flick-color)" stroke="#ffffff" stroke-width="4"/><path d="M 18 38 L 30 22 L 42 38" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" /></svg>`;
+
+    const CRITICAL_WINDOW = 16.67;
+    const PERFECT_WINDOW = 50;
+    const GREAT_WINDOW = 100;
+    const GOOD_WINDOW = 150;
+    const SWIPE_THRESHOLD = 30; // 誤爆防止のため閾値をアップ
+
+    let gameState = 'title';
+    let startTime = 0;
+    let score = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let currentNoteSpeed = 1200;
+    let globalOffset = 0;
+    let activeNotes = [];
+    let noteIndex = 0;
+    let currentLevelData = [];
+    let currentAudio = null;
+    let demoAudio = null;
+    let animationFrameId;
+    let selectedSongIndex = 0;
+    let selectedDiffIndex = 0;
+    let songDataList = [];
+    let counts = { critical: 0, perfect: 0, great: 0, good: 0, miss: 0 };
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    const screens = {
+      title: document.getElementById('title-screen'),
+      start: document.getElementById('start-screen'),
+      settings: document.getElementById('settings-screen'),
+      pause: document.getElementById('pause-screen'),
+      result: document.getElementById('result-screen'),
+      special: document.getElementById('special-effect-screen')
+    };
+    const comboDisplayWrap = document.getElementById('combo-display');
+    const comboDisplayText = document.getElementById('combo');
+    const scoreDisplay = document.getElementById('score');
+    const judgeContainer = document.getElementById('judge-container');
+    const notesContainer = document.getElementById('notes-container');
+    const pauseTriggerBtn = document.getElementById('pause-trigger-btn');
+    const speedSlider = document.getElementById('speed-slider');
+    const offsetSlider = document.getElementById('offset-slider');
+    const songListEl = document.getElementById('song-list');
+    const diffSelectorEl = document.getElementById('diff-selector');
+    const gameContainer = document.getElementById('game-container');
+    const targetButton = document.getElementById('target-button');
+
+    function initOrResumeAudio() {
+      if (!audioCtx) audioCtx = new AudioContextClass();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playMetronomeTick(isHigh) {
+      if (!audioCtx) return;
+      initOrResumeAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(isHigh ? 880 : 440, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
+
+    function playHitSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playDemo() {
+      stopDemo();
+      if (gameState === 'select' && songDataList.length > 0) {
+        const config = songDataList[selectedSongIndex].config;
+        if (config.audioUrl) {
+          demoAudio = new Audio(`./music/${songDataList[selectedSongIndex].folder}/${config.audioUrl}`);
+          demoAudio.loop = true;
+          demoAudio.volume = 0.3;
+          demoAudio.play().catch(e => console.log("Demo play prevented."));
+        }
+      }
+    }
+
+    function stopDemo() {
+      if (demoAudio) {
+        demoAudio.pause();
+        demoAudio = null;
+      }
+    }
+
+    window.onload = () => { loadSettings(); initSongSelect(); };
+
+    function loadSettings() {
+      const savedSpeed = localStorage.getItem('rhythm_note_speed');
+      const savedOffset = localStorage.getItem('rhythm_global_offset');
+      const savedName = localStorage.getItem('rhythm_player_name');
+      
+      if (savedSpeed !== null) {
+        currentNoteSpeed = parseInt(savedSpeed);
+        speedSlider.value = currentNoteSpeed;
+        document.getElementById('speed-display').innerText = (currentNoteSpeed / 1000).toFixed(1);
+      }
+      if (savedOffset !== null) {
+        globalOffset = parseInt(savedOffset);
+        offsetSlider.value = globalOffset;
+        document.getElementById('offset-display').innerText = globalOffset;
+      }
+      if (savedName !== null) {
+        document.getElementById('player-name-input').value = savedName;
+      }
+    }
+
+    speedSlider.addEventListener('input', (e) => {
+      currentNoteSpeed = parseInt(e.target.value);
+      document.getElementById('speed-display').innerText = (currentNoteSpeed / 1000).toFixed(1);
+      localStorage.setItem('rhythm_note_speed', currentNoteSpeed);
+    });
+
+    offsetSlider.addEventListener('input', (e) => {
+      globalOffset = parseInt(e.target.value);
+      document.getElementById('offset-display').innerText = globalOffset;
+      localStorage.setItem('rhythm_global_offset', globalOffset);
+    });
+
+    async function startGame() {
+      if (songDataList.length === 0) return;
+      initOrResumeAudio();
+      stopDemo();
+      
+      combo = 0;
+      comboDisplayText.innerText = '0';
+      comboDisplayWrap.style.opacity = '0';
+      score = 0;
+      scoreDisplay.innerText = '0';
+      const selectedData = songDataList[selectedSongIndex];
+      const bpm = selectedData.config.bpm || 120;
+      try {
+        if (selectedData.demoData) { currentLevelData = selectedData.demoData[selectedDiffIndex]; }
+        else {
+          let dataFileName = selectedData.config.difficulties[selectedDiffIndex].dataFile || 'data.json';
+          const dataRes = await fetch(`./music/${selectedData.folder}/${dataFileName}`);
+          if (!dataRes.ok) throw new Error();
+          currentLevelData = await dataRes.json();
+        }
+      } catch (e) { alert("譜面データの取得に失敗しました。"); playDemo(); return; }
+      
+      gameState = 'countdown';
+      maxCombo = noteIndex = 0;
+      counts = { critical: 0, perfect: 0, great: 0, good: 0, miss: 0 };
+      activeNotes = [];
+      notesContainer.innerHTML = judgeContainer.innerHTML = document.getElementById('clear-badge').innerText = '';
+      screens.start.classList.add('hidden');
+      screens.pause.classList.add('hidden');
+      screens.result.classList.add('hidden');
+      screens.special.classList.add('hidden');
+      pauseTriggerBtn.classList.add('hidden');
+      
+      if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+      
+      const interval = 60000 / bpm;
+      startTime = performance.now() + interval * 4;
+      gameState = 'playing';
+      animationFrameId = requestAnimationFrame(gameLoop);
+      
+      (async () => {
+        for (let i = 0; i < 4; i++) {
+          if (gameState === 'paused' || gameState === 'select') return;
+          playMetronomeTick(i === 3);
+          showJudgeText(4 - i, 'judge-perfect');
+          await new Promise(r => setTimeout(r, interval));
+        }
+        if (gameState === 'paused' || gameState === 'select') return;
+        pauseTriggerBtn.classList.remove('hidden');
+        if (selectedData.config.audioUrl) {
+          currentAudio = new Audio(`./music/${selectedData.folder}/${selectedData.config.audioUrl}`);
+          currentAudio.play().then(() => { startTime = performance.now(); }).catch(() => { startTime = performance.now(); });
+        } else { startTime = performance.now(); }
+      })();
+    }
+
+    function gameLoop() {
+      if (gameState !== 'playing' && gameState !== 'ending') return;
+      
+      let now;
+      // 曲が再生中なら currentTime をベースに、終わっていたらシステム時計を使う
+      if (gameState === 'playing' && currentAudio && !currentAudio.paused && !currentAudio.ended) { 
+          now = (currentAudio.currentTime * 1000) - globalOffset; 
+          // 音楽終了後もノーツを動かし続けるための起点調整
+          startTime = performance.now() - (currentAudio.currentTime * 1000);
+      } else { 
+          now = (performance.now() - startTime) - globalOffset; 
+      }
+      
+      const allNotesSpawned = noteIndex >= currentLevelData.length;
+      const allNotesCleared = allNotesSpawned && activeNotes.length === 0;
+      let shouldEnd = false;
+
+      // 修正: 画面上の全ノーツが消えるまで絶対に終わらせない
+      if (allNotesCleared) {
+          if (currentAudio) {
+              // 全ノーツが処理された後、曲が終わるか、最後のノーツから2秒経過したら終了
+              if (currentAudio.ended || (currentLevelData.length > 0 && now > currentLevelData[currentLevelData.length - 1].time + 2000)) {
+                  shouldEnd = true;
+              }
+          } else {
+              shouldEnd = true;
+          }
+      }
+
+      if (shouldEnd) {
+        if (gameState !== 'ending') { 
+            gameState = 'ending'; 
+            endGame(); 
+        }
+        return;
+      }
+
+      while (noteIndex < currentLevelData.length && currentLevelData[noteIndex].time - currentNoteSpeed <= now) { spawnNote(currentLevelData[noteIndex]); noteIndex++; }
+      const distance = Math.max(window.innerWidth, window.innerHeight) * 0.6;
+      for (let i = 0; i < activeNotes.length; i++) {
+        const note = activeNotes[i];
+        if (note.hit) continue;
+        const progress = (now - (note.data.time - currentNoteSpeed)) / currentNoteSpeed;
+        if (now > note.data.time + GOOD_WINDOW) { note.hit = true; note.element.remove(); counts.miss++; showJudgeText('Miss', 'judge-miss'); resetCombo(); continue; }
+        const currentDist = distance * (1 - progress);
+        let x = 0, y = 0;
+        if (note.data.dir === 'top') y = -currentDist; else if (note.data.dir === 'bottom') y = currentDist; else if (note.data.dir === 'left') x = -currentDist; else if (note.data.dir === 'right') x = currentDist;
+        note.element.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+      }
+      activeNotes = activeNotes.filter(n => !n.hit);
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function togglePause() {
+      initOrResumeAudio();
+      if (gameState !== 'playing' && gameState !== 'paused') return;
+      if (gameState === 'playing') { gameState = 'paused'; if (currentAudio) currentAudio.pause(); cancelAnimationFrame(animationFrameId); screens.pause.classList.remove('hidden'); }
+      else { gameState = 'playing'; if (currentAudio) currentAudio.play(); screens.pause.classList.add('hidden'); animationFrameId = requestAnimationFrame(gameLoop); }
+    }
+
+    function endGame() {
+      if (gameState === 'result' || gameState === 'select' || gameState === 'special') return;
+      
+      cancelAnimationFrame(animationFrameId);
+      pauseTriggerBtn.classList.add('hidden');
+      if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+      
+      document.getElementById('final-score').innerText = score;
+      document.getElementById('max-combo').innerText = maxCombo;
+
+      document.getElementById('count-critical').innerText = counts.critical;
+      document.getElementById('count-perfect').innerText = counts.perfect;
+      document.getElementById('count-great').innerText = counts.great;
+      document.getElementById('count-good').innerText = counts.good;
+      document.getElementById('count-miss').innerText = counts.miss;
+      
+      const isFullCombo = (counts.miss === 0 && counts.good === 0);
+      const isAllPerfect = isFullCombo && (counts.great === 0);
+      const isCriticalPerfect = isAllPerfect && (counts.perfect === 0);
+
+      if (isFullCombo) {
+        gameState = 'special';
+        const effectText = document.getElementById('special-effect-text');
+        screens.special.classList.remove('hidden');
+        
+        if (isCriticalPerfect) {
+            effectText.innerText = 'CRITICAL PERFECT+';
+            effectText.style.color = '#FFD700';
+        } else if (isAllPerfect) {
+            effectText.innerText = 'ALL PERFECT';
+            effectText.style.color = '#00FFFF';
+        } else {
+            effectText.innerText = 'FULL COMBO';
+            effectText.style.color = '#FF1493';
+        }
+
+        setTimeout(() => {
+            screens.special.classList.add('hidden');
+            showResultScreen(isCriticalPerfect, isAllPerfect, isFullCombo);
+        }, 2500);
+
+      } else {
+        showResultScreen(false, false, false);
+      }
+    }
+
+    function showResultScreen(isCriticalPerfect, isAllPerfect, isFullCombo) {
+      gameState = 'result';
+      const badge = document.getElementById('clear-badge');
+      if (isCriticalPerfect) {
+          badge.innerText = 'CRITICAL PERFECT+';
+          badge.style.color = '#FFD700';
+      } else if (isAllPerfect) {
+          badge.innerText = 'ALL PERFECT';
+          badge.style.color = '#00FFFF';
+      } else if (isFullCombo) {
+          badge.innerText = 'FULL COMBO';
+          badge.style.color = '#FF1493';
+      } else {
+          badge.innerText = '';
+      }
+
+      const btn = document.getElementById('submit-score-btn');
+      btn.disabled = false;
+      btn.innerText = "ランキングに登録";
+      btn.style.backgroundColor = "#2196F3";
+      btn.style.boxShadow = "0 4px 0 #1976D2";
+
+      screens.result.classList.remove('hidden');
+    }
+
+    function spawnNote(noteData) {
+      const el = document.createElement('div');
+      el.className = 'note';
+      if (noteData.type === 'flick') {
+        el.innerHTML = flickNoteSVG;
+        const svg = el.querySelector('svg');
+        const rotations = { 'top': 0, 'right': 90, 'bottom': 180, 'left': 270 };
+        svg.style.transform = `rotate(${rotations[noteData.flickDir] || 0}deg)`;
+      } else { el.innerHTML = tapNoteSVG; }
+      el.style.transform = `translate(-50%, -50%)`;
+      notesContainer.appendChild(el);
+      activeNotes.push({ data: noteData, element: el, hit: false });
+    }
+
+    function handleInput(type, dir) {
+      if (gameState !== 'playing') return;
+      let now;
+      if (currentAudio && !currentAudio.paused && !currentAudio.ended) { 
+          now = (currentAudio.currentTime * 1000) - globalOffset; 
+      } else { 
+          now = (performance.now() - startTime) - globalOffset; 
+      }
+
+      let closestNote = null;
+      let closestDiff = Infinity;
+      
+      for (const note of activeNotes) {
+        if (note.hit) continue;
+        const diff = Math.abs(now - note.data.time);
+        if (diff < closestDiff && diff <= GOOD_WINDOW) {
+            closestDiff = diff;
+            closestNote = note;
+        }
+      }
+
+      if (!closestNote) return;
+
+      let targetNote = null;
+
+      if (closestNote.data.type === 'tap' && type === 'tap') {
+          targetNote = closestNote;
+      } else if (closestNote.data.type === 'flick' && type === 'flick' && closestNote.data.flickDir === dir) {
+          targetNote = closestNote;
+      } else {
+          for (const note of activeNotes) {
+              if (note.hit || note === closestNote) continue;
+              if (Math.abs(note.data.time - closestNote.data.time) <= 10) {
+                  if (note.data.type === type) {
+                      if (type === 'flick' && note.data.flickDir !== dir) continue;
+                      targetNote = note;
+                      closestDiff = Math.abs(now - note.data.time);
+                      break;
+                  }
+              }
+          }
+      }
+
+      if (targetNote) {
+        playHitSound();
+        targetNote.hit = true;
+        targetNote.element.remove();
+        if (closestDiff <= CRITICAL_WINDOW) { showJudgeText('Critical', 'judge-critical'); counts.critical++; addScore(105); addCombo(); }
+        else if (closestDiff <= PERFECT_WINDOW) { showJudgeText('Perfect', 'judge-perfect'); counts.perfect++; addScore(100); addCombo(); }
+        else if (closestDiff <= GREAT_WINDOW) { showJudgeText('Great', 'judge-great'); counts.great++; addScore(50); addCombo(); }
+        else { showJudgeText('Good', 'judge-good'); counts.good++; addScore(10); addCombo(); }
+        targetButton.classList.add('pressed');
+        setTimeout(() => targetButton.classList.remove('pressed'), 80);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      initOrResumeAudio();
+      if (e.code === 'Escape') return togglePause();
+      if (gameState !== 'playing') return;
+      const keyMap = { 'ArrowUp': 'top', 'ArrowDown': 'bottom', 'ArrowLeft': 'left', 'ArrowRight': 'right' };
+      if (e.code === 'Space') { e.preventDefault(); handleInput('tap'); }
+      else if (keyMap[e.code]) { e.preventDefault(); handleInput('flick', keyMap[e.code]); }
+    });
+
+    let mouseStartX = 0;
+    let mouseStartY = 0;
+    let isMouseSwiping = false;
+
+    gameContainer.addEventListener('mousedown', (e) => {
+      initOrResumeAudio();
+      mouseStartX = e.clientX; mouseStartY = e.clientY; isMouseSwiping = true;
+      handleInput('tap');
+    });
+    gameContainer.addEventListener('mousemove', (e) => {
+      if (!isMouseSwiping || gameState !== 'playing') return;
+      const dx = e.clientX - mouseStartX, dy = e.clientY - mouseStartY;
+      if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
+        isMouseSwiping = false;
+        const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'bottom' : 'top');
+        handleInput('flick', dir);
+      }
+    });
+    window.addEventListener('mouseup', () => isMouseSwiping = false);
+
+    let activeTouches = {};
+
+    gameContainer.addEventListener('touchstart', (e) => {
+      e.preventDefault(); 
+      initOrResumeAudio();
+      
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        activeTouches[touch.identifier] = {
+            startX: touch.clientX,
+            startY: touch.clientY,
+            isSwiping: true
+        };
+        handleInput('tap'); 
+      }
+    }, { passive: false });
+
+    gameContainer.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (gameState !== 'playing') return;
+      
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const touchData = activeTouches[touch.identifier];
+        if (!touchData || !touchData.isSwiping) continue;
+
+        const dx = touch.clientX - touchData.startX;
+        const dy = touch.clientY - touchData.startY;
+        
+        if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
+          touchData.isSwiping = false; 
+          const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'bottom' : 'top');
+          handleInput('flick', dir);
+        }
+      }
+    }, { passive: false });
+
+    gameContainer.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        delete activeTouches[e.changedTouches[i].identifier];
+      }
+    }, { passive: false });
+    
+    gameContainer.addEventListener('touchcancel', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        delete activeTouches[e.changedTouches[i].identifier];
+      }
+    });
+
+    async function initSongSelect() {
+      try {
+        const res = await fetch('./song_list.json');
+        if (!res.ok) throw new Error();
+        const folders = await res.json();
+        for (const folder of folders) {
+          const configRes = await fetch(`./music/${folder}/config.json`);
+          if (configRes.ok) songDataList.push({ folder, config: await configRes.json() });
+        }
+      } catch (e) {
+        songDataList = [{
+          folder: "demo",
+          config: { title: "デモ楽曲 (フォルダ未設定)", bpm: 130, difficulties: [{ name: "NORMAL", level: 3, dataFile: "data_normal.json" }] },
+          demoData: [[{ "time": 1000, "dir": "top", "type": "tap" }, { "time": 2000, "dir": "bottom", "type": "flick", "flickDir": "bottom" }]]
+        }];
+      }
+      songDataList.forEach((data, i) => {
+        const el = document.createElement('div'); el.className = 'song-item';
+        el.innerText = data.config.title || data.folder;
+        songListEl.appendChild(el);
+      });
+      updateSelectedSongInfo();
+      songListEl.onscroll = () => {
+        const idx = Math.round(songListEl.scrollTop / 60);
+        if (selectedSongIndex !== idx && idx >= 0 && idx < songDataList.length) {
+          selectedSongIndex = idx; selectedDiffIndex = 0; updateSelectedSongInfo();
+        }
+      };
+    }
+
+    function fetchRanking() {
+      if (songDataList.length === 0) return;
+      const songId = songDataList[selectedSongIndex].folder;
+      const diffId = selectedDiffIndex;
+      const rankingListEl = document.getElementById('ranking-list');
+      rankingListEl.innerHTML = '<li style="text-align:center; padding: 10px 0;">読み込み中...</li>';
+
+      db.collection('rankings').doc(`${songId}_${diffId}`).collection('scores')
+        .orderBy('score', 'desc')
+        .limit(5)
+        .get()
+        .then(snapshot => {
+            rankingListEl.innerHTML = '';
+            if (snapshot.empty) {
+                rankingListEl.innerHTML = '<li style="text-align:center; padding: 10px 0;">まだ記録がありません</li>';
+                return;
+            }
+            let rank = 1;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement('li');
+                li.style.display = 'flex';
+                li.style.justifyContent = 'space-between';
+                li.style.borderBottom = '1px solid #eee';
+                li.style.padding = '6px 0';
+                li.innerHTML = `<span style="font-weight: bold;">${rank}. ${data.name}</span><span style="color: var(--primary-color); font-weight: bold;">${data.score}</span>`;
+                rankingListEl.appendChild(li);
+                rank++;
+            });
+        })
+        .catch(error => {
+            console.error("Error getting rankings: ", error);
+            rankingListEl.innerHTML = '<li style="text-align:center; color: red; padding: 10px 0;">エラーが発生しました</li>';
+        });
+    }
+
+    function updateSelectedSongInfo() {
+      if (!songDataList[selectedSongIndex]) return;
+      const config = songDataList[selectedSongIndex].config;
+      document.getElementById('info-title').innerText = config.title;
+      diffSelectorEl.innerHTML = '';
+      config.difficulties.forEach((diff, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `diff-btn ${idx === selectedDiffIndex ? 'active' : ''}`;
+        btn.innerText = diff.name;
+        btn.onclick = (e) => { e.stopPropagation(); initOrResumeAudio(); selectedDiffIndex = idx; updateSelectedSongInfo(); };
+        diffSelectorEl.appendChild(btn);
+      });
+      document.getElementById('info-diff').innerText = config.difficulties[selectedDiffIndex].name;
+      document.getElementById('info-level').innerText = config.difficulties[selectedDiffIndex].level;
+      document.querySelectorAll('.song-item').forEach((item, i) => item.classList.toggle('selected', i === selectedSongIndex));
+      
+      fetchRanking();
+      playDemo();
+    }
+
+    document.getElementById('submit-score-btn').onclick = () => {
+      const nameInput = document.getElementById('player-name-input').value.trim() || 'No Name';
+      localStorage.setItem('rhythm_player_name', nameInput);
+      const songId = songDataList[selectedSongIndex].folder;
+      const diffId = selectedDiffIndex;
+      const btn = document.getElementById('submit-score-btn');
+      btn.disabled = true;
+      btn.innerText = "送信中...";
+
+      db.collection('rankings').doc(`${songId}_${diffId}`).collection('scores').add({
+          name: nameInput,
+          score: score,
+          maxCombo: maxCombo,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+          btn.innerText = "登録完了！";
+          btn.style.backgroundColor = "#4CAF50";
+          btn.style.boxShadow = "0 4px 0 #388E3C";
+      }).catch(error => {
+          console.error("Error adding document: ", error);
+          btn.innerText = "エラー";
+          btn.disabled = false;
+      });
+    };
+
+    function addScore(p) { score += p; scoreDisplay.innerText = score; }
+    function addCombo() { combo++; if (combo > maxCombo) maxCombo = combo; comboDisplayText.innerText = combo; comboDisplayWrap.style.opacity = '1'; }
+    function resetCombo() { combo = 0; comboDisplayWrap.style.opacity = '0'; }
+    function showJudgeText(t, c) {
+      const el = document.createElement('div'); el.className = `judge-text ${c}`; el.innerText = t;
+      judgeContainer.appendChild(el); setTimeout(() => el.remove(), 500);
+    }
+
+    document.getElementById('title-start-btn').onclick = () => { initOrResumeAudio(); screens.title.classList.add('hidden'); screens.start.classList.remove('hidden'); gameState = 'select'; playDemo(); };
+    document.getElementById('settings-btn').onclick = () => { initOrResumeAudio(); screens.start.classList.add('hidden'); screens.settings.classList.remove('hidden'); };
+    document.getElementById('close-settings-btn').onclick = () => { initOrResumeAudio(); screens.settings.classList.add('hidden'); screens.start.classList.remove('hidden'); };
+    document.getElementById('start-btn').onclick = startGame;
+    document.getElementById('back-to-title-btn').onclick = () => { initOrResumeAudio(); screens.start.classList.add('hidden'); screens.title.classList.remove('hidden'); gameState = 'title'; stopDemo(); };
+    document.getElementById('resume-btn').onclick = togglePause;
+    document.getElementById('restart-btn').onclick = startGame;
+    document.getElementById('quit-btn').onclick = () => { initOrResumeAudio(); gameState = 'select'; screens.pause.classList.add('hidden'); screens.start.classList.remove('hidden'); if(currentAudio) currentAudio.pause(); playDemo(); };
+    document.getElementById('retry-btn').onclick = () => { initOrResumeAudio(); screens.result.classList.add('hidden'); screens.start.classList.remove('hidden'); gameState = 'select'; playDemo(); };
+    pauseTriggerBtn.onclick = togglePause;
+  </script>
+</body>
+</html>

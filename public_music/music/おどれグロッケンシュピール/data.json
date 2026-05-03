@@ -1,0 +1,576 @@
+[
+  {
+    "time": 1883,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 2357,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 2780,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 3230,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 3691,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 4120,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 4607,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 5040,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 5514,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 5963,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 6427,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 6874,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 7323,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 7776,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 8248,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 8703,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 9161,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 9394,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 9636,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 9850,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 10080,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 10528,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 10985,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 11445,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 11881,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 12351,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 12792,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 13233,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 13690,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 14166,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 14603,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 15043,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 15505,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 15971,
+    "dir": "right",
+    "type": "flick",
+    "flickDir": "left"
+  },
+  {
+    "time": 16197,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "right"
+  },
+  {
+    "time": 16415,
+    "dir": "left",
+    "type": "flick",
+    "flickDir": "left"
+  },
+  {
+    "time": 16639,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "right"
+  },
+  {
+    "time": 16886,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 17356,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 17770,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 18249,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 18679,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 19155,
+    "dir": "left",
+    "type": "flick",
+    "flickDir": "left"
+  },
+  {
+    "time": 19595,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 20040,
+    "dir": "right",
+    "type": "flick",
+    "flickDir": "right"
+  },
+  {
+    "time": 20761,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 20977,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 21209,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 21673,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 21893,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 22116,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 22583,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 22787,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 23009,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 23473,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 23693,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 23926,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 24639,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 25054,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 25505,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 25961,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 26435,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 26875,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 27328,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 28016,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 28226,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 28703,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 28927,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 29371,
+    "dir": "left",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 29596,
+    "dir": "right",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 30047,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "bottom"
+  },
+  {
+    "time": 30502,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "left"
+  },
+  {
+    "time": 30730,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "right"
+  },
+  {
+    "time": 30944,
+    "dir": "right",
+    "type": "flick",
+    "flickDir": "left"
+  },
+  {
+    "time": 31193,
+    "dir": "left",
+    "type": "flick",
+    "flickDir": "right"
+  },
+  {
+    "time": 31473,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 31925,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 32351,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 32804,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 33250,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 33702,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 34128,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 34576,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 35052,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 35494,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 35976,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 36428,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 36866,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 37321,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 37778,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 38239,
+    "dir": "right",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 38460,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 38696,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 39159,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 39600,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 40052,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 40491,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 40934,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 41400,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 41883,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 42347,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 42790,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 43196,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 43670,
+    "dir": "right",
+    "type": "tap"
+  },
+  {
+    "time": 44174,
+    "dir": "left",
+    "type": "tap"
+  },
+  {
+    "time": 44605,
+    "dir": "bottom",
+    "type": "tap"
+  },
+  {
+    "time": 45054,
+    "dir": "top",
+    "type": "tap"
+  },
+  {
+    "time": 45536,
+    "dir": "top",
+    "type": "flick",
+    "flickDir": "top"
+  },
+  {
+    "time": 45760,
+    "dir": "bottom",
+    "type": "flick",
+    "flickDir": "bottom"
+  }
+]

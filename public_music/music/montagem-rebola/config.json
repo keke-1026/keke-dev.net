@@ -1,0 +1,8 @@
+{
+  "title": "MONTAGEM REBOLA",
+  "bpm": 120,
+  "audioUrl": "audio.mp3",
+  "difficulties": [
+    { "name": "ENDRESS", "level": 810, "dataFile": "data.json" }
+  ]
+}
