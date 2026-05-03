@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>keke-dev.net</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* =========================================
+       CSS Variables & Base
+       ========================================= */
+    :root {
+      --bg-color: #fcfcfc; --text-main: #333333; --text-muted: #666666;
+      --accent-color: #000000; --border-color: #eaeaea;
+      --font-en: 'Inter', sans-serif; --font-jp: 'Noto Sans JP', sans-serif; --font-code: 'Fira Code', monospace;
+      --error-color: #ef4444; --hover-bg: #f5f5f5; --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-jp); background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
+    
+    /* スクロール干渉防止用 */
+    body.modal-open { overflow: hidden; }
+
+    h1, h2, h3, .nav a, .subtitle { font-family: var(--font-en); }
+    a { color: inherit; text-decoration: none; transition: opacity 0.3s ease; }
+    a:hover { opacity: 0.6; }
+
+    /* =========================================
+       Header & Navigation
+       ========================================= */
+    .header { position: fixed; top: 0; width: 100%; padding: 15px 0; background-color: rgba(252, 252, 252, 0.9); backdrop-filter: blur(8px); z-index: 100; border-bottom: 1px solid var(--border-color); }
+    .header-container { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; flex-wrap: wrap; gap: 10px; }
+    .logo-wrapper { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; text-decoration: none; color: inherit; }
+    .header-icon { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; display: block; background-color: var(--border-color); }
+    .logo { font-size: 1.2rem; font-weight: 800; letter-spacing: 0.05em; }
+    .nav { display: flex; gap: 15px; font-size: 0.9rem; font-weight: 600; flex-grow: 1; justify-content: center; flex-wrap: wrap; }
+
+    /* =========================================
+       Authentication UI
+       ========================================= */
+    .auth-controls { display: flex; align-items: center; gap: 15px; }
+    .user-profile { display: flex; flex-direction: column; align-items: flex-end; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;}
+    .user-profile:hover { background: var(--hover-bg); }
+    .equipped-title { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+    .username-display { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+    .btn-auth { padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); transition: all 0.2s; font-family: inherit; white-space: nowrap; }
+    .btn-auth:hover:not(:disabled) { background: var(--hover-bg); }
+    .btn-auth:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-auth-primary { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+    .btn-auth-primary:hover:not(:disabled) { background: #555; border-color: #555; }
+
+    /* =========================================
+       Main Content
+       ========================================= */
+    .section-container { max-width: 800px; margin: 0 auto; padding: 100px 20px 60px; }
+    .hero { height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .hero h2 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .hero p { font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+    .section h2 { font-size: 1.8rem; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; align-items: baseline; gap: 15px; }
+    .section h2 .subtitle { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+    
+    .skills { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .skill-tag { font-family: var(--font-en); font-size: 0.85rem; padding: 6px 16px; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; }
+    .section-img { width: 100%; height: auto; min-height: 100px; border-radius: var(--radius); margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); object-fit: cover; background-color: var(--hover-bg); display: block; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .card { padding: 30px; border: 1px solid var(--border-color); border-radius: var(--radius); background: #fff; transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); }
+    .card h3 { margin-bottom: 15px; font-size: 1.2rem; }
+    .card p { color: var(--text-muted); flex-grow: 1; }
+    .btn-more { display: inline-block; padding: 12px 24px; background-color: var(--text-main); color: #fff; border-radius: 30px; font-size: 0.95rem; font-weight: 600; transition: background-color 0.3s ease; border: none; cursor: pointer; text-align: center;}
+    .btn-more:hover { background: #555; opacity: 1; }
+
+    .qa-item { border: 1px solid var(--border-color); border-radius: var(--radius); background: #fff; overflow: hidden; margin-bottom: 15px;}
+    .qa-item summary { padding: 20px; font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .qa-item summary::-webkit-details-marker { display: none; }
+    .qa-item summary::after { content: '+'; font-family: var(--font-en); font-size: 1.2rem; color: var(--text-muted); }
+    .qa-item[open] summary::after { content: '-'; }
+    .qa-answer { padding: 0 20px 20px; color: var(--text-muted); }
+
+    .quiz-options { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .quiz-btn { padding: 12px 15px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); border-radius: 6px; cursor: pointer; font-family: var(--font-jp); font-weight: 600; transition: all 0.2s; text-align: left; }
+    .quiz-btn:hover { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+    
+    .social-links { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+    .social-links a svg { width: 28px; height: 28px; fill: currentColor; }
+    .related-links-list { display: flex; flex-direction: column; gap: 10px; }
+    .related-links-list a { display: inline-block; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; font-weight: bold; transition: all 0.2s; }
+    .related-links-list a:hover { border-color: var(--text-main); transform: translateX(5px); }
+
+    /* =========================================
+       Modals & Components
+       ========================================= */
+    .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 2000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(3px); }
+    .custom-modal.active { display: flex; opacity: 1; }
+    
+    .modal-content { background: #fff; padding: 30px; border-radius: var(--radius); max-width: 450px; width: 90%; max-height: 90vh; overflow-y: auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); transform: translateY(20px); transition: transform 0.3s ease; position: relative; display: flex; flex-direction: column; }
+    .custom-modal.active .modal-content { transform: translateY(0); }
+    .modal-content h3 { margin-bottom: 15px; font-size: 1.4rem; font-weight: 700; flex-shrink: 0; }
+    
+    #modal-message { white-space: pre-wrap; font-weight: 600; line-height: 1.6; margin-bottom: 20px; text-align: center; word-break: break-word; }
+    #modal-message.list-view { text-align: left; padding: 10px; background: var(--hover-bg); border-radius: 6px; max-height: 50vh; overflow-y: auto; }
+
+    .modal-close-btn { padding: 12px 20px; background: var(--text-main); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-family: var(--font-jp); transition: opacity 0.2s; width: 100%; font-weight: bold; margin-top: 10px; flex-shrink: 0; }
+    
+    .input-group { margin-bottom: 16px; text-align: left; }
+    .input-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+    .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 1rem; transition: border-color 0.2s; }
+    .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--text-main); }
+    .input-group input[type="checkbox"] { width: auto; margin-right: 8px; transform: scale(1.2); }
+    .checkbox-label { display: flex; align-items: center; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+    
+    .error-msg { color: var(--error-color); font-size: 0.85rem; margin-top: 6px; display: none; text-align: left; font-weight: 600;}
+    .divider { display: flex; align-items: center; margin: 24px 0; color: var(--text-muted); font-size: 0.85rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
+    
+    .close-icon-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1;}
+    .id-display-container { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .id-display { font-family: var(--font-code); font-size: 1rem; font-weight: 500; background: var(--hover-bg); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); word-break: break-all; color: var(--text-main); }
+
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text-main); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; z-index: 9999; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+    .tabs::-webkit-scrollbar { height: 6px; }
+    .tabs::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    .tab-btn { flex: 0 0 auto; padding: 10px 15px; background: none; border: none; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 0.95rem; }
+    .tab-btn.active { color: var(--text-main); border-bottom-color: var(--text-main); }
+    .tab-content { display: none; text-align: left; max-height: 500px; overflow-y: auto; padding-right: 5px;}
+    .tab-content.active { display: block; }
+    
+    .title-item { padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; cursor: pointer; text-align: left; transition: background 0.2s; }
+    .title-item.locked { opacity: 0.5; cursor: not-allowed; }
+    .rarity-badge { font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-right: 6px; border: 1px solid currentColor; display: inline-block;}
+
+    .footer { text-align: center; padding: 40px 20px; font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-en); }
+    .fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+    .fade-in.is-visible { opacity: 1; transform: translateY(0); }
+
+    #game-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+    #game-overlay.active { display: flex; }
+    canvas { background: #fcfcfc; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: pointer; max-width: 100%; }
+    
+    .ranking-table-wrapper { max-height: 350px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; }
+    .ranking-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .ranking-table th, .ranking-table td { padding: 12px; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .ranking-table th { font-weight: 600; color: var(--text-muted); background: var(--hover-bg); position: sticky; top: 0; z-index: 10;}
+    .rank-1 { color: #ffd700; font-weight: 800; font-size: 1.1rem; }
+    .rank-2 { color: #c0c0c0; font-weight: 800; font-size: 1.05rem; }
+    .rank-3 { color: #cd7f32; font-weight: 800; font-size: 1.05rem; }
+
+    .gacha-timer { font-family: var(--font-code); font-size: 1.2rem; font-weight: bold; margin: 10px 0; color: var(--error-color); }
+    .rate-btn { font-size: 0.8rem; text-decoration: underline; cursor: pointer; color: var(--text-muted); background: none; border: none; margin-top: 10px;}
+    .gacha-rates { font-size: 0.8rem; text-align: left; background: var(--hover-bg); padding: 10px; border-radius: 6px; margin-top: 10px; display: none; }
+
+    /* Admin Overlay */
+    #maintenance-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 999999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+    #maintenance-overlay h2 { font-size: 2rem; margin-bottom: 20px; font-family: var(--font-en); color: var(--error-color); }
+    #maintenance-overlay p { font-size: 1rem; color: var(--text-muted); margin-bottom: 30px; font-weight: 600; }
+
+    @media (max-width: 600px) { .nav { display: none; } .header-container { justify-content: space-between; } }
+  </style>
+</head>
+<body>
+
+  <div id="maintenance-overlay">
+    <h2>開発中 / メンテナンス</h2>
+    <p>現在、システムのメンテナンスまたは開発中です。</p>
+    <div style="display:flex; flex-direction:column; gap:15px; width:100%; max-width:300px;">
+      <input type="password" id="admin-pass-input" placeholder="Admin パスワード" style="padding:12px; border:1px solid var(--border-color); border-radius:6px; font-size:1rem;">
+      <button class="btn-auth btn-auth-primary" style="padding:12px;" onclick="checkAdminPass()">ロック解除</button>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="header-container">
+      <a href="#" class="logo-wrapper">
+        <img src="icon.png" alt="icon" class="header-icon">
+        <h1 class="logo">keke-dev.net</h1>
+      </a>
+      <nav class="nav">
+        <a href="#announcements">お知らせ</a>
+        <a href="#about">私について</a>
+        <a href="#works">制作物</a>
+        <a href="#shop">ショップ</a>
+        <a href="#gacha">ガチャ</a>
+        <a href="#ranking">ランキング</a>
+      </nav>
+      <div class="auth-controls">
+        <div id="auth-logged-out" style="display: flex;">
+          <button class="btn-auth btn-auth-primary" onclick="openAuthModal('login-modal')">ログイン / 登録</button>
+        </div>
+        <div id="auth-logged-in" style="display: none;">
+          <div class="user-profile" onclick="openProfileModal()" title="マイページを開く">
+            <div id="display-title" class="equipped-title"></div>
+            <div id="display-username" class="username-display"></div>
+          </div>
+          <button class="btn-auth" onclick="handleLogout()">ログアウト</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="hero" class="hero fade-in">
+      <div class="hero-content">
+        <h2 id="hero-title"></h2>
+        <p>keke</p>
+      </div>
+    </section>
+
+    <section id="announcements" class="section fade-in">
+      <div class="section-container">
+        <h2>お知らせ <span class="subtitle">Announcements</span></h2>
+        <div class="tabs" style="margin-bottom: 10px;">
+          <button class="tab-btn active" onclick="switchAnnounceTab('global', event)">全体</button>
+          <button class="tab-btn" onclick="switchAnnounceTab('personal', event)">個人</button>
+        </div>
+        <div id="announce-list-container" style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius); padding:10px; max-height:400px; overflow-y:auto; text-align:left;">
+           <div style="text-align:center; color:var(--text-muted); font-weight:bold; padding:20px;">読み込み中...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section fade-in">
+      <div class="section-container">
+        <h2>私について <span class="subtitle">About</span></h2>
+        <div id="about-container"></div>
+      </div>
+    </section>
+
+    <section id="qa" class="section fade-in">
+      <div class="section-container">
+        <h2>よくある質問 <span class="subtitle">Q&A</span></h2>
+        <div id="qa-container" class="qa-list"></div>
+      </div>
+    </section>
+
+    <section id="quiz" class="section fade-in">
+      <div class="section-container">
+        <h2>ミニクイズ <span class="subtitle">Quiz</span></h2>
+        <div id="quiz-container" class="card-grid"></div>
+      </div>
+    </section>
+
+    <section id="works" class="section fade-in">
+      <div class="section-container">
+        <h2>制作物 <span class="subtitle">Works</span></h2>
+        <div id="works-container" class="card-grid"></div>
+        <div style="text-align: center; margin-top: 40px;">
+          <a href="to-project.html" class="btn-more" target="_blank">作品一覧を見る</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="shop" class="section fade-in">
+      <div class="section-container">
+        <h2>交換ショップ <span class="subtitle">Shop</span></h2>
+        <p style="text-align:center; color:var(--text-muted); margin-bottom: 20px;">持っているアイテムを別のアイテムと交換できます。</p>
+        <div id="shop-container" class="card-grid">
+          <div style="grid-column: 1 / -1; color: var(--text-muted); font-weight: bold; text-align:center;">ショップデータ読み込み中...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gacha" class="section fade-in">
+      <div class="section-container" style="text-align: center;">
+        <h2 style="justify-content: center; border-bottom: none;">アイテムガチャ <span class="subtitle">Gacha</span></h2>
+        <div id="gacha-container" class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+          <div style="grid-column: 1 / -1; color: var(--text-muted); font-weight: bold;">データ読み込み中...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ranking" class="section fade-in">
+      <div class="section-container">
+        <h2>ランキング <span class="subtitle">Ranking</span></h2>
+        <div class="tabs" style="margin-top: 20px;">
+          <button class="tab-btn active" onclick="switchRankingTab('gachaCount', event)">ガチャ回数</button>
+          <button class="tab-btn" onclick="switchRankingTab('titleCount', event)">称号獲得数</button>
+          <button class="tab-btn" onclick="switchRankingTab('totalItemCount', event)">アイテム総数</button>
+          <button class="tab-btn" onclick="switchRankingTab('urCount', event)">UR獲得数</button>
+          <button class="tab-btn" onclick="switchRankingTab('srCount', event)">SR獲得数</button>
+          <button class="tab-btn" onclick="switchRankingTab('giftSentCount', event)">プレゼント回数</button>
+          <button class="tab-btn" onclick="switchRankingTab('maxConsecutiveDays', event)">最高連続ログイン</button>
+          <button class="tab-btn" onclick="switchRankingTab('loginDays', event)">累計ログイン</button>
+        </div>
+        <div class="card" style="padding: 15px;">
+          <div class="ranking-table-wrapper">
+            <table class="ranking-table" id="ranking-table">
+              <thead><tr><th width="50">順位</th><th>ユーザー名</th><th width="100">スコア</th></tr></thead>
+              <tbody id="ranking-tbody"><tr><td colspan="3" style="text-align:center;">読み込み中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="serial-code" class="section fade-in">
+      <div class="section-container">
+        <h2>プレゼント・コード <span class="subtitle">Gift & Code</span></h2>
+        <div class="card" style="text-align: center; padding: 40px;">
+          <p style="font-size: 0.9rem; margin-bottom: 20px; color: var(--text-muted);">シリアルコード、または他の人の「ユーザー名 / ID」を入力して<br>アイテムをプレゼントしよう！</p>
+          <div class="input-group" style="max-width: 300px; margin: 0 auto;">
+            <input type="text" id="serial-code-input" style="text-align: center; font-family: var(--font-en); font-weight: bold; letter-spacing: 0.1em;">
+          </div>
+          <button class="btn-auth btn-auth-primary" style="padding: 10px 40px; margin-top: 10px;" onclick="handleSerialCode()">送信</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="section fade-in">
+      <div class="section-container">
+        <h2>関連リンク <span class="subtitle">Links</span></h2>
+        <div id="social-container" class="social-links"></div>
+        <div id="related-links-container" class="related-links-list"></div>
+        <div style="margin-top: 30px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSc_UxtNFfa0M5Ie2LN_7DZOGCH73kPOhBoZy2S5xz3MuErPCA/viewform?usp=dialog" target="_blank" class="btn-more" style="border-radius: 6px; padding: 10px 20px; font-size: 0.85rem;">お問い合わせ・アンケート</a>
+          <div>
+            <a href="terms.html" target="_blank" style="text-decoration: underline; margin-right: 15px;">利用規約</a>
+            <a href="to-update.html" target="_blank" style="text-decoration: underline;">アップデートログ</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p id="secret-trigger" style="cursor: pointer; display: inline-block;">&copy; 2026 keke-dev.net | 東方Projectの二次創作を含みます｡</p>
+  </footer>
+
+  <div id="toast">ここに通知が入ります</div>
+
+  <div id="result-modal" class="custom-modal" style="z-index: 3000;">
+    <div class="modal-content">
+      <h3 id="modal-title">結果</h3>
+      <div id="modal-message"></div>
+      <button class="modal-close-btn" onclick="closeResultModal()">閉じる</button>
+    </div>
+  </div>
+
+  <div id="confirm-modal" class="custom-modal" style="z-index: 3100;">
+    <div class="modal-content" style="max-width: 400px;">
+      <h3 id="confirm-title">確認</h3>
+      <p id="confirm-message" style="white-space: pre-wrap; margin-bottom: 20px; font-size: 0.9rem; font-weight: 600;"></p>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-auth" style="flex:1;" onclick="closeConfirmModal(false)">キャンセル</button>
+        <button class="btn-auth btn-auth-primary" style="flex:1;" onclick="closeConfirmModal(true)">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="prompt-modal" class="custom-modal" style="z-index: 3100;">
+    <div class="modal-content" style="max-width: 400px;">
+      <h3 id="prompt-title">入力</h3>
+      <p id="prompt-message" style="white-space: pre-wrap; margin-bottom: 15px; font-size: 0.9rem; font-weight: 600;"></p>
+      <div class="input-group">
+        <input type="text" id="prompt-input">
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="btn-auth" style="flex:1;" onclick="closePromptModal(null)">キャンセル</button>
+        <button class="btn-auth btn-auth-primary" style="flex:1;" onclick="submitPromptModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-bonus-modal" class="custom-modal" style="z-index: 2100;">
+    <div class="modal-content" style="max-width: 500px;">
+      <h3 style="margin-bottom: 10px;">ログインボーナス</h3>
+      <p id="lb-modal-msg" style="font-size: 1rem; font-weight: 800; color: #d62728; margin-bottom: 15px; white-space: pre-wrap;"></p>
+      <div id="lb-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; text-align: center; margin-bottom: 20px;"></div>
+      <button class="btn-auth btn-auth-primary" style="width: 100%;" onclick="closeAuthModal('login-bonus-modal')">受け取る</button>
+    </div>
+  </div>
+
+  <div id="recycle-modal" class="custom-modal" style="z-index: 2200;">
+    <div class="modal-content" style="max-width: 400px;">
+      <button class="close-icon-btn" onclick="closeAuthModal('recycle-modal')">×</button>
+      <h3>リサイクル</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 15px;">不要なアイテムを自由に組み合わせて <strong>5個</strong> 消費するごとに<br>「時間短縮カード」を <strong>1枚</strong> 獲得します。</p>
+      
+      <div id="recycle-item-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-bottom: 15px; border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; background: #fff;"></div>
+      
+      <div id="recycle-summary" style="background: var(--hover-bg); padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 15px; line-height: 1.4;"></div>
+
+      <button class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px;" onclick="submitRecycle()">リサイクルする</button>
+    </div>
+  </div>
+
+  <div id="send-gift-modal" class="custom-modal" style="z-index: 2200;">
+    <div class="modal-content" style="max-width: 400px;">
+      <button class="close-icon-btn" onclick="closeAuthModal('send-gift-modal')">×</button>
+      <h3>プレゼントを送る</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 15px;">宛先: <strong id="gift-target-name"></strong></p>
+      <div id="gift-item-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-bottom: 15px; border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; background: #fff;"></div>
+      <button class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="submitSendGift()">送信する</button>
+    </div>
+  </div>
+
+  <div id="login-modal" class="custom-modal">
+    <div class="modal-content">
+      <button class="close-icon-btn" onclick="closeAuthModal('login-modal')">×</button>
+      <h3>ログイン</h3>
+      <div class="input-group">
+        <label>引き継ぎ用IDを入力</label>
+        <input type="text" id="login-uuid" style="font-family: var(--font-code); font-size: 0.85rem;">
+      </div>
+      <p id="login-error" class="error-msg"></p>
+      <button id="btn-login-submit" class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px;" onclick="handleUUIDLogin()">IDでログイン</button>
+      
+      <div style="margin-top: 15px; text-align: right;">
+        <a href="#" onclick="closeAuthModal('login-modal'); openAuthModal('forgot-id-modal')" style="font-size: 0.8rem; color: var(--text-muted); text-decoration: underline;">IDを忘れた方はこちら</a>
+      </div>
+
+      <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">アカウントをお持ちでない方</p>
+        <button class="btn-auth" style="width: 100%;" onclick="closeAuthModal('login-modal'); openAuthModal('signup-modal')">新しくIDを発行して始める</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="forgot-id-modal" class="custom-modal">
+    <div class="modal-content">
+      <button class="close-icon-btn" onclick="closeAuthModal('forgot-id-modal')">×</button>
+      <h3>ID復旧</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 20px;">登録時の情報を入力してください。<br>完全一致した場合にIDを表示します。</p>
+      <div class="input-group">
+        <label>ユーザー名</label>
+        <input type="text" id="forgot-username">
+      </div>
+      <div class="input-group">
+        <label>生年月日</label>
+        <input type="date" id="forgot-birthday">
+      </div>
+      <div class="input-group">
+        <label>秘密の質問の答え</label>
+        <input type="text" id="forgot-answer">
+      </div>
+      <p id="forgot-error" class="error-msg"></p>
+      <button class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px;" onclick="handleForgotID()">IDを復旧する</button>
+      <div id="forgot-result-box" style="display:none; margin-top:20px; padding:15px; background:var(--hover-bg); border-radius:6px;">
+        <p style="font-size:0.85rem; margin-bottom:10px;">あなたのIDはこちらです。必ずコピーしてください。</p>
+        <div id="forgot-result-id" class="id-display" style="font-size:0.85rem; user-select:all;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="signup-modal" class="custom-modal">
+    <div class="modal-content">
+      <button class="close-icon-btn" onclick="closeAuthModal('signup-modal')">×</button>
+      <h3>アカウント登録</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 15px;">ユーザー名等を入力して専用ログインIDを発行します。</p>
+      
+      <div class="input-group">
+        <label>希望するユーザー名 (半角英数字・変更不可)</label>
+        <input type="text" id="signup-username">
+      </div>
+      <div class="input-group">
+        <label>生年月日</label>
+        <input type="date" id="signup-birthday">
+      </div>
+      <div class="input-group">
+        <label>秘密の質問 (ID復旧に必要)</label>
+        <select id="signup-secret-q" onchange="document.getElementById('signup-custom-q-group').style.display = this.value === 'custom' ? 'block' : 'none'">
+          <option value="pet">最初に飼ったペットの名前は？</option>
+          <option value="school">好きなゲームは?</option>
+          <option value="food">嫌いな食べ物は?</option>
+          <option value="custom">自分で質問を設定する</option>
+        </select>
+      </div>
+      <div class="input-group" id="signup-custom-q-group" style="display: none;">
+        <label>オリジナルの質問内容</label>
+        <input type="text" id="signup-custom-q">
+      </div>
+      <div class="input-group">
+        <label>秘密の質問の答え</label>
+        <input type="text" id="signup-secret-a">
+      </div>
+      <div class="input-group" style="margin-bottom: 20px;">
+        <label class="checkbox-label">
+          <input type="checkbox" id="signup-terms"> <a href="terms.html" target="_blank" style="color: var(--text-main); text-decoration: underline; margin-left: 4px;">利用規約</a>に同意する
+        </label>
+      </div>
+
+      <p id="signup-error" class="error-msg"></p>
+      <button id="btn-signup-submit" class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px;" onclick="handleUUIDSignup()">IDを発行する</button>
+    </div>
+  </div>
+
+  <div id="uuid-result-modal" class="custom-modal">
+    <div class="modal-content">
+      <h3 style="color: var(--error-color);">※重要：保存してください</h3>
+      <p style="font-size: 0.85rem;">以下があなたの専用ログインIDです。<br><b>パスワードの代わりになります。</b></p>
+      <div class="id-display-container">
+        <div id="display-new-uuid" class="id-display"></div>
+        <button class="btn-auth btn-auth-primary" style="padding: 10px;" onclick="copyIdToClipboard()">IDをコピーする</button>
+      </div>
+      <button class="btn-auth" style="width: 100%; padding: 10px;" onclick="closeAuthModal('uuid-result-modal')">閉じる</button>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="custom-modal">
+    <div class="modal-content" style="max-width: 550px;">
+      <button class="close-icon-btn" onclick="closeAuthModal('profile-modal')">×</button>
+      <h3 style="margin-bottom: 10px;">マイページ</h3>
+      <p id="profile-info-text" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;"></p>
+      
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchProfileTab('title', event)">称号変更</button>
+        <button class="tab-btn" onclick="switchProfileTab('inventory', event)">持ち物</button>
+        <button class="tab-btn" onclick="switchProfileTab('account', event)">設定・ID</button>
+      </div>
+
+      <div id="tab-title" class="tab-content active">
+        <p style="font-size: 0.85rem; margin-bottom: 15px;">獲得した称号を選択して装備できます。</p>
+        <div id="title-list"></div>
+      </div>
+
+      <div id="tab-inventory" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <p style="font-size: 0.85rem; margin: 0;">アイテムをクリックで詳細確認できます。</p>
+          <button class="btn-auth" style="font-size: 0.75rem; padding: 4px 10px; border-color: var(--text-main);" onclick="openRecycleModal()">リサイクル</button>
+        </div>
+        <div id="inventory-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;"></div>
+      </div>
+
+      <div id="tab-account" class="tab-content">
+        <div class="input-group">
+          <label>現在のログインID</label>
+          <div class="id-display-container" style="margin-top:0;">
+            <div id="profile-display-uuid" class="id-display" style="font-size: 0.85rem;"></div>
+            <button class="btn-auth btn-auth-primary" style="padding: 10px;" onclick="copyCurrentIdToClipboard()">IDをコピーする</button>
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+          <label style="font-size: 0.85rem; font-weight: 600;">プロフィールの更新</label>
+          <div class="input-group" style="margin-top: 10px;">
+            <label>生年月日</label>
+            <input type="date" id="update-birthday">
+          </div>
+          
+          <div class="input-group">
+            <label>新しい秘密の質問</label>
+            <select id="update-secret-q" onchange="document.getElementById('update-custom-q-group-2').style.display = this.value === 'custom' ? 'block' : 'none'">
+              <option value="pet">最初に飼ったペットの名前は？</option>
+              <option value="school">好きなゲームは?</option>
+              <option value="food">嫌いな食べ物は?</option>
+              <option value="custom">自分で質問を設定する</option>
+            </select>
+          </div>
+          <div class="input-group" id="update-custom-q-group-2" style="display: none;">
+            <label>オリジナルの質問内容</label>
+            <input type="text" id="update-custom-q">
+          </div>
+          <div class="input-group">
+            <label>新しい秘密の質問の答え</label>
+            <input type="text" id="update-secret-a">
+          </div>
+          <button class="btn-auth btn-auth-primary" style="width: 100%;" onclick="updateProfileInfo()">情報を更新する</button>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px dashed var(--error-color);">
+          <button class="btn-auth" style="width: 100%; border-color: var(--error-color); color: var(--error-color);" onclick="resetUUID()">IDを再発行する（危険）</button>
+          <button class="btn-auth" style="width: 100%; border-color: var(--error-color); color: var(--error-color); margin-top: 10px;" onclick="deleteAccount()">退会する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="item-detail-modal" class="custom-modal" style="z-index: 3500;">
+    <div class="modal-content" style="max-width: 350px;">
+      <button class="close-icon-btn" onclick="closeAuthModal('item-detail-modal')">×</button>
+      <h3 id="detail-item-name" style="font-size: 1.2rem;"></h3>
+      <div id="detail-item-img-container" style="margin: 20px 0;"></div>
+      <p id="detail-item-count" style="font-size: 1.1rem; font-weight: 800;"></p>
+      <button id="detail-item-use" class="btn-auth btn-auth-primary" style="width:100%; display:none; margin-top:15px; background-color:#2ca02c; border-color:#2ca02c;"></button>
+      <button id="detail-item-dl" class="btn-auth btn-auth-primary" style="width:100%; display:none; margin-top:10px;">画像をダウンロード</button>
+    </div>
+  </div>
+
+  <div id="game-overlay">
+    <h2 style="margin-bottom: 20px; font-family: 'Inter', sans-serif;">ミニゲーム</h2>
+    <p style="margin-bottom: 10px; font-size: 0.9rem;">画面をクリックしてジャンプ</p>
+    <canvas id="gameCanvas" width="500" height="200"></canvas>
+    <button class="btn-auth" id="close-game" style="margin-top: 20px; background:#fff; color:#000;">閉じる</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, updateEmail, updatePassword, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.net",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.currentUser = null; window.userData = null; window.systemSettings = null;
+    window.gachaData = null; window.titlesData = []; window.loginBonusData = null; window.codeData = null; window.shopData = null; window.itemsData = null;
+    window.itemImages = {}; 
+    let gachaTimers = {};
+    window.userUnsub = null;
+    window.rankingUnsub = null;
+    let sleepInterval = null;
+    window.globalAnnouncements = [];
+
+    // --- 計算用ヘルパー ---
+    window.calcTotalItems = function(inv) {
+      if(!inv) return 0;
+      return Object.values(inv).reduce((a, b) => a + b, 0);
+    };
+
+    // --- Admin & Maintenance ---
+    onSnapshot(doc(db, "system", "settings"), (docSnap) => {
+      if(docSnap.exists()) {
+        const data = docSnap.data();
+        window.systemSettings = data;
+        if (data.isMaintenance && sessionStorage.getItem('admin_unlocked') !== 'true') {
+           document.getElementById('maintenance-overlay').style.display = 'flex';
+           document.body.style.overflow = 'hidden';
+        } else {
+           document.getElementById('maintenance-overlay').style.display = 'none';
+           document.body.style.overflow = '';
+        }
+      }
+    });
+
+    window.checkAdminPass = async () => {
+      const pass = document.getElementById('admin-pass-input').value;
+      if (!pass) return;
+
+      try {
+        const docRef = doc(db, "system", "admin");
+        const snap = await getDoc(docRef);
+        let correctPass = "keke-admin"; // デフォルト
+        if(snap.exists()) {
+          correctPass = snap.data().password;
+        }
+
+        if (pass === correctPass) {
+           sessionStorage.setItem('admin_unlocked', 'true');
+           document.getElementById('maintenance-overlay').style.display = 'none';
+           document.body.style.overflow = '';
+           window.showToast("開発モードのロックを解除しました");
+        } else {
+           window.showToast("パスワードが違います");
+        }
+      } catch(e) {
+         window.showToast("エラーが発生しました");
+      }
+    };
+
+    // --- Announcements ---
+    onSnapshot(doc(db, "system", "announcements"), (docSnap) => {
+      if(docSnap.exists()) {
+        window.globalAnnouncements = docSnap.data().messages || [];
+      } else {
+        window.globalAnnouncements = [];
+      }
+      if(typeof window.renderAnnouncements === 'function') window.renderAnnouncements();
+    });
+
+    window.currentAnnounceTab = 'global';
+    window.switchAnnounceTab = (tab, e) => {
+      document.querySelectorAll('#announcements .tab-btn').forEach(b => b.classList.remove('active'));
+      if(e && e.target) e.target.classList.add('active');
+      window.currentAnnounceTab = tab;
+      window.renderAnnouncements();
+    };
+
+    window.renderAnnouncements = () => {
+      const container = document.getElementById('announce-list-container');
+      if (!container) return;
+
+      let msgs = [];
+      if (window.currentAnnounceTab === 'global') {
+        msgs = window.globalAnnouncements || [];
+      } else {
+        if (!window.currentUser || !window.userData) {
+          container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-weight:bold;">ログインすると個人宛のお知らせを確認できます</div>';
+          return;
+        }
+        msgs = window.userData.inbox || [];
+      }
+
+      if (msgs.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px; font-weight:bold;">お知らせがありません</div>';
+        return;
+      }
+
+      let html = '';
+      msgs.forEach(m => {
+        html += `
+          <div style="border-bottom:1px dashed var(--border-color); padding:15px 10px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px; font-family:var(--font-code);">${m.date || ''}</div>
+            <div style="font-weight:700; font-size:1.05rem; margin-bottom:8px; color:var(--text-main);">${m.title}</div>
+            <div style="font-size:0.9rem; color:var(--text-muted); white-space:pre-wrap; line-height:1.5;">${m.message}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    };
+
+
+    // --- 睡眠状態チェック ---
+    window.checkSleep = () => {
+      if (window.userData && window.userData.sleepUntil && window.userData.sleepUntil > Date.now()) {
+        const remain = Math.ceil((window.userData.sleepUntil - Date.now()) / 60000);
+        window.showResultModal("睡眠中", `現在睡眠中のため、あと ${remain} 分は行動できません。`, true);
+        return true;
+      }
+      return false;
+    };
+
+    // --- カスタムUIヘルパー ---
+    const checkModalOpen = () => {
+      if (document.querySelectorAll('.custom-modal.active').length > 0) {
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
+    };
+
+    window.showToast = function(msg) {
+      const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+      setTimeout(() => { t.classList.remove('show'); }, 3000);
+    };
+
+    window.showResultModal = function(title, msg, isError=false, isList=false) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-title').style.color = isError ? "var(--error-color)" : "var(--text-main)";
+      const msgEl = document.getElementById('modal-message');
+      msgEl.innerHTML = msg; 
+      
+      if (isList) {
+        msgEl.classList.add('list-view');
+      } else {
+        msgEl.classList.remove('list-view');
+      }
+
+      document.getElementById('result-modal').classList.add('active');
+      checkModalOpen();
+    };
+
+    window.closeResultModal = () => {
+      document.getElementById('result-modal').classList.remove('active');
+      checkModalOpen();
+    };
+    window.openAuthModal = (id) => {
+      document.getElementById(id).classList.add('active');
+      checkModalOpen();
+    };
+    window.closeAuthModal = (id) => {
+      document.getElementById(id).classList.remove('active');
+      checkModalOpen();
+    };
+
+    // --- カスタム Confirm / Prompt システム ---
+    let confirmResolve = null;
+    window.customConfirm = (title, msg) => {
+      return new Promise(resolve => {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = msg;
+        document.getElementById('confirm-modal').classList.add('active');
+        checkModalOpen();
+        confirmResolve = resolve;
+      });
+    };
+    window.closeConfirmModal = (res) => {
+      document.getElementById('confirm-modal').classList.remove('active');
+      checkModalOpen();
+      if(confirmResolve) confirmResolve(res);
+      confirmResolve = null;
+    };
+
+    let promptResolve = null;
+    window.customPrompt = (title, msg, defaultVal = '') => {
+      return new Promise(resolve => {
+        document.getElementById('prompt-title').textContent = title;
+        document.getElementById('prompt-message').textContent = msg;
+        const input = document.getElementById('prompt-input');
+        input.value = defaultVal;
+        document.getElementById('prompt-modal').classList.add('active');
+        checkModalOpen();
+        promptResolve = resolve;
+        setTimeout(() => input.focus(), 100);
+      });
+    };
+    window.closePromptModal = (res) => {
+      document.getElementById('prompt-modal').classList.remove('active');
+      checkModalOpen();
+      if(promptResolve) promptResolve(res);
+      promptResolve = null;
+    };
+    window.submitPromptModal = () => {
+      const val = document.getElementById('prompt-input').value;
+      window.closePromptModal(val);
+    };
+
+    window.handleQuizAnswer = (isC, cMsg, iMsg) => isC ? window.showResultModal("正解", cMsg) : window.showResultModal("不正解", iMsg, true);
+    
+    window.copyIdToClipboard = () => { navigator.clipboard.writeText(document.getElementById('display-new-uuid').textContent).then(()=>window.showToast("コピーしました！")); };
+    window.copyCurrentIdToClipboard = () => { navigator.clipboard.writeText(document.getElementById('profile-display-uuid').textContent).then(()=>window.showToast("コピーしました！")); };
+
+    // --- 初期データ読み込み ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const fadeElements = document.querySelectorAll('.fade-in');
+      const observer = new IntersectionObserver((entries, obs) => { entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); obs.unobserve(e.target); } }); }, { threshold: 0.15 });
+      fadeElements.forEach(el => observer.observe(el));
+
+      Promise.all([
+        fetch('data.json').then(r=>r.json()).catch(()=>null), 
+        fetch('gacha.json').then(r=>r.json()).catch(()=>null), 
+        fetch('titles.json').then(r=>r.json()).catch(()=>null),
+        fetch('loginbonus.json').then(r=>r.json()).catch(()=>null),
+        fetch('code.json').then(r=>r.json()).catch(()=>null),
+        fetch('shop.json').then(r=>r.json()).catch(()=>null),
+        fetch('items.json').then(r=>r.json()).catch(()=>null)
+      ]).then(([pData, gData, tData, lbData, cData, sData, iData]) => {
+        
+        if (iData && typeof iData === 'object') {
+          // 新旧のitems.jsonフォーマット両対応
+          Object.keys(iData).forEach(k => {
+            if (typeof iData[k] === 'string') {
+              window.itemImages[k] = iData[k];
+            } else if (iData[k].image) {
+              window.itemImages[k] = iData[k].image;
+            }
+          });
+        }
+        if (gData && Array.isArray(gData)) {
+          gData.forEach(g => {
+            if (g.items) g.items.forEach(i => { if (i.image) window.itemImages[i.name] = i.image; });
+          });
+        }
+        if (sData && Array.isArray(sData)) {
+          sData.forEach(s => { if (s.image) window.itemImages[s.name] = s.image; });
+        }
+        if (lbData && Array.isArray(lbData)) {
+          lbData.forEach(lb => { if (lb.image && lb.type === "item") window.itemImages[lb.name] = lb.image; });
+        }
+        if (cData && typeof cData === 'object') {
+          Object.values(cData).forEach(c => { if (c.image && c.type === "item") window.itemImages[c.name] = c.image; });
+        }
+
+        if (pData) {
+          if(pData.heroTitles) document.getElementById('hero-title').textContent = pData.heroTitles[Math.floor(Math.random() * pData.heroTitles.length)];
+          if(pData.about) document.getElementById('about-container').innerHTML = `<img src="${pData.about.image}" class="section-img"><p>${pData.about.text}</p><div class="skills">${(pData.about.skills||[]).map(s=>`<span class="skill-tag">${s}</span>`).join('')}</div>`;
+          if(pData.works) document.getElementById('works-container').innerHTML = pData.works.map(w=>`<a href="${w.link}" class="card" target="_blank"><img src="${w.image}" class="section-img"><h3>${w.title}</h3><p>${w.description}</p></a>`).join('');
+          if(pData.qa) document.getElementById('qa-container').innerHTML = pData.qa.map(q=>`<details class="qa-item"><summary>${q.question}</summary><div class="qa-answer"><p>${q.answer}</p></div></details>`).join('');
+          if(pData.quiz) document.getElementById('quiz-container').innerHTML = pData.quiz.map(q=>`<div class="card"><h3>${q.question}</h3><p>${q.description}</p><div class="quiz-options">${q.options.map(o=>`<button class="quiz-btn" onclick="handleQuizAnswer(${o.isCorrect}, '${q.correctMessage}', '${q.incorrectMessage}')">${o.text}</button>`).join('')}</div></div>`).join('');
+          if(pData.relatedLinks) document.getElementById('related-links-container').innerHTML = pData.relatedLinks.map(l=>`<a href="${l.url}" target="_blank">${l.title}</a>`).join('');
+        }
+        if (gData) window.gachaData = gData;
+        if (tData) window.titlesData = tData;
+        if (lbData) window.loginBonusData = lbData;
+        if (cData) window.codeData = cData;
+        if (sData) window.shopData = sData;
+        if (iData) window.itemsData = iData;
+        
+        updateGachaUI(); renderShop(); loadRanking('gachaCount');
+      });
+    });
+
+    // --- 認証ステータス監視 (リアルタイム更新対応版) ---
+    onAuthStateChanged(auth, async (user) => {
+      window.currentUser = user;
+      document.getElementById('auth-logged-out').style.display = user ? 'none' : 'flex';
+      document.getElementById('auth-logged-in').style.display = user ? 'flex' : 'none';
+      
+      if (window.userUnsub) {
+        window.userUnsub();
+        window.userUnsub = null;
+      }
+
+      if (user) { 
+        closeAuthModal('login-modal'); 
+        await syncUserData(); 
+        
+        window.userUnsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            window.userData = docSnap.data();
+            
+            if(window.userData.banned) {
+              localStorage.setItem('keke_banned', 'true');
+              signOut(auth); 
+              window.showResultModal("エラー", "このアカウントは利用を停止されています。", true); 
+              return; 
+            }
+
+            if (window.userData.gifts && window.userData.gifts.length > 0) {
+              let msg = "";
+              window.userData.gifts.forEach(g => {
+                msg += `[プレゼント] ${g.from} さんから 【${g.name}】 を ${g.amount}個 もらいました！\n`;
+              });
+              window.showResultModal("プレゼントが届いています！", msg);
+              updateDoc(doc(db, "users", user.uid), { gifts: [] });
+            }
+
+            updateUserUI(); 
+            updateGachaUI(); 
+            if(typeof window.renderAnnouncements === 'function') window.renderAnnouncements();
+            
+            // プロフィール画面が開かれている場合は持ち物などの表示を更新
+            if (document.getElementById('profile-modal').classList.contains('active')) {
+               const activeTabBtn = document.querySelector('#profile-modal .tab-btn.active');
+               if (activeTabBtn && activeTabBtn.textContent === '持ち物') {
+                 activeTabBtn.click();
+               }
+            }
+          }
+        });
+      } else { 
+        window.userData = null; 
+        updateGachaUI(); renderShop();
+        if(typeof window.renderAnnouncements === 'function') window.renderAnnouncements();
+      }
+    });
+
+    // --- ユーザーデータ同期 ---
+    async function syncUserData() {
+      if (!window.currentUser) return;
+      const ref = doc(db, "users", window.currentUser.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) { signOut(auth); window.showToast("データが見つかりません。退会済みかBanされています。"); return; }
+      
+      window.userData = snap.data();
+      if(window.userData.banned) {
+        localStorage.setItem('keke_banned', 'true');
+        signOut(auth); 
+        window.showResultModal("エラー", "このアカウントは利用を停止されています。", true); 
+        return; 
+      }
+
+      const todayStr = new Date().toLocaleDateString();
+      let updates = {};
+      let needsUpdate = false;
+
+      if (window.userData.lastLogin !== todayStr || window.userData.loginDays === 0) {
+        const d1 = new Date(window.userData.lastLogin || 0); const d2 = new Date(todayStr);
+        const diffDays = Math.floor((d2 - d1) / (1000*60*60*24));
+        
+        if (window.userData.loginDays === 0) {
+           window.userData.consecutiveDays = 1;
+        } else if (diffDays === 1) {
+           window.userData.consecutiveDays = (window.userData.consecutiveDays || 0) + 1;
+        } else {
+           window.userData.consecutiveDays = 1;
+        }
+
+        window.userData.maxConsecutiveDays = Math.max((window.userData.maxConsecutiveDays || 0), window.userData.consecutiveDays);
+        window.userData.lastLogin = todayStr;
+        window.userData.loginDays = (window.userData.loginDays || 0) + 1;
+        
+        let lbName = ""; 
+        
+        if (window.loginBonusData && Array.isArray(window.loginBonusData) && window.loginBonusData.length > 0) {
+           const dayInCycle = ((window.userData.consecutiveDays - 1) % window.loginBonusData.length) + 1; 
+           const bonus = window.loginBonusData.find(b => b.day === dayInCycle);
+           if (bonus) {
+              lbName = bonus.name;
+              if (bonus.type === "item") {
+                 if (!window.userData.inventory) window.userData.inventory = {};
+                 window.userData.inventory[bonus.name] = (window.userData.inventory[bonus.name] || 0) + bonus.amount;
+              } else if (bonus.type === "title" && !(window.userData.unlockedTitles || []).includes(bonus.titleId)) {
+                 if(!window.userData.unlockedTitles) window.userData.unlockedTitles = [];
+                 window.userData.unlockedTitles.push(bonus.titleId);
+                 window.userData.titleCount = window.userData.unlockedTitles.length;
+              }
+           }
+
+           let gridHtml = '';
+           window.loginBonusData.forEach(b => {
+             let isToday = (b.day === dayInCycle);
+             let isPast = (b.day < dayInCycle);
+             let bg = isToday ? 'var(--text-main)' : (isPast ? 'var(--border-color)' : '#fff');
+             let col = isToday ? '#fff' : (isPast ? 'var(--text-muted)' : 'var(--text-main)');
+             let stamp = isPast ? '確認済' : (isToday ? 'GET' : '-');
+             gridHtml += `<div style="padding:10px 5px; border:1px solid var(--border-color); border-radius:6px; background:${bg}; color:${col};">
+               <div style="font-size:0.7rem;">${b.day}日目</div>
+               <div style="font-size:0.75rem; font-weight:bold; margin:5px 0;">${b.name}</div>
+               <div style="font-size:0.8rem;">${stamp}</div>
+             </div>`;
+           });
+           document.getElementById('lb-grid').innerHTML = gridHtml;
+           document.getElementById('lb-modal-msg').textContent = `${dayInCycle}日目！\n『${lbName}』を受け取りました！`;
+           openAuthModal('login-bonus-modal');
+        }
+        
+        updates.lastLogin = todayStr;
+        updates.loginDays = window.userData.loginDays;
+        updates.consecutiveDays = window.userData.consecutiveDays;
+        updates.maxConsecutiveDays = window.userData.maxConsecutiveDays;
+        updates.inventory = window.userData.inventory || {};
+        updates.unlockedTitles = window.userData.unlockedTitles || [];
+        updates.titleCount = window.userData.titleCount || 1;
+        updates.totalItemCount = calcTotalItems(updates.inventory);
+        needsUpdate = true;
+      }
+
+      if (window.userData.gifts && window.userData.gifts.length > 0) {
+        let msg = "";
+        window.userData.gifts.forEach(g => {
+          msg += `[プレゼント] ${g.from} さんから 【${g.name}】 を ${g.amount}個 もらいました！\n`;
+        });
+        window.showResultModal("プレゼントが届いています！", msg);
+        updates.gifts = [];
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await updateDoc(doc(db, "users", window.currentUser.uid), updates);
+      }
+
+      updateUserUI(); 
+      updateGachaUI(); 
+      renderShop();
+      checkTitles();
+      if(typeof window.renderAnnouncements === 'function') window.renderAnnouncements();
+    }
+
+    window.updateUserUI = () => {
+      if(!window.userData) return;
+      
+      const uNameEl = document.getElementById('display-username');
+      const baseName = window.userData.displayName || window.userData.username;
+      
+      // 睡眠表示ロジック
+      if (window.userData.sleepUntil && window.userData.sleepUntil > Date.now()) {
+         const remain = Math.ceil((window.userData.sleepUntil - Date.now()) / 60000);
+         uNameEl.innerHTML = `${baseName} <span style="color:var(--error-color); font-size:0.75rem; font-weight:800;">[睡眠中: 残り${remain}分]</span>`;
+         
+         // UIカウントダウン用
+         if(!sleepInterval) {
+            sleepInterval = setInterval(() => { updateUserUI(); }, 60000);
+         }
+      } else {
+         uNameEl.textContent = baseName;
+         if(sleepInterval) { clearInterval(sleepInterval); sleepInterval = null; }
+      }
+      
+      const unlocked = window.userData.unlockedTitles || [];
+      let equippedId = window.userData.equippedTitle;
+      if (equippedId && equippedId !== "novice" && !unlocked.includes(equippedId)) {
+        equippedId = "novice";
+      }
+
+      let tName = "[称号なし]";
+      if (Array.isArray(window.titlesData)) {
+        const t = window.titlesData.find(x => x.id === equippedId);
+        if (t) tName = `[${t.name}]`;
+      }
+      document.getElementById('display-title').textContent = tName;
+    };
+
+    function formatTime(ms) {
+      if(ms <= 0) return "00:00:00";
+      const h = Math.floor(ms / (1000*60*60)); const m = Math.floor((ms % (1000*60*60)) / (1000*60)); const s = Math.floor((ms % (1000*60)) / 1000);
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // --- ガチャUI更新 (1連, 10連, 100連) ---
+    window.updateGachaUI = () => {
+      const container = document.getElementById('gacha-container');
+      if (!window.gachaData || !Array.isArray(window.gachaData)) return;
+      container.innerHTML = '';
+      
+      window.gachaData.forEach(gacha => {
+        const config = gacha.config || {}; 
+        const cooldownMs = (config.cooldownHours || 1) * 60 * 60 * 1000;
+        
+        const allow10 = config.allow10 !== false; 
+        const allow100 = config.allow100 !== false; 
+        const allowSkip = config.allowSkip !== false;
+
+        const card = document.createElement('div'); card.className = 'card'; card.style.cssText = "text-align:center; display:flex; flex-direction:column;";
+        
+        let ratesHtml = Object.keys(gacha.rarities).map(k=>`<div style="color:${gacha.rarities[k].color}"><b>${k}</b>: ${gacha.rarities[k].weight}%</div>`).join('');
+
+        card.innerHTML = `
+          <h3 style="margin-bottom: 5px;">${gacha.title}</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem; flex-grow: 1;">${gacha.description}</p>
+          <button class="rate-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">排出率を見る</button>
+          <div class="gacha-rates">${ratesHtml}</div>
+          <div id="gacha-status-${gacha.id}" style="margin:15px 0; font-weight:bold; font-size:0.95rem;"></div>
+          
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button id="btn-1-${gacha.id}" class="btn-more" style="width:100%; border:none;"></button>
+            <button id="btn-10-${gacha.id}" class="btn-auth" style="width:100%; display:none;"></button>
+            <button id="btn-100-${gacha.id}" class="btn-auth" style="width:100%; display:none; border-color:#ff7f0e; color:#ff7f0e; font-weight:800;"></button>
+          </div>
+        `;
+        container.appendChild(card);
+
+        if(gachaTimers[gacha.id]) clearInterval(gachaTimers[gacha.id]);
+        
+        const updateTimer = () => {
+          const statusEl = document.getElementById(`gacha-status-${gacha.id}`);
+          const btn1 = document.getElementById(`btn-1-${gacha.id}`);
+          const btn10 = document.getElementById(`btn-10-${gacha.id}`);
+          const btn100 = document.getElementById(`btn-100-${gacha.id}`);
+
+          if(!statusEl || !btn1) return;
+
+          if (!window.currentUser || !window.userData) {
+            statusEl.textContent = `${config.cooldownHours}時間に1回プレイ可能`; statusEl.style.color = "var(--text-main)";
+            btn1.textContent = "ログインして回す"; btn1.onclick = () => openAuthModal('login-modal');
+            return;
+          }
+
+          const now = Date.now(); const lastTime = window.userData[`lastFreeGachaTime_${gacha.id}`] || 0;
+          const remainMs = (lastTime + cooldownMs) - now;
+          const skipCards = window.userData.inventory ? (window.userData.inventory['時間短縮カード'] || 0) : 0;
+          const ticket100 = window.userData.inventory ? (window.userData.inventory['100連専用チケット'] || 0) : 0;
+
+          // 1連ロジック
+          if (remainMs <= 0) {
+            statusEl.textContent = "【プレイ可能】"; statusEl.style.color = "#2ca02c";
+            btn1.textContent = "1回ガチャを回す (無料)"; btn1.style.background = "var(--text-main)"; btn1.style.color = "#fff"; btn1.disabled = false;
+            btn1.onclick = () => executeGacha(gacha.id, 1, 0);
+          } else {
+            statusEl.innerHTML = `チャージ中<br><span class="gacha-timer">${formatTime(remainMs)}</span>`; statusEl.style.color = "var(--text-main)";
+            let reqFor1 = Math.ceil(remainMs / (1000*60*60));
+            if (allowSkip && skipCards >= reqFor1) {
+               btn1.textContent = `砂時計で1回回す (必要:${reqFor1}枚)`; btn1.style.background = "var(--hover-bg)"; btn1.style.color = "var(--text-main)"; btn1.disabled = false;
+               btn1.onclick = () => executeGacha(gacha.id, 1, reqFor1);
+            } else {
+               btn1.textContent = "チャージ中..."; btn1.style.background = "#ccc"; btn1.style.color = "#fff"; btn1.disabled = true; btn1.onclick = null;
+            }
+          }
+
+          // 10連ロジック
+          if (allow10 && allowSkip) {
+            let reqFor10 = 0;
+            if (remainMs <= 0) reqFor10 = 9 * (config.cooldownHours || 1);
+            else reqFor10 = Math.ceil(remainMs / (1000*60*60)) + (9 * (config.cooldownHours || 1));
+
+            if (skipCards >= reqFor10) {
+               btn10.style.display = "block";
+               btn10.textContent = `10連ガチャ (砂時計:${reqFor10}枚)`;
+               btn10.onclick = () => executeGacha(gacha.id, 10, reqFor10);
+            } else { btn10.style.display = "none"; }
+          } else {
+            btn10.style.display = "none";
+          }
+
+          // 100連ロジック
+          if (allow100 && ticket100 > 0) {
+             btn100.style.display = "block";
+             btn100.textContent = `100連ガチャ (専用チケ所持:${ticket100}枚)`;
+             btn100.onclick = () => executeGacha(gacha.id, 100, 0, true);
+          } else { btn100.style.display = "none"; }
+
+        };
+        updateTimer(); gachaTimers[gacha.id] = setInterval(updateTimer, 1000);
+      });
+    };
+
+    // ガチャ実行コア処理
+    window.executeGacha = async (gachaId, times, costSkipCards = 0, use100Ticket = false) => {
+      if(window.checkSleep()) return;
+      const gacha = window.gachaData.find(g => g.id === gachaId); if(!gacha) return;
+      
+      let confirmMsg = "";
+      if(use100Ticket) confirmMsg = "「100連専用チケット」を1枚消費して100連ガチャを引きますか？";
+      else if(costSkipCards > 0) confirmMsg = `「時間短縮カード」を ${costSkipCards} 枚消費して ${times}連ガチャを引きますか？`;
+      else confirmMsg = "無料で1回ガチャを引きますか？";
+
+      const isOk = await window.customConfirm("ガチャ実行確認", confirmMsg);
+      if(!isOk) return;
+
+      if(use100Ticket && (!window.userData.inventory['100連専用チケット'] || window.userData.inventory['100連専用チケット'] < 1)){
+         window.showToast("チケットが足りません"); return;
+      }
+      if(costSkipCards > 0 && (!window.userData.inventory['時間短縮カード'] || window.userData.inventory['時間短縮カード'] < costSkipCards)){
+         window.showToast("時間短縮カードが足りません"); return;
+      }
+
+      const timeKey = `lastFreeGachaTime_${gacha.id}`; const countKey = `gachaCount_${gacha.id}`;
+      const now = Date.now();
+      const cooldownHours = gacha.config.cooldownHours || 1;
+      
+      let newLastTime = window.userData[timeKey] || 0;
+      if (times === 1 && costSkipCards === 0) newLastTime = now; 
+      else if (times === 10 && costSkipCards < (10 * cooldownHours)) newLastTime = now; 
+
+      window.userData[timeKey] = newLastTime; 
+      window.userData[countKey] = (window.userData[countKey] || 0) + times; 
+      window.userData.gachaCount = (window.userData.gachaCount || 0) + times;
+
+      let urCountAdded = 0;
+      let srCountAdded = 0;
+      let resultsHtml = "";
+      
+      if (times > 1) {
+         resultsHtml = `<div style="text-align: left; font-size: 0.9rem;">`;
+      }
+      
+      let updates = { 
+        [timeKey]: newLastTime, 
+        [countKey]: window.userData[countKey], 
+        gachaCount: window.userData.gachaCount 
+      };
+
+      if(use100Ticket) window.userData.inventory['100連専用チケット'] -= 1;
+      if(costSkipCards > 0) window.userData.inventory['時間短縮カード'] -= costSkipCards;
+
+      if(!window.userData.inventory) window.userData.inventory = {};
+      if(!window.userData.unlockedTitles) window.userData.unlockedTitles = [];
+
+      for(let i=0; i<times; i++) {
+        let totalWeight = 0;
+        for (const r in gacha.rarities) totalWeight += gacha.rarities[r].weight;
+        let rand = Math.random() * totalWeight;
+        let hitRarity = null;
+        for (const r in gacha.rarities) {
+          if (rand < gacha.rarities[r].weight) { hitRarity = r; break; }
+          rand -= gacha.rarities[r].weight;
+        }
+        
+        const availableItems = gacha.items.filter(item => item.rarity === hitRarity);
+        let hitItem = availableItems[Math.floor(Math.random() * availableItems.length)] || gacha.items[0];
+
+        if(hitRarity === "UR") urCountAdded++;
+        if(hitRarity === "SR" || hitRarity === "SSR") srCountAdded++;
+
+        let c = gacha.rarities[hitRarity].color;
+        let imgPath = window.itemImages[hitItem.name] || hitItem.image;
+        
+        if (times === 1) {
+          let imgHtml = imgPath 
+            ? `<img src="${imgPath}" style="width:100%; max-width:250px; max-height:250px; object-fit:contain; border-radius:8px; margin: 15px auto; display:block;">` 
+            : `<div style="width:100%; max-width:200px; height:150px; margin:15px auto; display:flex; align-items:center; justify-content:center; background:var(--hover-bg); border-radius:8px; border:1px dashed var(--border-color); font-weight:bold; font-size:1.1rem; color:var(--text-main); text-align:center; padding:10px;">${hitItem.name}</div>`;
+            
+          let dlBtnHtml = imgPath ? `<button class="btn-auth btn-auth-primary" style="width:100%; margin-bottom:10px;" onclick="const a=document.createElement('a'); a.href='${imgPath}'; a.download='${hitItem.name}'; a.click();">画像をダウンロード</button>` : '';
+          
+          resultsHtml = `<div style="text-align: center;">\n<span style="color:${c}; font-weight:800; font-size:1.5rem;">[${hitRarity}]</span><br>\n<div style="font-size:1.2rem; font-weight:bold; margin-top:5px;">【 ${hitItem.name} 】 を獲得！</div>\n${imgHtml}\n${dlBtnHtml}\n</div>`;
+        } else {
+          const safeImgUrl = imgPath ? imgPath.replace(/'/g, "\\'") : '';
+          
+          let rightEl = imgPath 
+            ? `<img src="${imgPath}" style="height:35px; width:35px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid var(--border-color);" onclick="window.showItemDetail('${hitItem.name}', '獲得済み', {image: '${safeImgUrl}'})">` 
+            : `<button class="btn-auth" style="padding:4px 8px; font-size:0.75rem;" onclick="window.showItemDetail('${hitItem.name}', '獲得済み', {})">詳細</button>`;
+          
+          resultsHtml += `<div style="padding:8px 4px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">\n<div><span style="color:${c}; font-weight:bold; margin-right:8px;">[${hitRarity}]</span> ${hitItem.name}</div>\n<div>${rightEl}</div>\n</div>\n`;
+        }
+
+        if (hitItem.type === 'title') {
+          if (!window.userData.unlockedTitles.includes(hitItem.titleId)) { 
+            window.userData.unlockedTitles.push(hitItem.titleId); 
+          }
+        } else {
+          window.userData.inventory[hitItem.name] = (window.userData.inventory[hitItem.name] || 0) + 1;
+        }
+      }
+
+      if (times > 1) {
+         resultsHtml += `</div>`;
+      }
+
+      window.userData.urCount = (window.userData.urCount || 0) + urCountAdded;
+      window.userData.srCount = (window.userData.srCount || 0) + srCountAdded;
+      window.userData.titleCount = window.userData.unlockedTitles.length;
+      window.userData.totalItemCount = calcTotalItems(window.userData.inventory);
+
+      // Birthday Check
+      const md = new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'}); 
+      const bmd = window.userData.birthday ? new Date(window.userData.birthday).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'}) : '';
+      if(md === bmd && !window.userData.unlockedTitles.includes("happy_birthday")) {
+         window.userData.unlockedTitles.push("happy_birthday"); 
+         window.userData.inventory['誕生日ケーキ'] = (window.userData.inventory['誕生日ケーキ']||0)+1;
+         window.userData.titleCount = window.userData.unlockedTitles.length;
+         window.userData.totalItemCount = calcTotalItems(window.userData.inventory);
+         if (times === 1) {
+            resultsHtml += `<div style="padding:10px; font-weight:bold; color:#d62728; text-align:center;">[誕生日ボーナス] 称号とケーキ獲得！</div>`;
+         }
+      }
+
+      updates.inventory = window.userData.inventory;
+      updates.unlockedTitles = window.userData.unlockedTitles;
+      updates.titleCount = window.userData.titleCount;
+      updates.totalItemCount = window.userData.totalItemCount;
+      updates.urCount = window.userData.urCount;
+      updates.srCount = window.userData.srCount;
+
+      await updateDoc(doc(db, "users", window.currentUser.uid), updates);
+      
+      window.showResultModal(`${times}連ガチャ 結果`, resultsHtml, false, times > 1); 
+      updateUserUI(); updateGachaUI(); checkTitles();
+    };
+
+    // --- ショップ機能 ---
+    window.renderShop = () => {
+      const container = document.getElementById('shop-container');
+      if (!window.shopData || !Array.isArray(window.shopData)) {
+        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center;">ショップデータがありません</div>'; return;
+      }
+      container.innerHTML = '';
+      window.shopData.forEach(item => {
+        const card = document.createElement('div'); card.className = 'card'; card.style.cssText = "text-align:center; display:flex; flex-direction:column;";
+        
+        let imgPath = window.itemImages[item.name] || item.image;
+        let imgHtml = imgPath ? `<img src="${imgPath}" style="width:100%; max-height:120px; object-fit:contain; border-radius:8px; margin-bottom:15px; display:block;">` : '';
+        
+        let rewardAmt = item.rewardAmount || 1;
+        let rewardText = rewardAmt > 1 ? `（${rewardAmt}個獲得）` : "";
+
+        card.innerHTML = `
+          ${imgHtml}
+          <h3 style="margin-bottom: 5px;">${item.name}</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem; flex-grow: 1;">${item.description}</p>
+          <div style="margin:15px 0; font-weight:bold; font-size:0.95rem; color:var(--text-main);">必要: ${item.costItem} ×${item.costAmount} <span style="font-size:0.8rem; font-weight:600; color:#d62728;">${rewardText}</span></div>
+          <button class="btn-auth btn-auth-primary" style="width:100%; padding:10px;" onclick="buyShopItem('${item.id}')">交換する</button>
+        `;
+        container.appendChild(card);
+      });
+    };
+
+    window.buyShopItem = async (itemId) => {
+      if(!window.currentUser || !window.userData) { window.showToast("ログインが必要です"); return; }
+      if(window.checkSleep()) return;
+      
+      const item = window.shopData.find(i => i.id === itemId); if(!item) return;
+
+      const haveCost = window.userData.inventory ? (window.userData.inventory[item.costItem] || 0) : 0;
+      if(haveCost < item.costAmount) {
+        window.showResultModal("エラー", `${item.costItem} が足りません。\n(所持: ${haveCost} / 必要: ${item.costAmount})`, true); return;
+      }
+
+      const isOk = await window.customConfirm("ショップ交換", `${item.costItem} を ${item.costAmount}個 消費して\n「${item.name}」と交換しますか？`);
+      if(!isOk) return;
+
+      const rewardAmt = item.rewardAmount || 1;
+
+      window.userData.inventory[item.costItem] -= item.costAmount;
+      if(window.userData.inventory[item.costItem] <= 0) delete window.userData.inventory[item.costItem];
+      
+      window.userData.inventory[item.name] = (window.userData.inventory[item.name] || 0) + rewardAmt;
+      
+      await updateDoc(doc(db, "users", window.currentUser.uid), { 
+        inventory: window.userData.inventory,
+        totalItemCount: calcTotalItems(window.userData.inventory)
+      });
+      
+      window.showResultModal("交換完了", `「${item.name}」を ${rewardAmt}個 獲得しました！`);
+      renderShop(); updateUserUI();
+    };
+
+    // --- ゴミ箱（リサイクル）機能 (複数選択版) ---
+    window.openRecycleModal = () => {
+      if(!window.userData || !window.userData.inventory) return;
+      if(window.checkSleep()) return;
+      
+      const list = document.getElementById('recycle-item-list'); 
+      list.innerHTML = '';
+      let hasItems = false;
+      for(const [itemName, count] of Object.entries(window.userData.inventory)) {
+        if(count > 0 && itemName !== "時間短縮カード" && !itemName.includes("チケット")) { 
+          list.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--border-color);">
+              <span style="font-size:0.85rem; font-weight:600;">${itemName} <span style="color:var(--text-muted);">(所持: ${count})</span></span>
+              <input type="number" class="recycle-input" data-item="${itemName}" min="0" max="${count}" value="0" style="width:60px; padding:4px; border-radius:4px; border:1px solid var(--border-color); font-family:var(--font-code);" oninput="updateRecycleSummary()">
+            </div>
+          `;
+          hasItems = true;
+        }
+      }
+      if(!hasItems) { window.showResultModal("エラー", "リサイクル可能なアイテムがありません。", true); return; }
+      
+      window.updateRecycleSummary();
+      openAuthModal('recycle-modal');
+    };
+
+    window.updateRecycleSummary = () => {
+      const inputs = document.querySelectorAll('.recycle-input');
+      let total = 0;
+      inputs.forEach(inp => {
+        let val = parseInt(inp.value, 10) || 0;
+        let max = parseInt(inp.max, 10) || 0;
+        if(val < 0) { val = 0; inp.value = 0; }
+        if(val > max) { val = max; inp.value = max; }
+        total += val;
+      });
+      const reward = Math.floor(total / 5); 
+      const remainder = total % 5;
+      document.getElementById('recycle-summary').innerHTML = `
+        選択合計: <strong style="color:var(--text-main); font-size:1.1rem;">${total}</strong> 個<br>
+        獲得カード: <strong style="color:#2ca02c; font-size:1.1rem;">${reward}</strong> 枚<br>
+        <span style="font-size:0.75rem; color:var(--text-muted);">（${remainder} 個は消費されず返却されます）</span>
+      `;
+    };
+
+    window.submitRecycle = async () => {
+      if(window.checkSleep()) { closeAuthModal('recycle-modal'); return; }
+      
+      const inputs = document.querySelectorAll('.recycle-input');
+      let selectedItems = [];
+      let total = 0;
+      inputs.forEach(inp => {
+        const val = parseInt(inp.value, 10) || 0;
+        if(val > 0) {
+          selectedItems.push({ name: inp.getAttribute('data-item'), amount: val });
+          total += val;
+        }
+      });
+
+      if(total < 5) { window.showToast("合計で5個以上選択してください"); return; }
+
+      const sets = Math.floor(total / 5);
+      const reward = sets; 
+      let consumeNeeded = sets * 5;
+      const remainder = total % 5;
+
+      let msg = `合計 ${consumeNeeded} 個を消費して、\n「時間短縮カード」を ${reward} 枚 獲得しますか？`;
+      if(remainder > 0) msg += `\n（端数の ${remainder} 個は消費されず残ります）`;
+
+      const isOk = await window.customConfirm("リサイクル確認", msg);
+      if(!isOk) return;
+
+      for (let item of selectedItems) {
+        if(consumeNeeded <= 0) break;
+        let consume = Math.min(item.amount, consumeNeeded);
+        window.userData.inventory[item.name] -= consume;
+        if(window.userData.inventory[item.name] <= 0) delete window.userData.inventory[item.name];
+        consumeNeeded -= consume;
+      }
+
+      window.userData.inventory['時間短縮カード'] = (window.userData.inventory['時間短縮カード'] || 0) + reward;
+      
+      await updateDoc(doc(db, "users", window.currentUser.uid), { 
+        inventory: window.userData.inventory,
+        totalItemCount: calcTotalItems(window.userData.inventory)
+      });
+      closeAuthModal('recycle-modal');
+      window.showToast(`リサイクル完了！時間短縮カードを ${reward} 枚獲得しました`);
+      updateUserUI();
+    };
+
+    // --- ランキング機能 ---
+    window.switchRankingTab = (field, e) => {
+      document.querySelectorAll('#ranking .tab-btn').forEach(b => b.classList.remove('active')); 
+      if (e && e.target) e.target.classList.add('active');
+      const tbody = document.getElementById('ranking-tbody'); 
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">読み込み中...</td></tr>';
+      
+      if (window.rankingUnsub) {
+        window.rankingUnsub();
+      }
+
+      try {
+        const q = query(collection(db, "users"), orderBy(field, "desc"), limit(50)); 
+        window.rankingUnsub = onSnapshot(q, (snap) => {
+          let validUsers = [];
+          snap.forEach((d) => {
+            const user = d.data();
+            if (!user.banned && !user.hideFromRanking) {
+              validUsers.push(user);
+            }
+          });
+
+          if(validUsers.length === 0) { tbody.innerHTML = '<tr><td colspan="3">データなし</td></tr>'; return; }
+          
+          tbody.innerHTML = '';
+          
+          let currentRank = 1;
+          let previousScore = null;
+          
+          validUsers.slice(0, 20).forEach((d, i) => {
+            let score = d[field] || 0;
+            if (score !== previousScore) {
+              currentRank = i + 1;
+              previousScore = score;
+            }
+            let rankCls = currentRank === 1 ? 'rank-1' : currentRank === 2 ? 'rank-2' : currentRank === 3 ? 'rank-3' : '';
+            tbody.innerHTML += `<tr><td class="${rankCls}">${currentRank}</td><td>${d.displayName||d.username}</td><td style="font-weight:bold;">${score}</td></tr>`;
+          });
+        }, (err) => {
+          tbody.innerHTML = '<tr><td colspan="3" style="color:red;">読込エラー (Firestoreのインデックス設定が必要です)</td></tr>';
+        });
+      } catch(err) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:red;">読込エラー</td></tr>';
+      }
+    };
+
+    window.loadRanking = (field) => {
+      const activeBtn = document.querySelector(`#ranking .tab-btn[onclick*="${field}"]`);
+      if(activeBtn) {
+         activeBtn.click();
+      } else {
+         window.switchRankingTab(field, {target: document.querySelector('#ranking .tab-btn')});
+      }
+    };
+
+    // --- 称号チェック ---
+    window.checkTitles = async () => {
+      if (!window.userData || !window.titlesData) return;
+      let newly = false;
+      window.titlesData.forEach(t => {
+        if (!window.userData.unlockedTitles.includes(t.id)) {
+          let met = false;
+          if (t.id === "7days" && window.userData.consecutiveDays >= 7) met = true;
+          if (t.conditionType === "loginDays" && window.userData.loginDays >= t.conditionValue) met = true;
+          if (t.conditionType === "gachaCount" && window.userData.gachaCount >= t.conditionValue) met = true;
+          if (t.conditionType === "dinoScore" && (window.userData.dinoHighScore||0) >= t.conditionValue) met = true;
+          if (met) { 
+            window.userData.unlockedTitles.push(t.id); newly = true; 
+            setTimeout(()=>window.showToast(`称号『${t.name}』獲得！`),800); 
+          }
+        }
+      });
+      if (newly) {
+        window.userData.titleCount = window.userData.unlockedTitles.length;
+        await updateDoc(doc(db, "users", window.currentUser.uid), { 
+          unlockedTitles: window.userData.unlockedTitles,
+          titleCount: window.userData.titleCount 
+        });
+      }
+    };
+
+    function genUUID() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { let r = Math.random()*16|0, v = c=='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+
+    // --- 登録・ログイン・ID復旧 ---
+    window.handleUUIDSignup = async () => {
+      const btn = document.getElementById('btn-signup-submit');
+      const uname = document.getElementById('signup-username').value.trim();
+      const bday = document.getElementById('signup-birthday').value;
+      
+      let secQ = document.getElementById('signup-secret-q').value;
+      if (secQ === 'custom') {
+        secQ = document.getElementById('signup-custom-q').value.trim();
+        if (!secQ) {
+          const err = document.getElementById('signup-error');
+          err.textContent = "オリジナルの質問内容を入力してください"; 
+          err.style.display='block'; return; 
+        }
+      }
+      
+      const secA = document.getElementById('signup-secret-a').value.trim();
+      const terms = document.getElementById('signup-terms').checked;
+      const err = document.getElementById('signup-error');
+      
+      if (localStorage.getItem('keke_banned') === 'true') { err.textContent="このデバイスからのアカウント作成は制限されています"; err.style.display='block'; return; }
+      if (!uname || !bday || !secA) { err.textContent="未入力の項目があります"; err.style.display='block'; return; }
+      if (!/^[a-zA-Z0-9_]+$/.test(uname)) { err.textContent="半角英数字とアンダースコアのみです"; err.style.display='block'; return; }
+      if (!terms) { err.textContent="規約に同意してください"; err.style.display='block'; return; }
+
+      const isOk = await window.customConfirm("最終確認", "この情報で登録します。よろしいですか？\n(秘密の質問と答えは忘れないようメモしてください)");
+      if(!isOk) return;
+
+      btn.disabled = true; err.style.display = 'none';
+      const q = query(collection(db, "users"), where("username", "==", uname));
+      const snap = await getDocs(q);
+      if (!snap.empty) { err.textContent="使用済みの名前です"; err.style.display='block'; btn.disabled = false; return; }
+
+      const countSnap = await getDocs(collection(db, "users")); const userNo = countSnap.size + 1;
+      const loginId = genUUID(); const dummyEmail = `${loginId}@keke-dev.net`;
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString();
+
+      try {
+        await createUserWithEmailAndPassword(auth, dummyEmail, loginId);
+        window.userData = {
+          userNo: userNo, username: uname, displayName: uname, birthday: bday, secretQ: secQ, secretA: secA, loginId: loginId,
+          gachaCount: 0, loginDays: 0, consecutiveDays: 0, maxConsecutiveDays: 0, lastLogin: yesterdayStr, dinoHighScore: 0,
+          unlockedTitles: ["novice"], equippedTitle: "novice", titleCount: 1, inventory: {}, usedCodes: [], gifts: [], inbox: []
+        };
+        await setDoc(doc(db, "users", auth.currentUser.uid), window.userData);
+        closeAuthModal('signup-modal');
+        document.getElementById('display-new-uuid').textContent = loginId;
+        openAuthModal('uuid-result-modal');
+      } catch (error) { err.textContent = "失敗しました。時間をおいて再試行してください。"; err.style.display = 'block'; }
+      btn.disabled = false;
+    };
+
+    window.handleUUIDLogin = async () => {
+      const btn = document.getElementById('btn-login-submit');
+      const loginId = document.getElementById('login-uuid').value.trim();
+      const err = document.getElementById('login-error');
+      if (!loginId) { err.textContent = "IDを入力してください。"; err.style.display = 'block'; return; }
+      btn.disabled = true;
+      try {
+        const dummyEmail = `${loginId}@keke-dev.net`;
+        await signInWithEmailAndPassword(auth, dummyEmail, loginId);
+        window.showToast("ログインしました");
+      } catch (error) { err.textContent = "IDが間違っているか、存在しません"; err.style.display = 'block'; }
+      btn.disabled = false;
+    };
+
+    window.handleForgotID = async () => {
+      const u = document.getElementById('forgot-username').value.trim();
+      const b = document.getElementById('forgot-birthday').value;
+      const a = document.getElementById('forgot-answer').value.trim();
+      const err = document.getElementById('forgot-error'); const resBox = document.getElementById('forgot-result-box');
+      err.style.display = 'none'; resBox.style.display = 'none';
+      if(!u || !b || !a) { err.textContent="全て入力してください"; err.style.display='block'; return; }
+      
+      const qRef = query(collection(db, "users"), where("username", "==", u), where("birthday", "==", b), where("secretA", "==", a));
+      const snap = await getDocs(qRef);
+      if(snap.empty) { err.textContent="情報が一致しません"; err.style.display='block'; return; }
+      document.getElementById('forgot-result-id').textContent = snap.docs[0].data().loginId;
+      resBox.style.display = 'block';
+    };
+
+    window.handleLogout = async () => { 
+      const isOk = await window.customConfirm("確認", "ログアウトしますか？");
+      if(isOk) signOut(auth); 
+    };
+
+    // --- マイページ管理 ---
+    window.switchProfileTab = (tabId, event) => {
+      document.querySelectorAll('#profile-modal .tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active');
+      document.querySelectorAll('#profile-modal .tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`tab-${tabId}`).classList.add('active');
+    };
+
+    window.openProfileModal = () => {
+      try {
+        if(!window.userData) {
+          window.showToast("ユーザーデータを読み込み中です...");
+          return;
+        }
+        document.getElementById('profile-info-text').innerHTML = `登録No.${window.userData.userNo || '?'} / 累計ログイン: ${window.userData.loginDays || 0}日 / 連続最高: ${window.userData.maxConsecutiveDays||0}日`;
+        
+        const rarityColors = { "N": "#888888", "R": "#2ca02c", "SR": "#1f77b4", "SSR": "#d62728", "UR": "#ff7f0e", "SECRET": "#9c27b0" };
+        const titleList = document.getElementById('title-list'); 
+        if (titleList) titleList.innerHTML = '';
+        
+        const unlocked = window.userData.unlockedTitles || []; 
+        const tDataList = Array.isArray(window.titlesData) ? window.titlesData : [];
+        
+        tDataList.forEach(t => {
+          if (!t || !t.id) return;
+          const isUn = unlocked.includes(t.id);
+          const div = document.createElement('div'); div.className = `title-item ${isUn ? '' : 'locked'}`;
+          
+          let rColor = rarityColors[t.rarity] || 'var(--text-main)';
+          let rarityHtml = t.rarity && (!t.secret || isUn) ? `<span class="rarity-badge" style="color: ${rColor}; border-color: ${rColor};">${t.rarity}</span>` : '';
+          
+          div.innerHTML = `<div style="font-weight:600; font-size:0.95rem;">${rarityHtml}${t.secret && !isUn ? '？？？' : t.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${t.secret && !isUn ? '条件：？？？' : t.desc}</div>`;
+          if (isUn) { div.onclick = async () => { window.userData.equippedTitle = t.id; await updateDoc(doc(db, "users", window.currentUser.uid), { equippedTitle: t.id }); updateUserUI(); window.showToast(`変更しました`); closeAuthModal('profile-modal'); }; }
+          if (titleList) titleList.appendChild(div);
+        });
+
+        const invList = document.getElementById('inventory-list'); 
+        if (invList) invList.innerHTML = '';
+        const inv = window.userData.inventory || {};
+        
+        if (Object.keys(inv).length === 0 && invList) {
+          invList.innerHTML = '<p style="grid-column:1/-1;">持ち物はありません</p>';
+        } else if (invList) {
+          for (const [name, count] of Object.entries(inv)) {
+            if (count <= 0) continue;
+            
+            const imgPath = window.itemImages[name];
+            
+            const imgHtml = imgPath 
+              ? `<img src="${imgPath}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">` 
+              : `<div style="width:50px; height:50px; margin:0 auto; display:flex; align-items:center; justify-content:center; background:var(--bg-color); border:1px solid var(--border-color); border-radius:4px; font-size:0.6rem; font-weight:bold; color:var(--text-muted); overflow:hidden; word-break:break-all; line-height:1.1;">${name}</div>`;
+            
+            const div = document.createElement('div');
+            div.style.cssText = `padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--hover-bg); text-align:center; cursor:pointer; position:relative;`;
+            
+            div.innerHTML = `${imgHtml}<div style="font-size:0.8rem; font-weight:600; margin:5px 0;">${name}</div><div style="font-size:1rem; font-weight:800;">×${count}</div>`;
+            div.onclick = () => showItemDetail(name, count, { image: imgPath });
+            invList.appendChild(div);
+          }
+        }
+        
+        const uuidDisplay = document.getElementById('profile-display-uuid');
+        if (uuidDisplay) uuidDisplay.textContent = window.userData.loginId || '';
+        
+        const bdayInput = document.getElementById('update-birthday');
+        if (bdayInput) bdayInput.value = window.userData.birthday || '';
+        
+        const qSelect = document.getElementById('update-secret-q');
+        const qCustomInput = document.getElementById('update-custom-q');
+        const qCustomGroup = document.getElementById('update-custom-q-group-2');
+        const currentQ = window.userData.secretQ || '';
+        
+        if (qSelect && qCustomInput && qCustomGroup) {
+          let isStandard = false;
+          for (let i = 0; i < qSelect.options.length; i++) {
+            if (qSelect.options[i].value === currentQ && currentQ !== 'custom') { isStandard = true; break; }
+          }
+          if (isStandard) {
+            qSelect.value = currentQ; qCustomGroup.style.display = 'none';
+          } else {
+            qSelect.value = 'custom'; qCustomGroup.style.display = 'block'; qCustomInput.value = currentQ;
+          }
+        }
+        
+        const ansInput = document.getElementById('update-answer');
+        if (ansInput) ansInput.value = window.userData.secretA || '';
+        
+        openAuthModal('profile-modal');
+      } catch (e) {
+        console.error("プロフィール表示エラー:", e);
+        window.showToast("プロフィールの読み込み中にエラーが発生しました。");
+      }
+    };
+
+    window.showItemDetail = (name, count, data) => {
+      document.getElementById('detail-item-name').textContent = name;
+      document.getElementById('detail-item-count').textContent = (typeof count === 'number') ? `所持数: ${count}個` : count;
+      const imgC = document.getElementById('detail-item-img-container'); 
+      const dlBtn = document.getElementById('detail-item-dl');
+      const useBtn = document.getElementById('detail-item-use');
+      
+      if(data && data.image) {
+        imgC.innerHTML = `<img src="${data.image}" style="width:100%; max-height:200px; object-fit:contain; border-radius:8px;">`;
+        dlBtn.style.display = "block";
+        dlBtn.onclick = () => { const a=document.createElement('a'); a.href=data.image; a.download=name; a.click(); };
+      } else { 
+        imgC.innerHTML = `<div style="width:100%; height:150px; display:flex; align-items:center; justify-content:center; background:var(--hover-bg); border-radius:8px; border:1px dashed var(--border-color); font-weight:bold; font-size:1.2rem; color:var(--text-main); text-align:center; padding:10px;">${name}</div>`; 
+        dlBtn.style.display = "none"; 
+      }
+
+      // アイテム使用エンジンへの接続
+      const itemDef = window.itemsData && window.itemsData[name];
+      if (itemDef && itemDef.type === "usable") {
+         useBtn.style.display = "block";
+         useBtn.textContent = "このアイテムを使う";
+         useBtn.onclick = () => window.useItem(name);
+         
+         // 説明文を追加表示
+         let descHtml = itemDef.description ? `<p style="font-size:0.85rem; color:var(--text-muted); margin-top:10px;">${itemDef.description}</p>` : '';
+         if(!document.getElementById('detail-item-desc')) {
+            const descEl = document.createElement('div');
+            descEl.id = 'detail-item-desc';
+            useBtn.parentNode.insertBefore(descEl, useBtn);
+         }
+         document.getElementById('detail-item-desc').innerHTML = descHtml;
+
+      } else {
+         useBtn.style.display = "none";
+         if(document.getElementById('detail-item-desc')) document.getElementById('detail-item-desc').innerHTML = '';
+      }
+
+      openAuthModal('item-detail-modal');
+    };
+
+    // --- アイテム効果発動エンジン ---
+    window.useItem = async (itemName) => {
+      if(window.checkSleep()) return;
+      
+      const itemDef = window.itemsData[itemName];
+      if (!itemDef || itemDef.type !== 'usable') return;
+
+      const isOk = await window.customConfirm("アイテム使用", `「${itemName}」を使用しますか？\n\n${itemDef.description || ''}`);
+      if(!isOk) return;
+
+      // 消費
+      window.userData.inventory[itemName] -= 1;
+      if(window.userData.inventory[itemName] <= 0) delete window.userData.inventory[itemName];
+
+      let resultTitle = "結果";
+      let resultMsg = "";
+      let isErrorStatus = false;
+
+      // イベント処理 (Scratch風のブロック実行)
+      if (itemDef.events && Array.isArray(itemDef.events)) {
+         for (const ev of itemDef.events) {
+            if (ev.type === "probability") {
+               const rand = Math.random() * 100; // 0.0 ~ 99.999...
+               const actions = (rand < ev.chance) ? ev.onSuccess : ev.onFailure;
+               
+               if (actions && Array.isArray(actions)) {
+                  for (const act of actions) {
+                     if (act.action === "give_item") {
+                        window.userData.inventory[act.itemName] = (window.userData.inventory[act.itemName] || 0) + act.amount;
+                     } else if (act.action === "show_message") {
+                        resultTitle = act.title || "お知らせ";
+                        resultMsg += act.message + "\n";
+                        if (act.isError) isErrorStatus = true;
+                     } else if (act.action === "add_status" && act.statusType === "sleep") {
+                        const sleepMs = act.durationMinutes * 60 * 1000;
+                        window.userData.sleepUntil = Date.now() + sleepMs;
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+      // データの保存
+      await updateDoc(doc(db, "users", window.currentUser.uid), {
+         inventory: window.userData.inventory,
+         totalItemCount: calcTotalItems(window.userData.inventory),
+         sleepUntil: window.userData.sleepUntil || null
+      });
+
+      closeAuthModal('item-detail-modal');
+      updateUserUI(); // 睡眠表示などの更新
+
+      if (resultMsg) {
+         window.showResultModal(resultTitle, resultMsg, isErrorStatus);
+      } else {
+         window.showToast(`${itemName} を使用しました`);
+      }
+      
+      // プロフィール画面の持ち物を更新するために再読み込み
+      if (document.getElementById('profile-modal').classList.contains('active')) {
+         const activeTabBtn = document.querySelector('#profile-modal .tab-btn.active');
+         if (activeTabBtn && activeTabBtn.textContent === '持ち物') {
+           activeTabBtn.click();
+         }
+      }
+    };
+
+    window.updateProfileInfo = async () => {
+      const b = document.getElementById('update-birthday').value; 
+      const a = document.getElementById('update-answer').value.trim();
+      let q = document.getElementById('update-secret-q').value;
+      if (q === 'custom') {
+        q = document.getElementById('update-custom-q').value.trim();
+        if(!q) { window.showToast("オリジナルの質問内容を入力してください"); return; }
+      }
+      
+      if(!b || !a) { window.showToast("入力してください"); return; }
+      const isOk = await window.customConfirm("確認", "情報を更新しますか？");
+      if(isOk) {
+        window.userData.birthday = b; window.userData.secretQ = q; window.userData.secretA = a;
+        await updateDoc(doc(db, "users", window.currentUser.uid), { birthday: b, secretQ: q, secretA: a });
+        window.showToast("更新しました");
+      }
+    };
+
+    window.resetUUID = async () => {
+      const current = await window.customPrompt("確認", "現在のIDを入力してください"); 
+      if(!current || current !== window.userData.loginId) { window.showToast("IDが違います"); return; }
+      
+      const isOk = await window.customConfirm("警告", "本当に再発行しますか？\n現在のIDは使用できなくなります。");
+      if(!isOk) return;
+      
+      const newId = genUUID(); const newEm = `${newId}@keke-dev.net`;
+      try {
+        const cred = EmailAuthProvider.credential(`${current}@keke-dev.net`, current);
+        await reauthenticateWithCredential(window.currentUser, cred);
+        await updatePassword(window.currentUser, newId); await updateEmail(window.currentUser, newEm);
+        window.userData.loginId = newId; await updateDoc(doc(db, "users", window.currentUser.uid), { loginId: newId });
+        document.getElementById('display-new-uuid').textContent = newId; closeAuthModal('profile-modal'); openAuthModal('uuid-result-modal');
+      } catch(e) { window.showToast("エラーが発生しました"); }
+    };
+    
+    window.deleteAccount = async () => {
+      const isOk = await window.customConfirm("警告", "本当に退会しますか？\nデータは全て消去され、復旧できません。");
+      if(!isOk) return;
+      
+      const confText = await window.customPrompt("最終確認", "確認のため「退会」と入力してください");
+      if(confText !== "退会") return;
+      
+      try { await window.currentUser.delete(); window.showToast("退会しました"); } 
+      catch(e) { window.showResultModal("エラー", "セキュリティのため、一度ログアウトして再ログインした直後に実行してください。", true); }
+    };
+
+    // --- シリアルコード・プレゼント送信機能 ---
+    window.handleSerialCode = async () => {
+      if(!window.currentUser || !window.userData) { window.showToast("ログインしてください"); return; }
+      if(window.checkSleep()) return;
+      
+      const inputEl = document.getElementById('serial-code-input');
+      const inputStr = inputEl.value.trim();
+      if(!inputStr) return;
+      const codeUpper = inputStr.toUpperCase();
+      
+      if(window.codeData && window.codeData[codeUpper]) {
+        if(!window.userData.usedCodes) window.userData.usedCodes = [];
+        if(window.userData.usedCodes.includes(codeUpper)) {
+          window.showResultModal("エラー", "このコードは既に使用済みです", true);
+          inputEl.value = ''; return;
+        }
+
+        const reward = window.codeData[codeUpper];
+        let resMsg = `コードが承認されました！\n\n`;
+        let updates = { usedCodes: [...window.userData.usedCodes, codeUpper] };
+
+        if(reward.type === "item") {
+          if(!window.userData.inventory) window.userData.inventory = {};
+          window.userData.inventory[reward.name] = (window.userData.inventory[reward.name] || 0) + (reward.amount || 1);
+          updates.inventory = window.userData.inventory;
+          updates.totalItemCount = calcTotalItems(window.userData.inventory);
+          resMsg += `【獲得】${reward.name} × ${reward.amount || 1}\n`;
+        } else if(reward.type === "title") {
+          if(!window.userData.unlockedTitles) window.userData.unlockedTitles = [];
+          if(!window.userData.unlockedTitles.includes(reward.titleId)) {
+            window.userData.unlockedTitles.push(reward.titleId);
+            window.userData.titleCount = window.userData.unlockedTitles.length;
+            updates.unlockedTitles = window.userData.unlockedTitles;
+            updates.titleCount = window.userData.titleCount;
+            resMsg += `【称号獲得】${reward.name}\n`;
+          } else { resMsg += `【称号】${reward.name} (既に所持しています)\n`; }
+        }
+        
+        if(reward.message) resMsg += `\n${reward.message}`;
+
+        await updateDoc(doc(db, "users", window.currentUser.uid), updates);
+        window.showResultModal("成功", resMsg);
+        inputEl.value = '';
+        return;
+      }
+
+      try {
+        const qUsername = query(collection(db, "users"), where("username", "==", inputStr));
+        const qLoginId = query(collection(db, "users"), where("loginId", "==", inputStr));
+        
+        const [snapU, snapL] = await Promise.all([getDocs(qUsername), getDocs(qLoginId)]);
+        let targetDoc = null;
+        if(!snapU.empty) targetDoc = snapU.docs[0];
+        else if(!snapL.empty) targetDoc = snapL.docs[0];
+
+        if (targetDoc) {
+          if (targetDoc.id === window.currentUser.uid) { window.showToast("自分自身には送れません"); return; }
+          openSendGiftModal(targetDoc.id, targetDoc.data().displayName || targetDoc.data().username);
+          inputEl.value = '';
+        } else {
+          window.showResultModal("エラー", "無効なコード、またはユーザーが見つかりませんでした。", true);
+        }
+      } catch(e) { window.showToast("検索中にエラーが発生しました"); }
+    };
+
+    let currentGiftTargetId = null;
+    window.openSendGiftModal = (targetId, targetName) => {
+      const inv = window.userData.inventory || {};
+      if(Object.keys(inv).length === 0) { window.showResultModal("エラー", "プレゼントできるアイテムを持っていません", true); return; }
+      if(window.checkSleep()) return;
+
+      currentGiftTargetId = targetId;
+      document.getElementById('gift-target-name').textContent = targetName;
+      
+      const list = document.getElementById('gift-item-list');
+      list.innerHTML = '';
+      let hasItems = false;
+      for(const [itemName, count] of Object.entries(inv)) {
+        if(count > 0) {
+          list.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--border-color);">
+              <span style="font-size:0.85rem; font-weight:600;">${itemName} <span style="color:var(--text-muted);">(所持: ${count})</span></span>
+              <input type="number" class="gift-input" data-item="${itemName}" min="0" max="${count}" value="0" style="width:60px; padding:4px; border-radius:4px; border:1px solid var(--border-color); font-family:var(--font-code);">
+            </div>
+          `;
+          hasItems = true;
+        }
+      }
+      if(!hasItems) { window.showResultModal("エラー", "プレゼントできるアイテムを持っていません", true); return; }
+
+      openAuthModal('send-gift-modal');
+    };
+
+    window.submitSendGift = async () => {
+      if(window.checkSleep()) { closeAuthModal('send-gift-modal'); return; }
+
+      const inputs = document.querySelectorAll('.gift-input');
+      let selectedItems = [];
+      let totalItemsCount = 0;
+      
+      inputs.forEach(inp => {
+        let val = parseInt(inp.value, 10) || 0;
+        let max = parseInt(inp.max, 10) || 0;
+        if (val > max) val = max;
+        if (val < 0) val = 0;
+        if (val > 0) {
+          selectedItems.push({ name: inp.getAttribute('data-item'), amount: val });
+          totalItemsCount += val;
+        }
+      });
+
+      if(totalItemsCount === 0) { window.showToast("送るアイテムを1つ以上選択してください"); return; }
+
+      const isOk = await window.customConfirm("最終確認", `合計 ${totalItemsCount} 個のアイテムを送りますか？`);
+      if(!isOk) return;
+
+      try {
+        const targetRef = doc(db, "users", currentGiftTargetId);
+        const targetSnap = await getDoc(targetRef);
+        if(!targetSnap.exists()) { window.showToast("ユーザーが見つかりません"); return; }
+        
+        let tData = targetSnap.data();
+        if(!tData.inventory) tData.inventory = {};
+        if(!tData.gifts) tData.gifts = [];
+
+        let sentItemNames = [];
+
+        for (let item of selectedItems) {
+          tData.inventory[item.name] = (tData.inventory[item.name] || 0) + item.amount;
+          
+          tData.gifts.push({
+            from: window.userData.displayName || window.userData.username,
+            name: item.name,
+            amount: item.amount
+          });
+          
+          sentItemNames.push(`${item.name} × ${item.amount}`);
+
+          window.userData.inventory[item.name] -= item.amount;
+          if(window.userData.inventory[item.name] <= 0) delete window.userData.inventory[item.name];
+        }
+
+        window.userData.giftSentCount = (window.userData.giftSentCount || 0) + 1;
+
+        await updateDoc(targetRef, { inventory: tData.inventory, gifts: tData.gifts, totalItemCount: calcTotalItems(tData.inventory) });
+        await updateDoc(doc(db, "users", window.currentUser.uid), { 
+           inventory: window.userData.inventory, 
+           giftSentCount: window.userData.giftSentCount,
+           totalItemCount: calcTotalItems(window.userData.inventory)
+        });
+
+        closeAuthModal('send-gift-modal');
+        window.showResultModal("送信完了", `以下のプレゼントを送信しました！\n\n${sentItemNames.join('\n')}`);
+      } catch(e) { window.showToast("送信に失敗しました"); }
+    };
+
+    // Dino Game
+    const secTrigger = document.getElementById('secret-trigger'); const over = document.getElementById('game-overlay'); const clsBtn = document.getElementById('close-game'); const can = document.getElementById('gameCanvas'); const cx = can.getContext('2d');
+    let cc=0, ct=null, aId, isG=false, p={x:50,y:150,w:24,h:24,dy:0,jp:-10,gr:true}, obs={x:500,y:150,w:16,h:24,sp:5}, sc=0, grv=0.6;
+    secTrigger.addEventListener('click',()=>{ cc++; clearTimeout(ct); ct=setTimeout(()=>{cc=0;},1000); if(cc>=3){cc=0;over.classList.add('active');isG=true;p.y=150;p.dy=0;obs.x=500;obs.sp=5;sc=0;gL();} });
+    clsBtn.addEventListener('click',()=>{ over.classList.remove('active'); isG=false; cancelAnimationFrame(aId); });
+    can.addEventListener('click',()=>{ if(!isG){isG=true;p.y=150;p.dy=0;obs.x=500;obs.sp=5;sc=0;gL();}else if(p.gr){p.dy=p.jp;p.gr=false;} });
+    function gL() {
+      if(!isG) return; cx.clearRect(0,0,500,200); p.dy+=grv; p.y+=p.dy; if(p.y>=150){p.y=150;p.dy=0;p.gr=true;}
+      obs.x-=obs.sp; if(obs.x+obs.w<0){obs.x=500;sc++;obs.sp+=0.3;}
+      if(p.x<obs.x+obs.w && p.x+p.w>obs.x && p.y<obs.y+obs.h && p.y+p.h>obs.y){
+        isG=false; cx.fillStyle='#000'; cx.font='bold 24px Inter'; cx.fillText('Game Over', 180, 80);
+        if(window.userData && sc > (window.userData.dinoHighScore||0)){
+          window.userData.dinoHighScore=sc; updateDoc(doc(db,"users",window.currentUser.uid),{dinoHighScore:sc}).then(checkTitles);
+        } return;
+      }
+      cx.fillStyle='#555'; cx.beginPath(); cx.roundRect(p.x,p.y,p.w,p.h,6); cx.fill();
+      cx.fillStyle='#2ca02c'; cx.beginPath(); cx.roundRect(obs.x,obs.y,obs.w,obs.h,[8,8,0,0]); cx.fill();
+      cx.fillStyle='#000'; cx.font='bold 16px Inter'; cx.fillText('Score: '+sc,15,25); cx.beginPath(); cx.moveTo(0,174); cx.lineTo(500,174); cx.strokeStyle='#555'; cx.stroke();
+      aId = requestAnimationFrame(gL);
+    }
+  </script>
+</body>
+</html>

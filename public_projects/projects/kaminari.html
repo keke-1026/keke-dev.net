@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>雷の距離計算機</title>
+  <style>
+    :root{--bg:#0f1724;--card:#111827;--accent:#60a5fa;--muted:#9ca3af;--glass: rgba(255,255,255,0.03)}
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:linear-gradient(180deg,#071029 0%, #0b1220 100%);color:#e6eef8}
+    .wrap{max-width:720px;margin:20px auto;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type="number"],select{width:95%;max-width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit;font-size:15px}
+    /* スピンボタン非表示 */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    button{padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:#05233a;font-weight:600;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .measBtn{padding:14px 18px;border-radius:12px;font-size:16px;background:#f97316;color:#05233a;border:0;margin-top:6px}
+    .result{margin-top:14px;padding:14px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    .big{font-size:20px;font-weight:700}
+    .note{font-size:13px;color:var(--muted);margin-top:8px}
+    footer{margin-top:18px;font-size:13px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+    .panel{margin-top:12px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.02)}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>雷（稲妻）までの距離を計算</h1>
+    <p class="lead">稲妻の閃光と雷鳴の間に空いた <strong>秒数</strong> を入力すると、雷が落ちたまでのおおよその距離を求めます。気温で音速を補正できます。</p>
+
+    <div class="grid">
+      <div>
+        <label for="seconds">光と音の時間差（秒）</label>
+        <input id="seconds" type="number" min="0" step="0.01" value="3.0" aria-describedby="secondsHelp">
+        <div id="secondsHelp" class="note">例: 閃光から雷鳴まで 3.0 秒 → 入力: 3.0</div>
+
+        <div style="margin-top:10px">
+          <div class="note" id="startHelp" style="margin-bottom:6px">計測スタートを押してから再度押すまでの時間を測ります</div>
+          <button id="startStop" class="measBtn">計測スタート</button>
+        </div>
+      </div>
+
+      <div>
+        <label for="temp">気温（℃） — 音速補正</label>
+        <input id="temp" type="number" step="0.1" value="20">
+        <div class="note">音速 ≈ 331.3 + 0.606 × 気温 (m/s)</div>
+
+        <label for="unit" style="margin-top:8px">表示単位</label>
+        <select id="unit">
+          <option value="auto">自動切替</option>
+          <option value="m">メートル (m)</option>
+          <option value="km">キロメートル (km)</option>
+          <option value="mi">マイル (mi)</option>
+        </select>
+
+        <label for="precision" style="margin-top:8px">小数点以下の数</label>
+        <select id="precision">
+          <option value="0">0 桁</option>
+          <option value="1" selected>1 桁</option>
+          <option value="2">2 桁</option>
+          <option value="3">3 桁</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="calc">計算する</button>
+      <button id="reset" class="secondary">リセット</button>
+      <button id="save" class="secondary">履歴に保存</button>
+    </div>
+
+    <div id="out" class="result" aria-live="polite">
+      <div class="big" id="distance">--</div>
+      <div class="note" id="explain">光はほぼ瞬時に届くため、時間差 × 音速 で距離が求められます。</div>
+    </div>
+
+    <div class="panel" id="historyPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong id="historyTitle">計測履歴</strong>
+        <span class="small" id="historyNote">localStorage に保存されます</span>
+      </div>
+      <div id="histTableWrap"></div>
+    </div>
+
+    <footer>
+      <div class="small" id="footerText">参考式: 音速 c (m/s) = 331.3 + 0.606 × 気温(℃)。 距離 = 時間(秒) × c</div>
+    </footer>
+  </main>
+
+  <script>
+    const secondsIn = document.getElementById('seconds');
+    const tempIn = document.getElementById('temp');
+    const unitIn = document.getElementById('unit');
+    const precIn = document.getElementById('precision');
+    const out = document.getElementById('out');
+    const distanceEl = document.getElementById('distance');
+    const explain = document.getElementById('explain');
+    const calcBtn = document.getElementById('calc');
+    const resetBtn = document.getElementById('reset');
+    const saveBtn = document.getElementById('save');
+    const histWrap = document.getElementById('histTableWrap');
+    const startStopBtn = document.getElementById('startStop');
+
+    function speedOfSound(tempC){ return 331.3 + 0.606 * Number(tempC); }
+
+    function formatNumber(n, unit, prec){
+      if(!isFinite(n)) return '--';
+      return Number(n).toLocaleString(undefined, {minimumFractionDigits: prec, maximumFractionDigits: prec}) + ' ' + unit;
+    }
+
+    function calculate(){
+      const s = Number(secondsIn.value);
+      const t = Number(tempIn.value);
+      const unit = unitIn.value;
+      const prec = Number(precIn.value);
+
+      if(isNaN(s) || s < 0){ distanceEl.textContent = '秒数には 0 以上の数値を入力してください。'; return null; }
+
+      const c = speedOfSound(t);
+      const distM = s * c;
+
+      let shown = distM; let unitLabel = 'm';
+      if(unit === 'km' || (unit === 'auto' && distM >= 1000)){
+        shown = distM / 1000; unitLabel = 'km';
+      } else if(unit === 'mi'){
+        shown = distM / 1609.344; unitLabel = 'mi';
+      } else {
+        unitLabel = 'm';
+      }
+
+      distanceEl.textContent = formatNumber(shown, unitLabel, prec);
+      explain.textContent = `計算：音速 ${c.toFixed(2)} m/s × 時間 ${s} 秒 = ${Math.round(distM)} m。`;
+
+      const milesApprox = distM / 1609.344;
+      let rule = `目安: 約 ${milesApprox.toFixed(2)} マイル`;
+      let prev = out.querySelector('.note[data-rule]');
+      if(prev) prev.textContent = rule; else { let note = document.createElement('div'); note.className='note'; note.setAttribute('data-rule','1'); note.textContent = rule; out.appendChild(note); }
+
+      return {seconds:s, temp:t, c:c, distM:distM, shown:shown, unit:unitLabel, prec:prec};
+    }
+
+    let measuring = false;
+    let startTime = 0;
+    startStopBtn.addEventListener('click', ()=>{
+      if(!measuring){
+        startTime = performance.now();
+        measuring = true;
+        startStopBtn.textContent = '計測停止';
+        startStopBtn.style.background = '#ef4444';
+      } else {
+        const dur = (performance.now() - startTime) / 1000;
+        secondsIn.value = dur.toFixed(2);
+        measuring = false;
+        startStopBtn.textContent = '計測スタート';
+        startStopBtn.style.background = '';
+        calculate();
+      }
+    });
+
+    const HISTORY_KEY = 'lightning_history_v1';
+    function loadHistory(){
+      try{ const raw = localStorage.getItem(HISTORY_KEY); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+    }
+    function saveHistory(arr){ localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+
+    function addHistory(entry){ const h = loadHistory(); h.unshift(entry); saveHistory(h); renderHistory(); }
+
+    function renderHistory(){
+      const h = loadHistory();
+      if(!h.length){ histWrap.innerHTML = '<div class="small">まだ履歴がありません。</div>'; return; }
+      let html = '<table><thead><tr><th>日時</th><th>秒数(s)</th><th>距離</th><th>気温</th><th></th></tr></thead><tbody>';
+      h.forEach((r,idx)=>{
+        html += `<tr><td>${new Date(r.t).toLocaleString()}</td><td>${Number(r.seconds).toFixed(2)}</td><td>${formatNumber(r.display, r.unit, Number(r.prec))}</td><td>${r.temp}</td><td><button data-idx="${idx}" class="secondary delBtn">削除</button></td></tr>`;
+      });
+      html += '</tbody></table>';
+      histWrap.innerHTML = html;
+      Array.from(histWrap.querySelectorAll('.delBtn')).forEach(b=> b.addEventListener('click', (e)=>{ const i = Number(e.target.dataset.idx); const arr = loadHistory(); arr.splice(i,1); saveHistory(arr); renderHistory(); }));
+    }
+
+    saveBtn.addEventListener('click', ()=>{
+      const res = calculate(); if(!res) return;
+      const entry = { t: Date.now(), seconds: res.seconds, temp: res.temp, rawMeters: res.distM, display: res.shown, unit: res.unit, prec: Number(precIn.value) };
+      addHistory(entry);
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      secondsIn.value = '3.0'; tempIn.value = '20'; unitIn.value = 'auto'; precIn.value = '1'; distanceEl.textContent='--'; explain.textContent = '光はほぼ瞬時に届くため、時間差 × 音速 で距離が求められます。';
+    });
+
+    secondsIn.addEventListener('keyup', (e)=>{ if(e.key === 'Enter') calculate(); });
+
+    renderHistory();
+    calculate();
+
+  </script>
+</body>
+</html>

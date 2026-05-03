@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>グミ太郎の大脱走</title>
+<style>
+:root{--fg:#eaf2ff;--muted:#9fb0d6;--bg:#071226;--accent:#ffd14d;--accent-strong:#ffb84d}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+.canvasWrap{position:relative;width:100%;max-width:1400px;margin:6px auto;height:calc(100vh - 8px);max-height:100vh;}
+canvas{width:100%;height:100%;display:block;border-radius:8px;background:transparent;touch-action:none;box-shadow:0 18px 48px rgba(0,0,0,0.6);}
+.overlayBg{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.6);display:none;z-index:60;border-radius:8px}
+.panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;min-width:320px;max-width:92%;padding:18px;border-radius:10px;background:rgba(0,0,0,0.68);border:1px solid rgba(255,255,255,0.04);text-align:center}
+.panel.story{z-index:200}
+.big{font-size:20px;font-weight:800;margin-bottom:8px}
+.small{color:var(--muted);font-size:14px}
+.storyBox{height:auto;min-height:220px;max-height:60vh;overflow:hidden;text-align:left;color:var(--fg);font-size:15px;line-height:1.6;padding:8px;border-radius:6px;background:rgba(255,255,255,0.02)}
+.bottomHud{position:absolute;left:50%;transform:translateX(-50%);bottom:10px;z-index:90;display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:linear-gradient(180deg, rgba(0,0,0,0.32), rgba(0,0,0,0.22));border:1px solid rgba(255,255,255,0.04);backdrop-filter: blur(4px)}
+.hudItem{font-weight:700;font-size:14px;color:var(--fg);display:flex;align-items:center;gap:8px}
+.iconBtn{background:transparent;border:0;color:var(--fg);padding:8px;border-radius:8px;cursor:pointer;font-weight:800}
+.storyBtn{background:var(--accent);color:#071226;border-radius:8px;padding:6px 10px;font-weight:800;border:2px solid var(--accent-strong);cursor:pointer}
+.crouchBtn{position:absolute;left:14px;bottom:86px;width:86px;height:86px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);font-weight:700;z-index:90;touch-action:none}
+#localBestCard{position:absolute;left:10px;top:10px;z-index:92;background:rgba(0,0,0,0.5);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);font-size:13px}
+.copy{position:fixed;right:8px;bottom:6px;text-align:right;color:var(--muted);font-size:12px;pointer-events:none;z-index:40}
+.goalSign{position:absolute;right:18px;top:18px;z-index:95;background:rgba(0,0,0,0.45);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);font-weight:800}
+
+/* distance fixed width */
+#distanceLabel{
+  min-width:120px;
+  max-width:160px;
+  width:140px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+@media (max-width:700px){
+  .crouchBtn{left:8px;bottom:96px;width:72px;height:72px}
+  .bottomHud{gap:6px;padding:6px}
+  .hudItem{font-size:13px}
+  .storyBox{min-height:200px}
+  #distanceLabel{width:120px;min-width:100px}
+}
+</style>
+</head>
+<body>
+<div class="canvasWrap">
+  <canvas id="screen" tabindex="0" aria-label="ゲーム画面"></canvas>
+  <div id="overlayBg" class="overlayBg"></div>
+
+  <!-- Title -->
+  <div id="panelStart" class="panel" style="display:block">
+    <div class="big">グミ太郎の大脱走</div>
+    <div class="small">上から落ちてスタート。押して（長押し）でジャンプ力が変わります（最大3段）。</div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+      <button id="startBtn" class="iconBtn" style="background:var(--accent);padding:10px 16px;border-radius:8px">▶ スタート</button>
+      <button id="howBtn" class="iconBtn" style="background:rgba(255,255,255,0.03);padding:10px 14px;border-radius:8px">❓ ルール</button>
+    </div>
+  </div>
+
+  <!-- How -->
+  <div id="panelHow" class="panel" style="display:none">
+    <div class="big">ルール</div>
+    <div class="small" style="text-align:left">
+      <ul>
+        <li>押して（長押し）→ 離す：ジャンプ（押していた時間で強さが変わる）。最大3段ジャンプ。</li>
+        <li>↓キーまたは左下ボタンでしゃがむ。</li>
+        <li>コイン:+300、ハート所持3個まで（超過は+1000スコア）、☆は約10%で出現（☆で10秒飛行）。</li>
+        <li>ハートは当たりを一度無効化し、消費で無敵5秒。ポーズ中は無敵／飛行タイマーは停止。</li>
+      </ul>
+    </div>
+    <div style="margin-top:12px"><button id="backBtn" class="iconBtn" style="background:var(--accent);padding:8px 12px;border-radius:8px">閉じる</button></div>
+  </div>
+
+  <!-- Story -->
+  <div id="panelStory" class="panel story" style="display:none;max-width:920px">
+    <div class="big">ストーリー — グミ太郎の大脱走</div>
+    <div id="storyBox" class="storyBox"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+      <button id="skipStoryBtn" class="storyBtn">スキップ</button>
+      <button id="okStoryBtn" class="storyBtn" style="display:none">閉じる</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="panelPause" class="panel" style="display:none">
+    <div class="big">一時停止</div>
+    <div id="pauseText" class="small">再開は ▶ をタップ（3秒カウント）</div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+      <button id="resumeBtn" class="iconBtn" style="background:var(--accent);padding:8px 12px;border-radius:8px">▶ 再開</button>
+      <button id="titleBtnPause" class="iconBtn" style="background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px">🏠 タイトルへ</button>
+      <button id="restartBtn" class="iconBtn" style="background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px">↻ リスタート</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div id="panelGameOver" class="panel" style="display:none">
+    <div class="big">ゲームオーバー</div>
+    <div id="gameOverText" class="small">スコア: 0</div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+      <button id="goRestartBtn" class="iconBtn" style="background:var(--accent);padding:8px 12px;border-radius:8px">↻ リスタート</button>
+      <button id="titleBtnGameOver" class="iconBtn" style="background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px">🏠 タイトルへ</button>
+    </div>
+  </div>
+
+  <button id="crouchBtn" class="crouchBtn">しゃがむ</button>
+
+  <!-- HUD -->
+  <div id="bottomHud" class="bottomHud" aria-hidden="false">
+    <div class="hudItem" id="localBest">Best: 0</div>
+    <div class="hudItem" id="scoreLabel">Score: 0</div>
+    <div class="hudItem" id="timeLabel">00:00</div>
+    <div class="hudItem" id="distanceLabel">残り: 5.00 km</div>
+    <div class="hudItem" id="heartLabel">❤ x0</div>
+    <div class="hudItem" id="invLabel">INV: 00:00</div>
+    <div class="hudItem" id="flightLabel">FLIGHT: 00:00</div>
+    <button id="storyShowBtn" class="storyBtn" title="ストーリーを再表示">ストーリーを見る</button>
+    <button id="storyResetBtn" class="storyBtn" title="ストーリーリセット">ストーリーリセット</button>
+    <button id="soundBtn" class="iconBtn" title="音">🔊</button>
+    <button id="pauseBtn" class="iconBtn" title="一時停止">⏸</button>
+  </div>
+
+  <div id="localBestCard">Local Best: <span id="localBestSmall">0</span></div>
+  <div id="goalSign" class="goalSign" style="display:none">グミ太郎は､無事にグミ工場から抜け出して､ぐみ沢にたどり着きました!</div>
+
+  <audio id="bgm" src="gumitrack.mp3" preload="auto" loop></audio>
+</div>
+
+<div class="copy">© 2025 グミ太郎の大脱走</div>
+
+<script>
+/* ---- 定数 / localStorage keys ---- */
+const LS_STORY = 'gumi_story_seen_v1';
+const LS_STORY_PROG = 'gumi_story_prog_v1';
+const LS_BEST = 'gumi_best_v9';
+
+/* ---- Canvas / DOM ---- */
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d', {alpha:true});
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+const overlayBg = document.getElementById('overlayBg');
+const panelStart = document.getElementById('panelStart');
+const panelHow = document.getElementById('panelHow');
+const panelStory = document.getElementById('panelStory');
+const panelPause = document.getElementById('panelPause');
+const panelGameOver = document.getElementById('panelGameOver');
+
+const startBtn = document.getElementById('startBtn');
+const howBtn = document.getElementById('howBtn');
+const backBtn = document.getElementById('backBtn');
+const skipStoryBtn = document.getElementById('skipStoryBtn');
+const okStoryBtn = document.getElementById('okStoryBtn');
+const resumeBtn = document.getElementById('resumeBtn');
+const restartBtn = document.getElementById('restartBtn');
+const titleBtnPause = document.getElementById('titleBtnPause');
+const goRestartBtn = document.getElementById('goRestartBtn');
+const titleBtnGameOver = document.getElementById('titleBtnGameOver');
+const gameOverText = document.getElementById('gameOverText');
+const pauseText = document.getElementById('pauseText');
+
+const crouchBtn = document.getElementById('crouchBtn');
+const bottomScoreLabel = document.getElementById('scoreLabel');
+const bottomTimeLabel = document.getElementById('timeLabel');
+const bottomBest = document.getElementById('localBest');
+const bottomBestSmall = document.getElementById('localBestSmall');
+const bottomSoundBtn = document.getElementById('soundBtn');
+
+const storyShowBtn = document.getElementById('storyShowBtn');
+const storyResetBtn = document.getElementById('storyResetBtn');
+const storyBox = document.getElementById('storyBox');
+const distanceLabel = document.getElementById('distanceLabel');
+const heartLabel = document.getElementById('heartLabel');
+const invLabel = document.getElementById('invLabel');
+const flightLabel = document.getElementById('flightLabel');
+const goalSign = document.getElementById('goalSign');
+
+const bgmEl = document.getElementById('bgm');
+
+/* ---- Audio helpers (fixed behavior) ---- */
+function ensureAudioCtx(){
+  if(!window._gumiAudioCtx){
+    try{ window._gumiAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ window._gumiAudioCtx = null; }
+  }
+  return window._gumiAudioCtx;
+}
+function playBeep(freq=440,dur=0.06,type='sine',vol=0.12){
+  if(!game.soundOn) return;
+  const actx = ensureAudioCtx();
+  if(!actx) return;
+  const o = actx.createOscillator(); const g = actx.createGain();
+  o.type = type; o.frequency.value = freq; g.gain.value = vol;
+  o.connect(g); g.connect(actx.destination);
+  o.start(); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+  o.stop(actx.currentTime + dur + 0.02);
+}
+
+/* play/pause/stop BGM:
+   - playBGM(reset=true) -> currentTime=0 then play
+   - playBGM(reset=false) -> resume from currentTime
+   - pauseBGM() -> pause (keep currentTime)
+   - stopBGM() -> pause + currentTime=0
+*/
+function playBGM(reset=false){
+  try{
+    if(!bgmEl) return;
+    if(reset){
+      bgmEl.pause();
+      try{ bgmEl.currentTime = 0; }catch(e){}
+    }
+    const p = bgmEl.play();
+    if(p && p.catch) p.catch(()=>{ /* autoplay blocked */ });
+  }catch(e){}
+}
+function pauseBGM(){
+  try{ if(bgmEl && !bgmEl.paused) bgmEl.pause(); }catch(e){}
+}
+function stopBGM(){
+  try{
+    if(!bgmEl) return;
+    bgmEl.pause();
+    try{ bgmEl.currentTime = 0; }catch(e){}
+  }catch(e){}
+}
+
+/* ---- Resize / ground ---- */
+window.addEventListener('resize', resizeCanvas);
+function resizeCanvas(){
+  const r = canvas.getBoundingClientRect();
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.round(r.width * DPR);
+  canvas.height = Math.round(r.height * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  computeGround();
+  render();
+}
+function computeGround(){ const H = canvas.height / DPR; game.groundY = Math.round(H - Math.min(140, H*0.18)); if(game.player && game.player.onGround) game.player.y = game.groundY - game.player.h; }
+
+/* ---- Game state ---- */
+const game = {
+  running:false, paused:false, lastTime:0, dt:0,
+  score:0, speed:260, spawnTimer:0, spawnInterval:1.1,
+  gravity:1500, groundY:0, player:null, obstacles:[], particles:[],
+  difficultyTimer:0, soundOn:true, startTimestamp:0, elapsedWhenPaused:0,
+  backgrounds:[], currentBg:0, bgTimer:0, bgChangeInterval:60000,
+  coins:0, heartCount:0, invincibleUntil:0, flightUntil:0, _invRemaining:0, _flightRemaining:0, _resumeIntervalId:null,
+  layers:[ {z:0.25, buildings:[], speed:0.28}, {z:0.5, buildings:[], speed:0.5}, {z:0.85, buildings:[], speed:0.9} ],
+  distanceTotal:5000, distanceCovered:0, distancePerSec:1000/60,
+  _arrived:false
+};
+game.backgrounds = [
+  {skyA:'#071231', skyB:'#08203a', cloud:'#cfe8ff'},
+  {skyA:'#0b2238', skyB:'#07233d', cloud:'#dff3ff'},
+  {skyA:'#18314a', skyB:'#0b2b3f', cloud:'#e6f3ff'}
+];
+
+/* ---- Utility helpers ---- */
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill(); }
+function lerpColor(a,b,t){ function hexToRgb(hex){ hex = hex.replace('#',''); if(hex.length===3) hex = hex.split('').map(c=>c+c).join(''); const n=parseInt(hex,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; } function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); } const A=hexToRgb(a),B=hexToRgb(b); const r=Math.round(A.r+(B.r-A.r)*t), g=Math.round(A.g+(B.g-A.g)*t), bl=Math.round(A.b+(B.b-A.b)*t); return rgbToHex(r,g,bl); }
+function spawnParticles(x,y,color,count=12){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2, s=Math.random()*220+80; game.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s*-0.5,life:Math.random()*0.6+0.4,color,size:Math.random()*3+1}); } }
+function rectIntersect(a,b){ return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h); }
+
+/* ---- Create player / backgrounds / spawns ---- */
+function createPlayer(){ return { x:120, y:-200, vy:0, w:40, h:34, onGround:false, jumpPower:520, alive:true, color:'#ff86b5', chargeStart:null, crouching:false, jumps:0, visible:true, blinkTimer:0, crouchH:20 }; }
+function spawnBackgroundBuildings(){
+  const W = canvas.width / DPR;
+  for(const layer of game.layers){
+    layer.buildings = [];
+    let x = -200;
+    while(x < W + 400){
+      const bw = 40 + Math.random()*120;
+      const bh = 40 + Math.random()*200 * layer.z;
+      const y = game.groundY - bh - (10 * layer.z);
+      const color = `hsl(${200 + Math.random()*30}, ${20+layer.z*40}%, ${20 + layer.z*20}%)`;
+      layer.buildings.push({x, y, w: bw, h: bh, color});
+      x += bw + (8 + Math.random()*60);
+    }
+  }
+}
+function makeObstacle(x,y,w,h,kind,extra){ return Object.assign({x,y,w,h,kind,passed:false}, extra||{}); }
+function spawnObstacle(){
+  const W = canvas.width / DPR; const r = Math.random();
+  if(r < 0.35){ const w=30+Math.random()*40,h=30+Math.random()*60; game.obstacles.push(makeObstacle(W+40, game.groundY - h, w, h, 'ground')); }
+  else if(r < 0.6){ const w=24+Math.random()*28, h=16+Math.random()*24, y=Math.random()*(game.groundY*0.5)+40; game.obstacles.push(makeObstacle(W+40, y, w, h, 'flying',{orbit:Math.random()*60+10})); }
+  else if(r < 0.75){ game.obstacles.push(makeObstacle(W+40, game.groundY - (16+Math.random()*30), 40, 10, 'slider')); }
+  else if(r < 0.87){ game.obstacles.push(makeObstacle(W+40, game.groundY - 40, 36, 40, 'splitter',{split:false})); }
+  else { game.obstacles.push(makeObstacle(W+40, game.groundY - (20+Math.random()*140), 20, 20, 'coin')); }
+}
+function spawnCollectible(){
+  const W = canvas.width / DPR, r = Math.random();
+  if(r < 0.72){ const y = game.groundY - (Math.random()*160 + 40); game.obstacles.push(makeObstacle(W+20, y, 20, 20, 'coin')); }
+  else if(r < 0.88){ const y = game.groundY - (Math.random()*160 + 60); game.obstacles.push(makeObstacle(W+20, y, 24, 24, 'heart')); }
+  else { const y = game.groundY - (Math.random()*200 + 60); game.obstacles.push(makeObstacle(W+20, y, 26, 26, 'star')); }
+}
+
+/* ---- Reset / Start / End / Pause ---- */
+function resetGame(){
+  if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId=null; }
+  game.running=false; game.paused=false; game.lastTime=0; game.dt=0; game.score=0; game.speed=260;
+  game.spawnTimer=0; game.spawnInterval=1.1; game.obstacles=[]; game.particles=[];
+  game.player = createPlayer(); game.difficultyTimer=0; game.elapsedWhenPaused=0; game.startTimestamp=0;
+  game.coins=0; game.heartCount=0; game.invincibleUntil=0; game.collectSpawnTimer=0; game.flightUntil=0;
+  game._invRemaining=0; game._flightRemaining=0; game._arrived=false;
+  computeGround();
+  spawnBackgroundBuildings();
+  game.player.y = - Math.max(120, game.player.h * 3);
+  game.distanceCovered = 0;
+  goalSign.style.display = 'none';
+  updateUI();
+  render();
+  stopBGM(); // ensure audio reset on full reset
+}
+
+const FALL_DELAY_MS = 180;
+const FALL_DURATION_MS = 1200;
+
+function startGame(){
+  hideAllPanels();
+  // keep reset? we want full fresh play, so reset minimal state
+  resetGame();
+  game.running = true;
+  game.paused = false;
+  game.startTimestamp = performance.now();
+  game.spawnTimer = 1.0;
+  // drop after delay; when drop starts playBGM(reset=true)
+  setTimeout(()=>{
+    if(game.soundOn) playBGM(true); // IMPORTANT: reset=true to start from beginning
+    const fromY = Math.min(game.player.y, -40);
+    const toY = game.groundY - game.player.h;
+    const start = performance.now();
+    function drop(ts){
+      const t = Math.min(1, (ts - start) / FALL_DURATION_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      game.player.y = fromY + (toY - fromY) * eased;
+      render();
+      if(t < 1) requestAnimationFrame(drop);
+      else {
+        game.player.y = toY;
+        game.player.onGround = true;
+        game.lastTime = performance.now();
+        requestAnimationFrame(loop);
+        playBeep(880,0.06,'sine',0.08);
+      }
+    }
+    requestAnimationFrame(drop);
+  }, FALL_DELAY_MS);
+}
+
+function endGame(){
+  if(!game.player.alive) return;
+  game.player.alive=false; game.running=false;
+  const s = Math.floor(game.score);
+  const best = Number(localStorage.getItem(LS_BEST) || 0);
+  if(s > best) localStorage.setItem(LS_BEST, String(s));
+  gameOverText.textContent = `スコア: ${s} • 生存 ${formatTime(getElapsedMs())}`;
+  updateUI();
+  showPanel('panelGameOver');
+  playBeep(120,0.28,'sawtooth',0.18);
+  stopBGM(); // full stop + rewind on game over
+}
+
+/* pause/resume/story pause */
+function pauseGame(){
+  if(!game.running || game.paused) return;
+  const now = performance.now();
+  game.paused = true;
+  game.elapsedWhenPaused += (now - game.startTimestamp);
+  game._invRemaining = Math.max(0, (game.invincibleUntil || 0) - now);
+  game._flightRemaining = Math.max(0, (game.flightUntil || 0) - now);
+  game.invincibleUntil = 0; game.flightUntil = 0;
+  if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId=null; }
+  pauseText.textContent = '再開は ▶ をタップ（3秒）';
+  showPanel('panelPause');
+  pauseBGM(); // hold position
+  playBeep(440,0.06,'sine',0.06);
+}
+function startResumeCountdown(){
+  if(!game.running || !game.paused) return;
+  if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId=null; }
+  let cnt = 3; pauseText.textContent = `開始まで ${cnt} ...`; showPanel('panelPause');
+  game._resumeIntervalId = setInterval(()=>{
+    cnt--;
+    if(cnt > 0) pauseText.textContent = `開始まで ${cnt} ...`;
+    else { clearInterval(game._resumeIntervalId); game._resumeIntervalId=null; resumeFromCountdown(); }
+  },1000);
+}
+function resumeFromCountdown(){
+  if(!game.running || !game.paused) return;
+  const now = performance.now();
+  game.paused = false;
+  if(game._invRemaining > 0) game.invincibleUntil = now + game._invRemaining;
+  if(game._flightRemaining > 0) game.flightUntil = now + game._flightRemaining;
+  game._invRemaining = 0; game._flightRemaining = 0;
+  game.startTimestamp = now; game.lastTime = now;
+  hideAllPanels();
+  if(game.soundOn) playBGM(false); // resume from currentTime
+  requestAnimationFrame(loop);
+  playBeep(660,0.06,'sine',0.06);
+}
+
+/* pause for story separately (pause + save inv/flight remaining) */
+function pauseForStory(){
+  const now = performance.now();
+  if(!game.paused){
+    game.paused = true;
+    game.elapsedWhenPaused += (now - game.startTimestamp);
+    game._invRemaining = Math.max(0, (game.invincibleUntil || 0) - now);
+    game._flightRemaining = Math.max(0, (game.flightUntil || 0) - now);
+    game.invincibleUntil = 0; game.flightUntil = 0;
+    pauseBGM();
+  }
+  overlayBg.style.display = 'block';
+  playBeep(440,0.06,'sine',0.06);
+}
+
+/* ---- Main loop / update / render ---- */
+function loop(ts){
+  if(!game.running) return;
+  if(!game.lastTime) game.lastTime = ts;
+  game.dt = Math.min(0.05, (ts - game.lastTime)/1000);
+  game.lastTime = ts;
+  if(!game.paused) update(game.dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  const p = game.player; const now = performance.now();
+  game.difficultyTimer += dt;
+  if(game.difficultyTimer > 11){ game.difficultyTimer = 0; game.speed *= 1.02; game.spawnInterval = Math.max(0.6, game.spawnInterval * 0.985); }
+
+  // distance & arrival logic
+  game.distanceCovered += game.distancePerSec * dt;
+  if(game.distanceCovered > game.distanceTotal) game.distanceCovered = game.distanceTotal;
+  if(game.distanceCovered >= game.distanceTotal && !game._arrived){ game._arrived = true; goalSign.style.display = 'block'; setTimeout(()=>{ alert('グミ沢に到着しました！'); }, 300); }
+
+  game.bgTimer += dt*1000;
+  if(game.bgTimer >= game.bgChangeInterval){ game.bgTimer = 0; game.currentBg = (game.currentBg + 1) % game.backgrounds.length; }
+
+  // spawn
+  game.spawnTimer -= dt;
+  if(game.spawnTimer <= 0){ if(Math.random() < 0.72) spawnObstacle(); else spawnCollectible(); game.spawnTimer = game.spawnInterval + Math.random()*0.4 - 0.2; }
+
+  // parallax
+  for(const layer of game.layers){
+    for(const b of layer.buildings) b.x -= game.speed * dt * layer.speed;
+    const W = canvas.width / DPR;
+    for(let i=layer.buildings.length-1;i>=0;i--){ const b = layer.buildings[i]; if(b.x + b.w < -200){ let maxX = Math.max(...layer.buildings.map(x=>x.x + x.w)); const bw = 40 + Math.random()*120, bh = 40 + Math.random()*200 * layer.z, y = game.groundY - bh - (10 * layer.z); layer.buildings[i] = {x: maxX + 20 + Math.random()*80, y, w: bw, h: bh, color: b.color}; } }
+  }
+
+  // flight inv blink control
+  const flightActive = now < (game.flightUntil || 0);
+  if(flightActive){ const remMs = game.flightUntil - now; if(remMs < 1400){ p.blinkTimer = (p.blinkTimer || 0) + dt; const blinkInterval = remMs < 600 ? 0.08 : 0.16; if(p.blinkTimer >= blinkInterval){ p.visible = !p.visible; p.blinkTimer = 0; } } else { p.visible = true; p.blinkTimer = 0; } }
+  else { p.visible = true; p.blinkTimer = 0; }
+
+  // gravity / flight influence
+  if(now < (game.flightUntil || 0)){ if(input.touching) p.vy = -420; else p.vy += (game.gravity * 0.9) * dt; }
+  else p.vy += game.gravity * dt;
+
+  p.y += p.vy * dt;
+  const TOP_MARGIN = 8;
+  if(p.y < TOP_MARGIN){ p.y = TOP_MARGIN; if(p.vy < 0) p.vy = 0; }
+
+  // crouch height
+  if(p.crouching){ if(p.h > p.crouchH){ const dh = p.h - p.crouchH; p.h = p.crouchH; p.y += dh; } }
+  else { const normalH = 34; if(p.h < normalH){ const dh = normalH - p.h; p.h = normalH; p.y -= dh; } }
+
+  // ground collision
+  if(p.y + p.h > game.groundY){ p.y = game.groundY - p.h; p.vy = 0; p.onGround = true; p.jumps = 0; } else p.onGround = false;
+
+  // obstacles update
+  for(let i=game.obstacles.length-1;i>=0;i--){
+    const o = game.obstacles[i];
+    if(o.kind === 'flying'){ o.y += Math.sin(performance.now()/500 + (o.orbit||0)) * 0.2; }
+    else if(o.kind === 'proj'){ o.x += (o.vx || - (game.speed*1.6)) * dt; }
+    else { const speedMultiplier = (o.kind === 'slider' ? 1.6 : 1.0); o.x -= game.speed * dt * speedMultiplier; }
+
+    if(o.kind === 'splitter' && !o.split && o.x < (canvas.width/DPR) * 0.7){ o.split = true; const smallA = makeObstacle(o.x, o.y - 30, 22, 18, 'flying', {orbit:10}); const smallB = makeObstacle(o.x, o.y - 10, 22, 18, 'flying', {orbit:30}); game.obstacles.push(smallA, smallB); }
+
+    if(o.x + o.w < -80) game.obstacles.splice(i,1);
+  }
+
+  // particles update
+  for(let i=game.particles.length-1;i>=0;i--){ const q = game.particles[i]; q.vy += 1200 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; if(q.life <= 0) game.particles.splice(i,1); }
+
+  // score/time
+  game.score += dt * 10;
+  updateUI();
+
+  // collisions
+  if(p.alive){
+    const pr = {x:p.x,y:p.y,w:p.w,h:p.h};
+    for(let i=game.obstacles.length-1;i>=0;i--){
+      const o = game.obstacles[i];
+      if(o.kind === 'coin' || o.kind === 'heart' || o.kind === 'star'){
+        if(rectIntersect(pr,o)){
+          if(o.kind === 'coin'){ game.coins = (game.coins||0)+1; game.score += 300; playBeep(980,0.05,'sine',0.10); spawnParticles(o.x + o.w/2, o.y + o.h/2, '#ffdd66', 12); }
+          else if(o.kind === 'heart'){ if(game.heartCount < 3){ game.heartCount++; playBeep(720,0.12,'sine',0.12); spawnParticles(o.x+o.w/2,o.y+o.h/2,'#ff99aa',18);} else { game.score += 1000; playBeep(820,0.12,'sine',0.12); spawnParticles(o.x+o.w/2,o.y+o.h/2,'#ffd6a6',20); } }
+          else if(o.kind === 'star'){ game.flightUntil = performance.now() + 10000; playBeep(1100,0.12,'sine',0.12); spawnParticles(o.x+o.w/2,o.y+o.h/2,'#fff0a8',26); }
+          game.obstacles.splice(i,1);
+        }
+      }
+    }
+
+    for(const o of game.obstacles){
+      if(o.kind === 'coin' || o.kind === 'heart' || o.kind === 'star') continue;
+      const or = {x:o.x,y:o.y,w:o.w,h:o.h};
+      if(rectIntersect(pr,or)){
+        if(performance.now() < (game.invincibleUntil || 0)) continue;
+        if(game.heartCount > 0){ game.heartCount = Math.max(0, game.heartCount - 1); game.invincibleUntil = performance.now() + 5000; spawnParticles(p.x + p.w/2, p.y + p.h/2, '#ff99aa', 20); playBeep(520,0.18,'sine',0.14); break; }
+        else { endGame(); break; }
+      }
+    }
+  }
+}
+
+/* ---- Render ---- */
+function render(){
+  const W = canvas.width / DPR, H = canvas.height / DPR;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const bg0 = game.backgrounds[game.currentBg], bg1 = game.backgrounds[(game.currentBg+1)%game.backgrounds.length];
+  const t = Math.min(1, game.bgTimer / game.bgChangeInterval);
+  const skyA = lerpColor(bg0.skyA,bg1.skyA,t), skyB = lerpColor(bg0.skyB,bg1.skyB,t);
+  const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,skyA); g.addColorStop(1,skyB); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  drawClouds(W,H);
+  for(const layer of game.layers){ ctx.save(); ctx.globalAlpha = 0.95 - layer.z*0.12; for(const b of layer.buildings){ ctx.fillStyle = b.color; roundRect(ctx, b.x, b.y, b.w, b.h, 6); } ctx.restore(); }
+
+  // ground with clear separation lines
+  ctx.fillStyle = '#071428'; ctx.fillRect(0, game.groundY, W, H - game.groundY);
+  ctx.fillStyle = '#0f2a44'; ctx.fillRect(0, game.groundY - 8, W, 8);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, game.groundY - 12, W, 2);
+
+  // obstacles / collectibles
+  for(const o of game.obstacles){
+    if(o.kind === 'coin'){ const cx = o.x + o.w/2, cy = o.y + o.h/2, r = Math.max(o.w,o.h)/2; const cg = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.05, cx, cy, r); cg.addColorStop(0,'#fff6c8'); cg.addColorStop(0.4,'#ffd94d'); cg.addColorStop(1,'#c08600'); ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(cx,cy,r*0.85,r*0.85,0,0,Math.PI*2); ctx.fill(); }
+    else if(o.kind === 'heart'){ ctx.save(); ctx.font = `${o.h}px system-ui`; ctx.fillStyle = '#ff6b8a'; ctx.textAlign = 'center'; ctx.fillText('❤', o.x + o.w/2, o.y + o.h*0.85); ctx.restore(); }
+    else if(o.kind === 'star'){ ctx.save(); ctx.font = `${o.h}px system-ui`; ctx.fillStyle = '#ffea7a'; ctx.textAlign = 'center'; ctx.fillText('☆', o.x + o.w/2, o.y + o.h*0.85); ctx.restore(); }
+    else { ctx.fillStyle = (o.kind==='flying'||o.kind==='proj') ? (o.color||'#ffd97a') : '#9cf'; roundRect(ctx, o.x, o.y, o.w, o.h, 6); if(o.y >= game.groundY - o.h - 2){ ctx.fillStyle = 'rgba(0,0,0,0.09)'; ctx.fillRect(o.x+2, o.y+o.h-6, o.w-4, 6); } }
+  }
+
+  // player draw (always attempt to draw)
+  const p = game.player;
+  if(p){
+    if(p.visible){
+      const inv = performance.now() < (game.invincibleUntil || 0);
+      ctx.save();
+      if(inv){ ctx.globalAlpha = 0.5 + 0.5 * (Math.sin(performance.now()/80) * 0.5 + 0.5); }
+      ctx.fillStyle = p.color; roundRect(ctx, p.x, p.y, p.w, p.h, 8);
+      ctx.fillStyle = '#022'; ctx.beginPath(); ctx.arc(p.x + p.w*0.65, p.y + p.h*0.35, 3, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = p.color; roundRect(ctx, p.x, Math.min(game.groundY - p.h, Math.max(0, p.y)), p.w, p.h, 8); ctx.restore();
+    }
+    // charge bar
+    if(p.chargeStart && !(performance.now() < (game.flightUntil || 0))){
+      const heldMs = Math.max(0, performance.now() - p.chargeStart);
+      const ratio = Math.min(1, heldMs / 1000);
+      const bx = p.x - 8, by = p.y - 16, bw = p.w + 16, bh = 8;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; roundRect(ctx, bx-1, by-1, bw+2, bh+2, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; roundRect(ctx, bx, by, bw, bh, 6);
+      ctx.fillStyle = '#7ef'; roundRect(ctx, bx, by, bw*ratio, bh, 6);
+    }
+  }
+
+  // particles
+  for(const q of game.particles){ ctx.fillStyle = q.color || '#fff'; ctx.globalAlpha = Math.max(0, Math.min(1, q.life)); ctx.beginPath(); ctx.arc(q.x, q.y, q.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1; }
+}
+
+/* draw clouds helper */
+function drawClouds(W,H){ const t=(performance.now()||0)/1000; ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = '#cfe8ff'; for(let i=0;i<6;i++){ const cx = ((i*220) + (t*18*(i%2?1:-1))) % (W+260) - 130; const cy = 60 + (i*14); ctx.beginPath(); ctx.ellipse(cx, cy, 90 - i*8, 26 - i*3, 0, 0, Math.PI*2); ctx.fill(); } ctx.restore(); }
+
+/* ---- Input handling (押してすぐ chargeStart をセット、離すとジャンプ) ---- */
+let input = {touching:false, crouchKey:false};
+function pressStart(){
+  if(!game.running){
+    if(!localStorage.getItem(LS_STORY)) { pauseForStory(); showStoryPanel(); }
+    else startGame();
+    return;
+  }
+  if(!game.player || !game.player.alive) return;
+  input.touching = true;
+  game.player.chargeStart = performance.now();
+}
+function pressEnd(){
+  if(!game.player || !game.player.alive) return;
+  input.touching = false;
+  const now = performance.now();
+  const held = Math.max(0, now - (game.player.chargeStart || now));
+  game.player.chargeStart = null;
+  if(performance.now() < (game.flightUntil || 0)) return;
+  if(game.player.jumps < 3){
+    const base = game.player.jumpPower;
+    const extra = Math.min(1.4, held / 450);
+    const jumpVel = - base * (0.88 + extra);
+    game.player.vy = jumpVel;
+    game.player.onGround = false;
+    game.player.jumps += 1;
+    spawnParticles(game.player.x + game.player.w/2, game.player.y + game.player.h, '#7ef', 10);
+    playBeep(750 - Math.min(420, held/2), 0.06, 'triangle', 0.08);
+  }
+}
+
+/* touch/mouse */
+canvas.addEventListener('touchstart', e=>{ e.preventDefault(); pressStart(); }, {passive:false});
+canvas.addEventListener('touchend', e=>{ e.preventDefault(); pressEnd(); }, {passive:false});
+canvas.addEventListener('mousedown', e=>{ e.preventDefault(); pressStart(); });
+window.addEventListener('mouseup', e=>{ pressEnd(); });
+
+/* keyboard */
+window.addEventListener('keydown', e=>{
+  if(document.activeElement && (document.activeElement.tagName==='INPUT' || document.activeElement.tagName==='TEXTAREA')) return;
+  if(e.code==='Space' || e.key==='ArrowUp'){ if(!e.repeat) pressStart(); e.preventDefault(); }
+  else if(e.key==='ArrowDown' || e.key.toLowerCase()==='s'){ if(!input.crouchKey){ input.crouchKey = true; setCrouch(true); } e.preventDefault(); }
+  else if(e.key==='p'){ if(game.paused) startResumeCountdown(); else pauseGame(); }
+  else if(e.key==='Escape' || e.code==='Escape'){ if(game.paused) startResumeCountdown(); else pauseGame(); }
+});
+window.addEventListener('keyup', e=>{
+  if(e.code==='Space' || e.key==='ArrowUp'){ pressEnd(); e.preventDefault(); }
+  else if(e.key==='ArrowDown' || e.key.toLowerCase()==='s'){ input.crouchKey=false; setCrouch(false); e.preventDefault(); }
+});
+
+/* crouch button */
+let crouchPointerActive=false;
+crouchBtn.addEventListener('touchstart', e=>{ e.preventDefault(); setCrouch(true); crouchPointerActive=true; }, {passive:false});
+crouchBtn.addEventListener('touchend', e=>{ e.preventDefault(); setCrouch(false); crouchPointerActive=false; }, {passive:false});
+crouchBtn.addEventListener('mousedown', e=>{ e.preventDefault(); setCrouch(true); crouchPointerActive=true; });
+window.addEventListener('mouseup', e=>{ if(crouchPointerActive){ setCrouch(false); crouchPointerActive=false; }});
+function setCrouch(flag){ if(!game.player) return; game.player.crouching = !!flag; }
+
+/* ---- UI wiring ---- */
+startBtn.addEventListener('click', ()=>{ hideAllPanels(); if(!localStorage.getItem(LS_STORY)) { pauseForStory(); showStoryPanel(); } else startGame(); });
+howBtn.addEventListener('click', ()=>{ showPanel('panelHow'); });
+backBtn.addEventListener('click', ()=>{ hideAllPanels(); showPanel('panelStart'); });
+resumeBtn.addEventListener('click', ()=> startResumeCountdown());
+restartBtn.addEventListener('click', ()=>{ hideAllPanels(); startGame(); });
+goRestartBtn.addEventListener('click', ()=>{ hideAllPanels(); startGame(); });
+titleBtnPause.addEventListener('click', ()=>{ hideAllPanels(); resetGame(); showPanel('panelStart'); });
+titleBtnGameOver.addEventListener('click', ()=>{ hideAllPanels(); resetGame(); showPanel('panelStart'); });
+bottomSoundBtn.addEventListener('click', ()=>{ game.soundOn = !game.soundOn; bottomSoundBtn.textContent = game.soundOn ? '🔊' : '🔈'; if(!game.soundOn) pauseBGM(); else if(game.running && !game.paused) playBGM(false); });
+document.getElementById('pauseBtn').addEventListener('click', ()=>{ if(game.paused) startResumeCountdown(); else pauseGame(); });
+
+storyShowBtn.addEventListener('click', ()=>{ pauseForStory(); showStoryPanelResume(); });
+storyResetBtn.addEventListener('click', ()=>{ localStorage.removeItem(LS_STORY); localStorage.removeItem(LS_STORY_PROG); alert('ストーリーをリセットしました。次回タイトル画面から自動表示されます。'); });
+
+/* ---- Story system (typewriter, resume/skip) ---- */
+const storyLines = [
+  "主人公はグミ太郎。静岡県御殿場市矢場居にあるグミ工場で生まれた。",
+  "だが、グミ太郎は自分が食べられてしまうことを知ってしまう。",
+  "ある夜、グミ太郎は工場から脱走する決心をした。",
+  "彼の目的地は、グミの聖地、静岡県御殿場市 グミ沢。",
+  "しかし道中には工場の手先や街の敵が待ち受けている。",
+  "はたしてグミ太郎はグミ沢にたどり着き、自由を掴めるのか。"
+];
+let storyIndex=0, storyCharIndex=0, storyTimerId=null;
+const textAudioCtx = (typeof window.AudioContext !== 'undefined') ? ensureAudioCtx() : null;
+function playTextBeep(){ if(!textAudioCtx || !game.soundOn) return; try{ const o=textAudioCtx.createOscillator(), g=textAudioCtx.createGain(); o.type='square'; o.frequency.value = 700 + Math.random()*80; g.gain.value = 0.06; o.connect(g); g.connect(textAudioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, textAudioCtx.currentTime + 0.06); o.stop(textAudioCtx.currentTime + 0.07);}catch(e){} }
+
+function showStoryPanelResume(){
+  const progRaw = localStorage.getItem(LS_STORY_PROG);
+  if(progRaw){ try{ const p = JSON.parse(progRaw); storyIndex = Number.isInteger(p.i)? p.i : 0; storyCharIndex = Number.isInteger(p.c)? p.c : 0; }catch(e){ storyIndex=0; storyCharIndex=0; } } else { storyIndex=0; storyCharIndex=0; }
+  storyBox.innerHTML = '';
+  for(let i=0;i<storyIndex;i++){ const p=document.createElement('p'); p.className='storyLine'; p.textContent = storyLines[i]; storyBox.appendChild(p); }
+  showPanelDirect('panelStory');
+  skipStoryBtn.style.display = 'inline-block'; okStoryBtn.style.display = 'none';
+  nextStoryChar();
+}
+function showStoryPanel(){ storyIndex=0; storyCharIndex=0; storyBox.innerHTML=''; showPanelDirect('panelStory'); skipStoryBtn.style.display='inline-block'; okStoryBtn.style.display='none'; nextStoryChar(); }
+function showPanelDirect(id){ overlayBg.style.display = 'block'; panelStart.style.display='none'; panelHow.style.display='none'; panelPause.style.display='none'; panelGameOver.style.display='none'; document.getElementById(id).style.display='block'; }
+function nextStoryChar(){
+  localStorage.setItem(LS_STORY_PROG, JSON.stringify({i:storyIndex, c:storyCharIndex}));
+  if(storyIndex >= storyLines.length){ okStoryBtn.style.display='inline-block'; skipStoryBtn.style.display='none'; localStorage.setItem(LS_STORY,'1'); localStorage.removeItem(LS_STORY_PROG); return; }
+  const line = storyLines[storyIndex];
+  if(storyCharIndex===0){ const p=document.createElement('p'); p.className='storyLine'; p.textContent=''; storyBox.appendChild(p); }
+  const pLast = document.querySelector('#storyBox p.storyLine:last-child');
+  if(!pLast) return;
+  if(storyCharIndex < line.length){ pLast.textContent += line[storyCharIndex++]; playTextBeep(); storyTimerId = setTimeout(nextStoryChar, 45 + Math.random()*35); }
+  else { storyIndex++; storyCharIndex=0; storyTimerId = setTimeout(nextStoryChar, 600); }
+}
+skipStoryBtn.addEventListener('click', ()=>{ if(storyTimerId) clearTimeout(storyTimerId); localStorage.setItem(LS_STORY,'1'); localStorage.removeItem(LS_STORY_PROG); okStoryBtn.style.display='inline-block'; skipStoryBtn.style.display='none'; pauseBGM(); });
+okStoryBtn.addEventListener('click', ()=>{ document.getElementById('panelStory').style.display='none'; overlayBg.style.display='none'; });
+
+/* ---- UI update (timers, labels) ---- */
+function getElapsedMs(){ if(!game.startTimestamp) return 0; if(game.paused) return Math.max(0, game.elapsedWhenPaused); return Math.max(0, game.elapsedWhenPaused + (performance.now() - game.startTimestamp)); }
+function formatTime(ms){ const s=Math.floor(ms/1000); const mm=Math.floor(s/60).toString().padStart(2,'0'); const ss=(s%60).toString().padStart(2,'0'); return mm+':'+ss; }
+function msToMMSS(ms){ if(!ms || ms <= 0) return '00:00'; return formatTime(ms); }
+function updateUI(){ bottomScoreLabel.textContent = `Score: ${Math.floor(game.score)}`; bottomTimeLabel.textContent = formatTime(getElapsedMs()); bottomBest.textContent = 'Best: ' + (localStorage.getItem(LS_BEST) || '0'); bottomBestSmall.textContent = (localStorage.getItem(LS_BEST) || '0'); const rem = Math.max(0, (game.distanceTotal - game.distanceCovered)/1000); distanceLabel.textContent = '残り: ' + rem.toFixed(2) + ' km'; heartLabel.textContent = '❤ x' + (game.heartCount || 0); invLabel.textContent = 'INV: ' + msToMMSS(Math.max(0, (game.invincibleUntil||0) - performance.now())); flightLabel.textContent = 'FLIGHT: ' + msToMMSS(Math.max(0, (game.flightUntil||0) - performance.now())); }
+
+/* ---- Init ---- */
+function hideAllPanels(){ overlayBg.style.display='none'; panelStart.style.display='none'; panelHow.style.display='none'; panelPause.style.display='none'; panelGameOver.style.display='none'; panelStory.style.display='none'; }
+function showPanel(id){ overlayBg.style.display='block'; hideAllPanels(); document.getElementById(id).style.display='block'; }
+
+function init(){
+  resizeCanvas();
+  resetGame();
+  if(!localStorage.getItem(LS_STORY)){ setTimeout(()=>{ pauseForStory(); showStoryPanel(); }, 200); } else { hideAllPanels(); panelStart.style.display='block'; }
+  updateUI();
+}
+init();
+
+/* ---- small remaining helpers ---- */
+function makeObstacle(x,y,w,h,kind,extra){ return Object.assign({x,y,w,h,kind,passed:false}, extra||{}); }
+
+</script>
+</body>
+</html>

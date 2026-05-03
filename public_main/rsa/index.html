@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSA暗号ツール</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: M PLUS Rounded 1c -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+        
+        /* アニメーション用クラス */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .slide-in-bottom { animation: slideInBottom 0.5s ease-out; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+        }
+        @keyframes slideInBottom { 
+            from { transform: translateY(20px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 p-4 md:p-8 selection:bg-indigo-200">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- ヘッダー -->
+        <header class="flex items-center justify-between bg-white p-4 rounded-[2rem] shadow-sm border border-slate-200">
+            <div class="flex items-center gap-3 px-3">
+                <div class="bg-indigo-100 p-2.5 rounded-2xl text-indigo-600">
+                    <i data-lucide="lock" class="w-6 h-6" stroke-width="2.5"></i>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">RSA暗号ツール</h1>
+            </div>
+            <button 
+                id="btn-open-help"
+                class="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-full transition-colors text-sm font-bold border border-slate-200"
+            >
+                <i data-lucide="help-circle" class="w-[18px] h-[18px]"></i>
+                <span>ヘルプ</span>
+            </button>
+        </header>
+
+        <main class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+            <!-- タブ切り替え -->
+            <div class="flex border-b border-slate-100 p-2 gap-2 bg-slate-50/50">
+                <button
+                    id="tab-encrypt"
+                    class="flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all bg-white text-indigo-600 shadow-sm border border-slate-100"
+                >
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                    <span>暗号を作る</span>
+                </button>
+                <button
+                    id="tab-decrypt"
+                    class="flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                    <i data-lucide="unlock" class="w-5 h-5"></i>
+                    <span>暗号を解く</span>
+                </button>
+            </div>
+
+            <div class="p-6 md:p-10">
+                <!-- エラー表示エリア -->
+                <div id="error-box" class="hidden mb-8 p-5 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] items-start gap-3">
+                    <i data-lucide="alert-circle" class="shrink-0 mt-0.5 w-[22px] h-[22px]"></i>
+                    <p id="error-msg" class="text-sm font-bold leading-relaxed"></p>
+                </div>
+
+                <!-- プログレスバー表示エリア -->
+                <div id="progress-box" class="hidden mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                    <div class="flex justify-between text-sm text-slate-600 mb-4 font-bold px-2">
+                        <span id="progress-text">準備中...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div id="progress-bar" class="bg-indigo-500 h-3 rounded-full transition-all duration-300 ease-out" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- ＝＝＝＝ 暗号化タブの内容 ＝＝＝＝ -->
+                <div id="content-encrypt" class="space-y-8 fade-in block">
+                    <!-- 自動/手動切り替え -->
+                    <div class="flex items-center justify-between bg-slate-100 p-2 rounded-full max-w-sm mx-auto">
+                        <button id="btn-auto-mode" class="flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-slate-800">
+                            自動生成
+                        </button>
+                        <button id="btn-manual-mode" class="flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all text-slate-500 hover:text-slate-700">
+                            自分で設定
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="flex items-center gap-2 text-sm font-bold text-slate-700 ml-2">
+                            <i data-lucide="file-text" class="w-[18px] h-[18px] text-indigo-500"></i>
+                            暗号化したい文章
+                        </label>
+                        <textarea
+                            id="enc-plaintext"
+                            placeholder="ここに入力してください..."
+                            class="w-full h-36 px-6 py-5 rounded-[2rem] border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-slate-50 focus:bg-white transition-all resize-none text-slate-800"
+                        ></textarea>
+                    </div>
+
+                    <!-- 手動設定エリア -->
+                    <div id="enc-manual-settings" class="hidden p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                        <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <i data-lucide="settings" class="w-[18px] h-[18px] text-slate-500"></i>
+                            各値の設定
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-slate-500 ml-2">素数 p</label>
+                                <input type="number" id="enc-p" class="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-white transition-all" placeholder="例: 61" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-slate-500 ml-2">素数 q (異なる値)</label>
+                                <input type="number" id="enc-q" class="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-white transition-all" placeholder="例: 53" />
+                            </div>
+                            <div class="space-y-2 md:col-span-2">
+                                <label class="text-xs font-bold text-slate-500 ml-2">公開鍵 e ( (p-1)×(q-1) と互いに素な数 )</label>
+                                <input type="number" id="enc-e" class="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-white transition-all" placeholder="例: 17" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        id="btn-run-encrypt"
+                        class="w-full py-5 bg-slate-800 hover:bg-slate-700 text-white rounded-[2rem] font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                        <i data-lucide="lock" class="w-[22px] h-[22px]"></i>
+                        <span id="btn-encrypt-text">自動で暗号化する</span>
+                    </button>
+
+                    <!-- 暗号化結果表示エリア -->
+                    <div id="enc-result-box" class="hidden mt-10 p-8 bg-indigo-50/50 rounded-[2.5rem] border border-indigo-100 space-y-8 slide-in-bottom">
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-bold text-indigo-800 flex items-center gap-2 ml-2">
+                                <i data-lucide="lock" class="w-[18px] h-[18px]"></i>
+                                完成した暗号文
+                            </h3>
+                            <div id="enc-result-cipher" class="p-6 bg-white rounded-[2rem] border border-indigo-100 text-slate-700 break-all leading-relaxed min-h-[6rem] shadow-sm"></div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 ml-2">
+                                <i data-lucide="key" class="w-[18px] h-[18px]"></i>
+                                生成された鍵のデータ
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <!-- p -->
+                                <div class="p-3 rounded-2xl border bg-slate-50 border-slate-100 break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">素数 p</div>
+                                    <div id="enc-res-p" class="font-mono text-slate-700">-</div>
+                                </div>
+                                <!-- q -->
+                                <div class="p-3 rounded-2xl border bg-slate-50 border-slate-100 break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">素数 q</div>
+                                    <div id="enc-res-q" class="font-mono text-slate-700">-</div>
+                                </div>
+                                <!-- e -->
+                                <div class="p-3 rounded-2xl border bg-slate-50 border-slate-100 break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">公開鍵 e</div>
+                                    <div id="enc-res-e" class="font-mono text-slate-700">-</div>
+                                </div>
+                                <!-- d (highlight) -->
+                                <div class="p-3 rounded-2xl border bg-white border-indigo-200 shadow-sm break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">秘密鍵 d</div>
+                                    <div id="enc-res-d" class="font-mono text-indigo-700 font-bold">-</div>
+                                </div>
+                                <!-- n (highlight) -->
+                                <div class="p-3 rounded-2xl border bg-white border-indigo-200 shadow-sm break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">法 n</div>
+                                    <div id="enc-res-n" class="font-mono text-indigo-700 font-bold">-</div>
+                                </div>
+                                <!-- phi -->
+                                <div class="p-3 rounded-2xl border bg-slate-50 border-slate-100 break-all">
+                                    <div class="text-xs font-bold text-slate-500 mb-1">φ(n)</div>
+                                    <div id="enc-res-phi" class="font-mono text-slate-700">-</div>
+                                </div>
+                            </div>
+                            <p class="text-xs font-bold text-slate-500 ml-4 mt-2">
+                                ※ 解読には強調表示されている「秘密鍵 d」と「法 n」が必要です。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ＝＝＝＝ 復号（解読）タブの内容 ＝＝＝＝ -->
+                <div id="content-decrypt" class="space-y-8 fade-in hidden">
+                    <div class="space-y-4">
+                        <label class="flex items-center gap-2 text-sm font-bold text-slate-700 ml-2">
+                            <i data-lucide="lock" class="w-[18px] h-[18px] text-indigo-500"></i>
+                            解読したい暗号文 (数値の羅列)
+                        </label>
+                        <textarea
+                            id="dec-ciphertext"
+                            placeholder="例: 12345 67890 11223"
+                            class="w-full h-36 px-6 py-5 rounded-[2rem] border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-slate-50 focus:bg-white transition-all resize-none text-slate-800 font-mono text-sm"
+                        ></textarea>
+                    </div>
+
+                    <div class="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                        <div class="space-y-2">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                <i data-lucide="key" class="w-[18px] h-[18px] text-slate-500"></i>
+                                解読に必要な鍵
+                            </h3>
+                            <p class="text-xs font-bold text-slate-400 ml-6">
+                                「秘密鍵 d」と「法 n」を入力してください。（分からない場合は下の補助入力を使用できます）
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-slate-500 ml-2">秘密鍵 d</label>
+                                <input type="number" id="dec-d" class="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-white transition-all" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-bold text-slate-500 ml-2">法 n</label>
+                                <input type="number" id="dec-n" class="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-white transition-all" />
+                            </div>
+                        </div>
+                        
+                        <div class="pt-6 border-t border-slate-200/60">
+                            <p class="text-xs font-bold text-slate-400 mb-4 ml-2">d, n が分からない場合の補助入力（自動で計算して進みます）</p>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 ml-2">p</label>
+                                    <input type="number" id="dec-p" class="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 ml-2">q</label>
+                                    <input type="number" id="dec-q" class="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 ml-2">e</label>
+                                    <input type="number" id="dec-e" class="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-indigo-400 bg-white" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        id="btn-run-decrypt"
+                        class="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                        <i data-lucide="unlock" class="w-[22px] h-[22px]"></i>
+                        暗号を解読する
+                    </button>
+
+                    <!-- 解読結果表示エリア -->
+                    <div id="dec-result-box" class="hidden mt-10 p-8 bg-emerald-50/50 rounded-[2.5rem] border border-emerald-100 space-y-4 slide-in-bottom">
+                        <h3 class="text-sm font-bold text-emerald-800 flex items-center gap-2 ml-2">
+                            <i data-lucide="unlock" class="w-[18px] h-[18px]"></i>
+                            解読された文章
+                        </h3>
+                        <div id="dec-result-plaintext" class="p-6 bg-white rounded-[2rem] border border-emerald-100 text-slate-800 break-all leading-relaxed min-h-[6rem] text-lg font-bold shadow-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ヘルプモーダル -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center p-4 z-50 fade-in">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100">
+            <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-xl font-bold flex items-center gap-3 text-slate-800">
+                    <div class="bg-indigo-100 p-2 rounded-full text-indigo-600">
+                        <i data-lucide="help-circle" class="w-5 h-5"></i>
+                    </div>
+                    RSA暗号の使い方と仕組み
+                </h2>
+                <button id="btn-close-help" class="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 md:p-8 overflow-y-auto space-y-10">
+                <section class="space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-indigo-500 rounded-full"></span>
+                        各値の意味
+                    </h3>
+                    <div class="grid gap-3">
+                        <!-- HelpItem 1 -->
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-2 sm:gap-4 items-start">
+                            <div class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm whitespace-nowrap">p, q</div>
+                            <div class="text-sm text-slate-700 leading-relaxed mt-1 sm:mt-0">2つの異なる素数です。すべての計算のベースになります。</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-2 sm:gap-4 items-start">
+                            <div class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm whitespace-nowrap">n</div>
+                            <div class="text-sm text-slate-700 leading-relaxed mt-1 sm:mt-0">p と q を掛け合わせた値です (n = p × q)。暗号化と復号の両方で使われます。</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-2 sm:gap-4 items-start">
+                            <div class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm whitespace-nowrap">φ(n)</div>
+                            <div class="text-sm text-slate-700 leading-relaxed mt-1 sm:mt-0">(p-1) と (q-1) を掛けた値です。鍵を計算するためだけに使われ、外部には公開しません。</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-2 sm:gap-4 items-start">
+                            <div class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm whitespace-nowrap">e</div>
+                            <div class="text-sm text-slate-700 leading-relaxed mt-1 sm:mt-0">公開鍵の一部です。φ(n) と互いに素（最大公約数が1）になるように選びます。</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-2 sm:gap-4 items-start">
+                            <div class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm whitespace-nowrap">d</div>
+                            <div class="text-sm text-slate-700 leading-relaxed mt-1 sm:mt-0">秘密鍵です。「e × d を φ(n) で割った余りが 1」になるように計算された特別な値です。</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-emerald-500 rounded-full"></span>
+                        暗号化の仕組み
+                    </h3>
+                    <div class="bg-slate-50 p-6 rounded-[2rem] text-sm leading-relaxed text-slate-700 font-medium">
+                        <p>元の文字を数値(M)に変換し、以下の計算を行います。</p>
+                        <div class="my-5 font-mono bg-white p-4 rounded-2xl border border-slate-200 text-center text-lg font-bold shadow-sm">
+                            暗号文(C) = M<sup class="text-sm">e</sup> mod n
+                        </div>
+                        <p class="text-slate-500">「Mをe乗して、nで割った余り」が暗号文になります。公開鍵(e, n)を知っていれば誰でも暗号化できます。</p>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-amber-500 rounded-full"></span>
+                        復号（解読）の仕組み
+                    </h3>
+                    <div class="bg-slate-50 p-6 rounded-[2rem] text-sm leading-relaxed text-slate-700 font-medium">
+                        <p>暗号文の数値(C)を元に戻すには、以下の計算を行います。</p>
+                        <div class="my-5 font-mono bg-white p-4 rounded-2xl border border-slate-200 text-center text-lg font-bold shadow-sm">
+                            元の文字(M) = C<sup class="text-sm">d</sup> mod n
+                        </div>
+                        <p class="text-slate-500">「Cをd乗して、nで割った余り」を計算すると、魔法のように元の数値Mに戻ります。これは秘密鍵(d)を知っている人にしかできません。</p>
+                    </div>
+                </section>
+            </div>
+            
+            <div class="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button id="btn-close-help-bottom" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-full transition-colors shadow-md">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 処理スクリプト -->
+    <script>
+        // Lucideアイコンの初期化
+        lucide.createIcons();
+
+        // ---------------------------------------------------
+        // RSA計算ロジック (BigInt使用) - React版から完全移植
+        // ---------------------------------------------------
+        const gcd = (a, b) => b === BigInt(0) ? a : gcd(b, a % b);
+
+        const extGCD = (a, b) => {
+            let x0 = BigInt(1), y0 = BigInt(0), x1 = BigInt(0), y1 = BigInt(1);
+            while (b !== BigInt(0)) {
+                let q = a / b;
+                let r = a % b;
+                a = b; b = r;
+                let x2 = x0 - q * x1;
+                let y2 = y0 - q * y1;
+                x0 = x1; x1 = x2;
+                y0 = y1; y1 = y2;
+            }
+            return { g: a, x: x0, y: y0 };
+        };
+
+        const modInverse = (e, phi) => {
+            let { x, g } = extGCD(e, phi);
+            if (g !== BigInt(1)) return null;
+            return (x % phi + phi) % phi;
+        };
+
+        const modPow = (base, exp, mod) => {
+            let res = BigInt(1);
+            base = base % mod;
+            while (exp > BigInt(0)) {
+                if (exp % BigInt(2) === BigInt(1)) res = (res * base) % mod;
+                base = (base * base) % mod;
+                exp /= BigInt(2);
+            }
+            return res;
+        };
+
+        const isPrime = (n) => {
+            if (typeof n !== 'bigint') n = BigInt(n);
+            if (n <= BigInt(1)) return false;
+            if (n <= BigInt(3)) return true;
+            if (n % BigInt(2) === BigInt(0) || n % BigInt(3) === BigInt(0)) return false;
+            for (let i = BigInt(5); i * i <= n; i += BigInt(6)) {
+                if (n % i === BigInt(0) || n % (i + BigInt(2)) === BigInt(0)) return false;
+            }
+            return true;
+        };
+
+        const generatePrime = (min, max) => {
+            const range = max - min;
+            while (true) {
+                let rnd = BigInt(Math.floor(Math.random() * Number(range))) + min;
+                if (isPrime(rnd)) return rnd;
+            }
+        };
+
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        // ---------------------------------------------------
+        // UI操作 / 状態管理
+        // ---------------------------------------------------
+        
+        let isAutoMode = true;
+        let isProcessing = false;
+
+        // --- タブ切り替え ---
+        const tabEncrypt = document.getElementById('tab-encrypt');
+        const tabDecrypt = document.getElementById('tab-decrypt');
+        const contentEncrypt = document.getElementById('content-encrypt');
+        const contentDecrypt = document.getElementById('content-decrypt');
+
+        function switchTab(tab) {
+            hideError();
+            if (tab === 'encrypt') {
+                tabEncrypt.className = "flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all bg-white text-indigo-600 shadow-sm border border-slate-100";
+                tabDecrypt.className = "flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all text-slate-400 hover:text-slate-600 hover:bg-slate-100";
+                contentEncrypt.classList.remove('hidden');
+                contentDecrypt.classList.add('hidden');
+            } else {
+                tabDecrypt.className = "flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all bg-white text-indigo-600 shadow-sm border border-slate-100";
+                tabEncrypt.className = "flex-1 flex justify-center items-center gap-2 py-4 rounded-3xl font-bold transition-all text-slate-400 hover:text-slate-600 hover:bg-slate-100";
+                contentDecrypt.classList.remove('hidden');
+                contentEncrypt.classList.add('hidden');
+            }
+        }
+        tabEncrypt.addEventListener('click', () => switchTab('encrypt'));
+        tabDecrypt.addEventListener('click', () => switchTab('decrypt'));
+
+        // --- 暗号化：自動/手動モード切り替え ---
+        const btnAutoMode = document.getElementById('btn-auto-mode');
+        const btnManualMode = document.getElementById('btn-manual-mode');
+        const encManualSettings = document.getElementById('enc-manual-settings');
+        const btnEncryptText = document.getElementById('btn-encrypt-text');
+
+        function setAutoMode(auto) {
+            isAutoMode = auto;
+            if (auto) {
+                btnAutoMode.className = "flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-slate-800";
+                btnManualMode.className = "flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all text-slate-500 hover:text-slate-700";
+                encManualSettings.classList.add('hidden');
+                btnEncryptText.textContent = "自動で暗号化する";
+            } else {
+                btnManualMode.className = "flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-slate-800";
+                btnAutoMode.className = "flex-1 py-3 px-6 rounded-full text-sm font-bold transition-all text-slate-500 hover:text-slate-700";
+                encManualSettings.classList.remove('hidden');
+                btnEncryptText.textContent = "この設定で暗号化する";
+            }
+        }
+        btnAutoMode.addEventListener('click', () => setAutoMode(true));
+        btnManualMode.addEventListener('click', () => setAutoMode(false));
+
+        // --- ユーティリティUI ---
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        const progressBox = document.getElementById('progress-box');
+        const progressText = document.getElementById('progress-text');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressBar = document.getElementById('progress-bar');
+        const btnRunEncrypt = document.getElementById('btn-run-encrypt');
+        const btnRunDecrypt = document.getElementById('btn-run-decrypt');
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorBox.classList.remove('hidden');
+            errorBox.classList.add('flex');
+        }
+        function hideError() {
+            errorBox.classList.add('hidden');
+            errorBox.classList.remove('flex');
+        }
+        function setProgressUI(visible, percent = 0, text = "") {
+            if (visible) {
+                progressBox.classList.remove('hidden');
+                progressText.textContent = text;
+                progressPercent.textContent = percent + "%";
+                progressBar.style.width = percent + "%";
+                btnRunEncrypt.disabled = true;
+                btnRunDecrypt.disabled = true;
+                isProcessing = true;
+            } else {
+                progressBox.classList.add('hidden');
+                btnRunEncrypt.disabled = false;
+                btnRunDecrypt.disabled = false;
+                isProcessing = false;
+            }
+        }
+
+        // --- 暗号化処理 ---
+        btnRunEncrypt.addEventListener('click', async () => {
+            if (isProcessing) return;
+            hideError();
+            
+            const plainText = document.getElementById('enc-plaintext').value;
+            if (!plainText) {
+                showError('暗号化する文章を入力してください。');
+                return;
+            }
+
+            document.getElementById('enc-result-box').classList.add('hidden');
+            setProgressUI(true, 0, '準備中...');
+            await sleep(300);
+
+            try {
+                let currentP, currentQ, currentE, currentN, currentPhi, currentD;
+
+                if (isAutoMode) {
+                    setProgressUI(true, 20, '素数 p, q を生成中...');
+                    await sleep(500);
+                    
+                    currentP = generatePrime(BigInt(300), BigInt(1000));
+                    currentQ = generatePrime(BigInt(300), BigInt(1000));
+                    while (currentP === currentQ) {
+                        currentQ = generatePrime(BigInt(300), BigInt(1000));
+                    }
+                    
+                    setProgressUI(true, 40, '鍵の元となる数値を計算中...');
+                    await sleep(500);
+                    
+                    currentN = currentP * currentQ;
+                    currentPhi = (currentP - BigInt(1)) * (currentQ - BigInt(1));
+                    
+                    setProgressUI(true, 60, '公開鍵・秘密鍵を生成中...');
+                    await sleep(500);
+
+                    currentE = BigInt(65537);
+                    if (currentPhi <= currentE || gcd(currentE, currentPhi) !== BigInt(1)) {
+                        currentE = BigInt(3);
+                        while (gcd(currentE, currentPhi) !== BigInt(1)) {
+                            currentE += BigInt(2);
+                        }
+                    }
+                    currentD = modInverse(currentE, currentPhi);
+
+                } else {
+                    const pVal = document.getElementById('enc-p').value;
+                    const qVal = document.getElementById('enc-q').value;
+                    const eValInput = document.getElementById('enc-e').value;
+
+                    if (!pVal || !qVal || !eValInput) {
+                        throw new Error('p, q, e の値をすべて入力してください。');
+                    }
+
+                    setProgressUI(true, 30, '入力された値を確認中...');
+                    await sleep(400);
+
+                    try {
+                        currentP = BigInt(pVal);
+                        currentQ = BigInt(qVal);
+                        currentE = BigInt(eValInput);
+                    } catch {
+                        throw new Error('入力値には数字のみを使用してください。');
+                    }
+
+                    if (!isPrime(currentP) || !isPrime(currentQ)) {
+                        throw new Error('p と q は素数である必要があります。');
+                    }
+                    if (currentP === currentQ) {
+                        throw new Error('p と q は異なる素数である必要があります。');
+                    }
+
+                    setProgressUI(true, 60, '公開鍵・秘密鍵を計算中...');
+                    await sleep(400);
+
+                    currentN = currentP * currentQ;
+                    currentPhi = (currentP - BigInt(1)) * (currentQ - BigInt(1));
+                    
+                    if (gcd(currentE, currentPhi) !== BigInt(1)) {
+                        throw new Error('e は (p-1)×(q-1) と互いに素である必要があります。別の数値を指定してください。');
+                    }
+                    currentD = modInverse(currentE, currentPhi);
+                }
+
+                const maxCharCode = Math.max(...Array.from(plainText).map(c => c.charCodeAt(0)));
+                if (BigInt(maxCharCode) >= currentN) {
+                    throw new Error(`設定した n の値 (${currentN}) が小さすぎます。文章を安全に暗号化するためには、n は ${maxCharCode} より大きい必要があります。より大きな素数を指定してください。`);
+                }
+
+                setProgressUI(true, 80, '文章を暗号化中...');
+                await sleep(600);
+
+                const chars = Array.from(plainText);
+                const encryptedArr = chars.map(char => {
+                    const m = BigInt(char.charCodeAt(0));
+                    const c = modPow(m, currentE, currentN);
+                    return c.toString();
+                });
+
+                const cipherText = encryptedArr.join(' ');
+
+                // 結果を描画
+                document.getElementById('enc-result-cipher').textContent = cipherText;
+                document.getElementById('enc-res-p').textContent = currentP.toString();
+                document.getElementById('enc-res-q').textContent = currentQ.toString();
+                document.getElementById('enc-res-e').textContent = currentE.toString();
+                document.getElementById('enc-res-d').textContent = currentD.toString();
+                document.getElementById('enc-res-n').textContent = currentN.toString();
+                document.getElementById('enc-res-phi').textContent = currentPhi.toString();
+
+                // 解読タブの補助入力等に自動的に値をコピーしておいてあげる（UX向上）
+                document.getElementById('dec-ciphertext').value = cipherText;
+                document.getElementById('dec-d').value = currentD.toString();
+                document.getElementById('dec-n').value = currentN.toString();
+
+                setProgressUI(true, 100, '完了しました！');
+                await sleep(400);
+                
+                document.getElementById('enc-result-box').classList.remove('hidden');
+
+            } catch (err) {
+                showError(err.message || 'エラーが発生しました。入力値を確認してください。');
+            } finally {
+                setProgressUI(false);
+            }
+        });
+
+        // --- 復号処理 ---
+        btnRunDecrypt.addEventListener('click', async () => {
+            if (isProcessing) return;
+            hideError();
+
+            const cipherText = document.getElementById('dec-ciphertext').value;
+            if (!cipherText) {
+                showError('解読する暗号文を入力してください。');
+                return;
+            }
+
+            document.getElementById('dec-result-box').classList.add('hidden');
+            setProgressUI(true, 0, '準備中...');
+            await sleep(300);
+
+            try {
+                let currentD, currentN;
+                
+                const dVal = document.getElementById('dec-d').value;
+                const nVal = document.getElementById('dec-n').value;
+                const pVal = document.getElementById('dec-p').value;
+                const qVal = document.getElementById('dec-q').value;
+                const eVal = document.getElementById('dec-e').value;
+
+                setProgressUI(true, 30, '復号のための鍵を確認中...');
+                await sleep(500);
+
+                if (dVal && nVal) {
+                    try {
+                        currentD = BigInt(dVal);
+                        currentN = BigInt(nVal);
+                    } catch {
+                        throw new Error('鍵には数字のみを入力してください。');
+                    }
+                } else if (pVal && qVal && eVal) {
+                    const currentP = BigInt(pVal);
+                    const currentQ = BigInt(qVal);
+                    const currentE = BigInt(eVal);
+                    currentN = currentP * currentQ;
+                    const currentPhi = (currentP - BigInt(1)) * (currentQ - BigInt(1));
+                    currentD = modInverse(currentE, currentPhi);
+                    if (!currentD) {
+                        throw new Error('指定された p, q, e から秘密鍵を計算できませんでした。');
+                    }
+                    // 計算結果をフォームに反映
+                    document.getElementById('dec-n').value = currentN.toString();
+                    document.getElementById('dec-d').value = currentD.toString();
+                } else {
+                    throw new Error('解読には「秘密鍵 d と 法 n」または「素数 p, q と 公開鍵 e」の入力が必要です。');
+                }
+
+                setProgressUI(true, 70, '暗号文を解読中...');
+                await sleep(600);
+
+                const cipherArr = cipherText.trim().split(/\s+/);
+                const decryptedChars = cipherArr.map(cStr => {
+                    try {
+                        const c = BigInt(cStr);
+                        const m = modPow(c, currentD, currentN);
+                        return String.fromCharCode(Number(m));
+                    } catch {
+                        throw new Error('暗号文の形式が正しくありません。数値がスペースで区切られているか確認してください。');
+                    }
+                });
+
+                const plainTextResult = decryptedChars.join('');
+
+                // 結果を描画
+                document.getElementById('dec-result-plaintext').textContent = plainTextResult;
+
+                setProgressUI(true, 100, '完了しました！');
+                await sleep(400);
+
+                document.getElementById('dec-result-box').classList.remove('hidden');
+
+            } catch (err) {
+                showError(err.message || 'エラーが発生しました。入力値や暗号文の形式を確認してください。');
+            } finally {
+                setProgressUI(false);
+            }
+        });
+
+        // --- ヘルプモーダル ---
+        const helpModal = document.getElementById('help-modal');
+        const btnOpenHelp = document.getElementById('btn-open-help');
+        const btnCloseHelp = document.getElementById('btn-close-help');
+        const btnCloseHelpBottom = document.getElementById('btn-close-help-bottom');
+
+        function openHelp() {
+            helpModal.classList.remove('hidden');
+            helpModal.classList.add('flex');
+        }
+        function closeHelp() {
+            helpModal.classList.add('hidden');
+            helpModal.classList.remove('flex');
+        }
+
+        btnOpenHelp.addEventListener('click', openHelp);
+        btnCloseHelp.addEventListener('click', closeHelp);
+        btnCloseHelpBottom.addEventListener('click', closeHelp);
+        
+        // 背景クリックで閉じる
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) closeHelp();
+        });
+
+    </script>
+</body>
+</html>

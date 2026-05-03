@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PESO BANK Simple</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* シンプル・イズ・ベストなCSS */
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px; /* 幅を狭めて見やすく */
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 30px;
+      color: #0f172a;
+      letter-spacing: 0.1em;
+    }
+
+    h2 {
+      font-size: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      color: #64748b;
+    }
+
+    /* フォーム要素 */
+    label {
+      display: block;
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: #475569;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+      background: #fff;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+
+    /* 署名エリア */
+    .signature-area {
+      border: 1px solid #ddd;
+      background: #fafafa;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    canvas { max-width: 100%; vertical-align: bottom; cursor: crosshair; }
+
+    /* ボタン類 */
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+
+    .btn-main { background-color: #0f172a; color: white; } /* 黒に近い紺 */
+    .btn-sub { background-color: #e2e8f0; color: #333; margin-bottom: 15px; }
+    .btn-repay { background-color: #10b981; color: white; width: auto; padding: 6px 12px; font-size: 12px; }
+    .btn-add { background-color: #3b82f6; color: white; font-size: 12px; margin-top: 10px; }
+
+    /* リスト表示 */
+    .user-card {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .user-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .user-name { font-size: 18px; font-weight: bold; }
+    .total-debt { color: #ef4444; font-weight: bold; font-size: 16px; }
+    
+    .loan-detail {
+      background: #f8fafc;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 13px;
+      border-radius: 4px;
+    }
+    .loan-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+
+    /* モーダル */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center;
+    }
+    .modal-box { background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>PESO BANK by RYO v-1.1</h1>
+
+  <div id="formArea">
+    <label>誰に貸しますか？</label>
+    <input type="text" id="userName" placeholder="名前を入力">
+
+    <div class="row">
+      <div>
+        <label>金額 (PESO)</label>
+        <input type="number" id="amount" placeholder="0">
+      </div>
+      <div>
+        <label>金利 (%)</label>
+        <input type="number" id="rate" value="5.0" step="0.1">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>タイプ</label>
+        <select id="interestType">
+          <option value="compound">複利</option>
+          <option value="simple">単利</option>
+        </select>
+      </div>
+      <div>
+        <label>期間</label>
+        <select id="interestPeriod">
+          <option value="day">1日ごと</option>
+          <option value="hour">1時間ごと</option>
+        </select>
+      </div>
+    </div>
+
+    <label>署名</label>
+    <div class="signature-area">
+      <canvas id="signature-pad" width="300" height="150"></canvas>
+    </div>
+    <button class="btn-sub" onclick="clearCanvas()">書き直す</button>
+
+    <button class="btn-main" onclick="showPreview()">契約内容を確認する</button>
+  </div>
+
+  <h2>貸付リスト (リアルタイム)</h2>
+  <div id="listContainer">読み込み中...</div>
+
+</div>
+
+<div id="previewModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="text-align:center; margin-top:0;">契約確認</h3>
+    <div id="previewBody" style="font-size:14px; line-height:1.6; background:#f4f4f5; padding:15px; border-radius:4px;"></div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn-sub" onclick="closePreview()">戻る</button>
+      <button class="btn-main" style="background:#ef4444;" id="finalBtn" onclick="executeLoan()">同意して実行</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, push, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  // シンガポールリージョン設定済み
+  const firebaseConfig = {
+    apiKey: "AIzaSyBsQ26C3o8l6ZMg8OiIeOPzUJWT9Cd9tmg",
+    authDomain: "peso-bank.firebaseapp.com",
+    databaseURL: "https://peso-bank-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "peso-bank",
+    storageBucket: "peso-bank.firebasestorage.app",
+    messagingSenderId: "879987546294",
+    appId: "1:879987546294:web:3accca4a1fce92803b6e17",
+    measurementId: "G-2G5KDTQ8ML"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // --- 保存処理 ---
+  window.saveToFirebase = (name, amount, rate, type, period, pdfUrl) => {
+    const newLoanRef = push(ref(db, 'loans'));
+    set(newLoanRef, {
+      borrower: name.trim(),
+      amount: Number(amount),
+      interestRate: Number(rate),
+      interestType: type,
+      interestPeriod: period,
+      contractUrl: pdfUrl,
+      status: "active",
+      timestamp: Date.now(),
+      repaidAmount: 0
+    }).then(() => {
+      alert("契約完了しました");
+      closePreview();
+      resetForm();
+    });
+  };
+
+  // --- リスト表示処理 ---
+  onValue(ref(db, 'loans'), (snapshot) => {
+    const container = document.getElementById('listContainer');
+    container.innerHTML = "";
+    const data = snapshot.val();
+    if (!data) { container.innerHTML = "<p style='text-align:center; color:#999;'>データなし</p>"; return; }
+
+    const borrowers = {};
+
+    Object.keys(data).forEach(key => {
+      const loan = data[key];
+      const name = loan.borrower;
+      if (!borrowers[name]) borrowers[name] = { loans: [], totalDebt: 0 };
+
+      // 計算
+      const diff = Date.now() - loan.timestamp;
+      let t = 0;
+      if (loan.interestPeriod === 'hour') t = Math.floor(diff / (1000 * 60 * 60));
+      else t = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+      let current = 0;
+      const P = loan.amount;
+      const r = loan.interestRate / 100;
+
+      if (loan.interestType === 'simple') current = Math.floor(P + (P * r * t));
+      else current = Math.floor(P * Math.pow((1 + r), t));
+
+      const remaining = current - (loan.repaidAmount || 0);
+
+      borrowers[name].loans.push({ id: key, ...loan, remaining, t, isHour: loan.interestPeriod === 'hour' });
+      if (remaining > 0) borrowers[name].totalDebt += remaining;
+    });
+
+    Object.keys(borrowers).forEach(name => {
+      const user = borrowers[name];
+      const hasDebt = user.totalDebt > 0;
+      
+      let loansHtml = "";
+      user.loans.forEach(loan => {
+        if(loan.remaining <= 0) return; 
+        const unit = loan.isHour ? '時間' : '日';
+        
+        loansHtml += `
+          <div class="loan-detail">
+             <div class="loan-row">
+               <span>${loan.amount} PESO (${loan.interestRate}%/${unit})</span>
+               <a href="${loan.contractUrl}" target="_blank" style="color:#3b82f6;">契約書</a>
+             </div>
+             <div class="loan-row">
+               <span style="color:#ef4444;">残: ${loan.remaining.toLocaleString()}</span>
+               <button class="btn-repay" onclick="repay('${loan.id}', ${loan.remaining})">返済</button>
+             </div>
+          </div>
+        `;
+      });
+
+      if (!hasDebt && loansHtml === "") loansHtml = "<div style='font-size:12px; text-align:center; color:green;'>完済</div>";
+
+      const html = `
+        <div class="user-card" style="${hasDebt ? '' : 'background:#f0f0f0; opacity:0.6;'}">
+          <div class="user-header">
+            <span class="user-name">${name}</span>
+            <span class="total-debt" style="${hasDebt?'':'color:#10b981'}">${hasDebt ? user.totalDebt.toLocaleString() : '0'}</span>
+          </div>
+          ${loansHtml}
+          <button class="btn-add" onclick="setAdd('${name}')">＋ 追加融資</button>
+        </div>
+      `;
+      container.innerHTML += html;
+    });
+  });
+
+  window.setAdd = (name) => {
+    document.getElementById('userName').value = name;
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+
+  window.repay = (id, debt) => {
+    const pay = prompt(`返済額を入力 (残: ${debt})`, debt);
+    if(!pay) return;
+    get(ref(db, `loans/${id}`)).then(s => {
+      update(ref(db, `loans/${id}`), { repaidAmount: (s.val().repaidAmount || 0) + Number(pay) });
+    });
+  };
+</script>
+
+<script>
+  // ★ GAS URL (前回のものを使用)
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbylDZgZHlShV6l4wuGkqPm_WvWXNhKhlWhzgTVLTfl16cctrySZV-3N8KJNrQRT2fdL/exec";
+
+  const canvas = document.getElementById('signature-pad');
+  const ctx = canvas.getContext('2d');
+  let isDrawing = false;
+  
+  // Canvas logic
+  canvas.addEventListener('mousedown',s);canvas.addEventListener('mousemove',d);canvas.addEventListener('mouseup',e);canvas.addEventListener('mouseout',e);
+  canvas.addEventListener('touchstart',ev=>{ev.preventDefault();s(ev.touches[0])},{passive:false});
+  canvas.addEventListener('touchmove',ev=>{ev.preventDefault();d(ev.touches[0])},{passive:false});
+  canvas.addEventListener('touchend',e);
+  function s(ev){isDrawing=true;ctx.beginPath();ctx.moveTo(getX(ev),getY(ev))}
+  function d(ev){if(!isDrawing)return;ctx.lineWidth=2;ctx.lineTo(getX(ev),getY(ev));ctx.stroke()}
+  function e(){isDrawing=false}
+  function getX(ev){const r=canvas.getBoundingClientRect();return((ev.clientX||ev.pageX)-r.left)*(canvas.width/r.width)}
+  function getY(ev){const r=canvas.getBoundingClientRect();return((ev.clientY||ev.pageY)-r.top)*(canvas.height/r.height)}
+  function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height)}
+
+  function resetForm() {
+    document.getElementById('userName').value = '';
+    document.getElementById('amount').value = '';
+    clearCanvas();
+    const btn = document.getElementById('finalBtn');
+    btn.disabled = false; btn.innerText = "同意して実行";
+  }
+
+  function showPreview() {
+    const name = document.getElementById('userName').value;
+    const amount = document.getElementById('amount').value;
+    const rate = document.getElementById('rate').value;
+    const period = document.getElementById('interestPeriod').value === 'hour' ? '1時間' : '1日';
+    const type = document.getElementById('interestType').value === 'compound' ? '複利' : '単利';
+
+    if(!name || !amount) { alert("名前と金額を入力してください"); return; }
+
+    const html = `
+      <p><strong>借主:</strong> ${name}</p>
+      <p><strong>金額:</strong> ${Number(amount).toLocaleString()} PESO</p>
+      <p style="color:#ef4444; font-weight:bold;">条件: ${period}あたり ${rate}% の${type}</p>
+      <hr>
+      <ul style="padding-left:20px; font-size:12px;">
+        <li>返済遅延時の全財産差押えに同意する</li>
+        <li>システム変更による条件変更に異議を申し立てない</li>
+      </ul>
+    `;
+    document.getElementById('previewBody').innerHTML = html;
+    document.getElementById('previewModal').style.display = 'flex';
+  }
+
+  function closePreview() { document.getElementById('previewModal').style.display = 'none'; }
+
+  function executeLoan() {
+    const btn = document.getElementById('finalBtn');
+    btn.disabled = true; btn.innerText = "通信中...";
+
+    const payload = {
+      name: document.getElementById('userName').value,
+      amount: document.getElementById('amount').value,
+      rate: document.getElementById('rate').value,
+      interestType: document.getElementById('interestType').value,
+      interestPeriod: document.getElementById('interestPeriod').value,
+      signature: canvas.toDataURL('image/png')
+    };
+
+    fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) })
+    .then(r => r.json())
+    .then(d => {
+      if(d.status === 'success') {
+        window.saveToFirebase(payload.name, payload.amount, payload.rate, payload.interestType, payload.interestPeriod, d.url);
+      } else {
+        alert("エラー: " + d.message);
+        btn.disabled = false;
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

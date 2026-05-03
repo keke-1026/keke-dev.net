@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デバイス詳細鑑定 - keke-dev</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --border: #e5e7eb; --text: #1f2937; --sub-text: #6b7280; --accent: #3b82f6; --bg: #ffffff; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 40px 20px; line-height: 1.5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { border-bottom: 2px solid var(--border); padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { font-size: 1.5rem; margin: 0; }
+        
+        h2 { font-size: 1.1rem; margin: 30px 0 15px; border-left: 4px solid var(--accent); padding-left: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+        .card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+        
+        .info { display: flex; align-items: center; gap: 12px; }
+        .icon { width: 24px; height: 24px; stroke: var(--sub-text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .label { display: block; font-size: 0.75rem; color: var(--sub-text); font-weight: 700; }
+        .value { font-size: 0.95rem; font-weight: 700; word-break: break-all; }
+        
+        .box { margin-top: 15px; padding: 15px; background: #f9fafb; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.8rem; overflow-x: auto; }
+        .back-link { margin-top: 40px; display: inline-block; color: var(--accent); text-decoration: none; font-size: 0.9rem; border: 1px solid var(--accent); padding: 8px 20px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>デバイス詳細鑑定書</h1>
+    </header>
+
+    <h2>基本ソフトウェア</h2>
+    <div class="grid">
+        <div class="card"><div class="info"><svg class="icon"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg><div><span class="label">ブラウザ</span><span class="value" id="browser">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg><div><span class="label">OS</span><span class="value" id="os">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><div><span class="label">言語設定</span><span class="value" id="lang">---</span></div></div></div>
+    </div>
+
+    <h2>画面・表示</h2>
+    <div class="grid">
+        <div class="card"><div class="info"><svg class="icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg><div><span class="label">解像度</span><span class="value" id="screen">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><circle cx="12" cy="12" r="10"></circle></svg><div><span class="label">ピクセル比 (DPR)</span><span class="value" id="dpr">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><path d="M12 2v20M2 12h20"></path></svg><div><span class="label">色深度</span><span class="value" id="color-depth">---</span></div></div></div>
+    </div>
+
+    <h2>ハードウェア</h2>
+    <div class="grid">
+        <div class="card"><div class="info"><svg class="icon"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect></svg><div><span class="label">論理コア数 (CPU)</span><span class="value" id="cpu">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><path d="M6 19v-3M10 19v-7M14 19v-11M18 19v-15"></path></svg><div><span class="label">推定メモリ</span><span class="value" id="mem">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg><div><span class="label">グラフィック (GPU)</span><span class="value" id="gpu">---</span></div></div></div>
+    </div>
+
+    <h2>通信・電源</h2>
+    <div class="grid">
+        <div class="card"><div class="info"><svg class="icon"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg><div><span class="label">回線種別</span><span class="value" id="net-type">---</span></div></div></div>
+        <div class="card"><div class="info"><svg class="icon"><rect x="1" y="6" width="18" height="12" rx="2"></rect><line x1="23" y1="13" x2="23" y2="11"></line></svg><div><span class="label">バッテリー</span><span class="value" id="bat">---</span></div></div></div>
+    </div>
+
+    <h2>保存データ (Cookie / Storage)</h2>
+    <span class="label">クッキー (Cookie)</span>
+    <div class="box" id="cookies">なし</div>
+    
+    <span class="label" style="margin-top:10px;">ローカルストレージ (LocalStorage) 数</span>
+    <div class="box" id="storage">0 件</div>
+
+    <span class="label" style="margin-top:10px;">ユーザーエージェント (全文)</span>
+    <div class="box" id="ua-full">---</div>
+    
+    <a href="https://keke-dev.net" class="back-link">← ホームページへ戻る</a>
+</div>
+
+<script>
+    const ua = navigator.userAgent;
+    document.getElementById('ua-full').innerText = ua;
+
+    // 基本情報
+    document.getElementById('browser').innerText = (() => {
+        if (ua.includes('Edg')) return 'Microsoft Edge';
+        if (ua.includes('Chrome')) return 'Google Chrome';
+        if (ua.includes('Safari')) return 'Safari';
+        if (ua.includes('Firefox')) return 'Firefox';
+        return '不明';
+    })();
+    document.getElementById('os').innerText = (() => {
+        if (ua.includes('Win')) return 'Windows';
+        if (ua.includes('iPhone')) return 'iPhone (iOS)';
+        if (ua.includes('iPad')) return 'iPad (iPadOS)';
+        if (ua.includes('Mac')) return 'macOS';
+        if (ua.includes('Android')) return 'Android';
+        return 'Linux / 他';
+    })();
+    document.getElementById('lang').innerText = navigator.language;
+
+    // 画面
+    document.getElementById('screen').innerText = `${window.screen.width} × ${window.screen.height} (利用可能: ${window.screen.availWidth}×${window.screen.availHeight})`;
+    document.getElementById('dpr').innerText = window.devicePixelRatio;
+    document.getElementById('color-depth').innerText = `${window.screen.colorDepth} bit`;
+
+    // ハードウェア
+    document.getElementById('cpu').innerText = `${navigator.hardwareConcurrency || '不明'} コア`;
+    document.getElementById('mem').innerText = navigator.deviceMemory ? `約 ${navigator.deviceMemory} GB` : '判定不可';
+    
+    // GPU取得 (WebGL経由)
+    const getGPU = () => {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return '非対応';
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        return debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '取得制限あり';
+    };
+    document.getElementById('gpu').innerText = getGPU();
+
+    // ネットワーク
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    document.getElementById('net-type').innerText = conn ? `${conn.effectiveType} (推定遅延: ${conn.rtt}ms)` : '取得不可';
+
+    // 電源
+    if (navigator.getBattery) {
+        navigator.getBattery().then(b => {
+            const up = () => document.getElementById('bat').innerText = `${Math.floor(b.level * 100)}% (${b.charging ? '充電中' : '放電中'})`;
+            up(); b.onlevelchange = up; b.onchargingchange = up;
+        });
+    }
+
+    // Cookie & Storage
+    document.getElementById('cookies').innerText = document.cookie || '有効なCookieはありません（またはHttpOnly制限）';
+    document.getElementById('storage').innerText = `${localStorage.length} 件のデータが保存されています`;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,295 @@
+:root {
+    /* ライトモード (デフォルト) */
+    --bg-color: #f9fafb;
+    --card-bg: #ffffff;
+    --text-main: #1f2937;
+    --text-sub: #6b7280;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --border: #e5e7eb;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --font-jp: 'Noto Sans JP', sans-serif;
+    --font-en: 'Poppins', sans-serif;
+}
+
+/* ダークモード設定 (スマホの設定に合わせる) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #111827;
+        --card-bg: #1f2937;
+        --text-main: #f9fafb;
+        --text-sub: #9ca3af;
+        --primary: #60a5fa;
+        --primary-hover: #3b82f6;
+        --border: #374151;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* bodyに dark クラスがついた時の強制ダークモード */
+body.dark-theme {
+    --bg-color: #111827;
+    --card-bg: #1f2937;
+    --text-main: #f9fafb;
+    --text-sub: #9ca3af;
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
+    --border: #374151;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-jp);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    transition: background-color 0.3s, color 0.3s;
+    overflow-x: hidden;
+}
+
+/* ヘッダー */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.logo {
+    font-family: var(--font-en);
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin-left: 1rem;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+}
+
+/* ボタン共通 */
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: var(--border);
+}
+
+.btn {
+    font-family: var(--font-jp);
+    font-weight: 500;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 999px; /* 丸くする */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.1s, box-shadow 0.2s;
+    font-size: 1rem;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.primary {
+    background-color: var(--primary);
+    color: white;
+}
+.primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 0 15px var(--primary);
+}
+
+.secondary {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+.secondary:hover {
+    background-color: var(--border);
+}
+
+/* メインエリア */
+main {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    text-align: center;
+}
+
+.canvas-container {
+    margin-bottom: 2rem;
+}
+
+canvas {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    background-color: #fff; /* キャンバス自体の背景 */
+}
+
+.info-card {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+}
+
+.uuid-display {
+    margin-bottom: 2rem;
+}
+
+.uuid-display .label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    margin-bottom: 0.5rem;
+    font-family: var(--font-en);
+}
+
+.uuid-display code {
+    display: block;
+    font-family: monospace;
+    font-size: 1.1rem;
+    word-break: break-all;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* ユーザー情報表示 */
+.user-info {
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-color);
+    padding: 5px 15px;
+    border-radius: 50px;
+}
+.badge {
+    font-size: 0.75rem;
+    background: var(--primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+.nickname {
+    font-weight: bold;
+}
+
+/* サイドバー */
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100%;
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar.active {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#saved-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#saved-list li {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#saved-list li:hover {
+    background-color: var(--bg-color);
+}
+
+#saved-list li h4 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+}
+
+#saved-list li p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empty-msg {
+    text-align: center;
+    color: var(--text-sub);
+    margin-top: 2rem;
+}
+
+/* オーバーレイ（サイドバーが出たときの背景暗くするやつ） */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 50;
+    backdrop-filter: blur(2px);
+}
+
+#overlay.active {
+    opacity: 1;
+    visibility: visible;
+}

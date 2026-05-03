@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Night Walk — with Firebase Scoreboard</title>
+<style>
+:root{ --fg:#e6f0ff; --muted:#9fb0d6; --accent:#ffd14d; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#071226;color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; -webkit-tap-highlight-color:transparent; user-select:none;}
+#app{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:12px;}
+.hud{width:100%;max-width:1100px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 6px;}
+.left,.right{display:flex;gap:10px;align-items:center;}
+.score{font-weight:800;font-size:18px;}
+.time{font-weight:700;font-size:16px;color:var(--muted)}
+.icon{background:rgba(255,255,255,0.04);color:var(--fg);border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:10px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center; font-size:14px; -webkit-appearance:none;cursor:pointer}
+canvas{width:100%;height:calc(100vh - 200px);max-height:820px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,0.6);touch-action:none;display:block;}
+.canvasWrap{width:100%;max-width:1100px;position:relative;}
+.centerOverlay{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+#overlayBg{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.64);display:none;z-index:40;border-radius:12px;}
+.panel{pointer-events:auto;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);text-align:left;max-width:92%;z-index:50;}
+.big{font-size:20px;font-weight:800;margin-bottom:6px;}
+.small{font-size:13px;color:var(--muted);margin-bottom:8px;}
+.footerHint{position:fixed;left:0;right:0;bottom:34px;text-align:center;color:var(--muted);font-size:12px;pointer-events:none;}
+.crouchBtn{position:fixed;left:14px;bottom:40px;width:78px;height:78px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);font-weight:700;z-index:60;touch-action:none;}
+@media (min-width:900px){ .crouchBtn{left:30px;bottom:48px;width:88px;height:88px;} }
+.hudRightSmall{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.coinHeart{font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center;}
+.starHud{font-size:14px;color:#ffd86b;display:flex;gap:8px;align-items:center;}
+.copy{position:fixed;left:0;right:0;bottom:6px;text-align:center;color:var(--muted);font-size:12px;pointer-events:none;}
+.rulesList{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* scoreboard UI */
+#scoreboard{position:fixed;left:12px;top:12px;z-index:120;max-width:320px;}
+#scoreboard .card{background:rgba(0,0,0,0.55);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);}
+#sb_list{max-height:150px;overflow:auto;font-size:13px;line-height:1.2;margin-bottom:8px;}
+#pending_list{max-height:120px;overflow:auto;font-size:13px;margin-top:6px;}
+#settingsModal{display:none;position:fixed;right:12px;top:64px;z-index:140;}
+#settingsModal .box{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);min-width:260px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud" style="max-width:1100px;">
+    <div class="left">
+      <div class="score" id="score">Score: 0</div>
+      <div class="time" id="timeLabel">00:00</div>
+      <div class="muted" id="highscore">Hi: 0</div>
+    </div>
+    <div class="right">
+      <div class="hudRightSmall">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="coinHeart" id="coinUI">💰 x0</div>
+          <div class="coinHeart" id="heartUI">❤ x0</div>
+          <div class="starHud" id="starUI">☆ 0s</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="icon" id="soundBtn">🔊</button>
+          <button class="icon" id="pauseBtn">⏸</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvasWrap" style="max-width:1100px;">
+    <canvas id="screen" tabindex="0"></canvas>
+    <div id="overlayBg"></div>
+    <div class="centerOverlay" id="centerOverlay">
+      <div class="panel" id="panelStart" style="text-align:center;max-width:720px;">
+        <div class="big">Night Walk — タイトル</div>
+        <div class="small">タップでジャンプ（最大3段）。長押しでチャージ。左下でしゃがむ。☆ を取ると10秒間の飛行モード。</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">
+          <button class="icon" id="startBtn">▶️ Play</button>
+          <button class="icon" id="howBtn">❓ How</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panelHow" style="display:none;max-width:760px;">
+        <div class="big">ゲームのルール</div>
+        <div class="rulesList">
+          <ol>
+            <li>操作：タップでジャンプ（最大3段）。長押しでジャンプ力チャージ（パワーバー）。</li>
+            <li>しゃがむ：左下「しゃがむ」ボタン長押し（または ↓ / S）。</li>
+            <li>コイン：+300 点。ハート：最大3個（超過分は+1000 点）。</li>
+            <li>☆（スター）：約 10% の確率で出現。取ると <strong>10秒間の飛行モード</strong> を付与。飛行中は長押しで上昇、離すと下降。</li>
+            <li>飛行終了直前はキャラクターが点滅して知らせます。</li>
+            <li>無敵：ハート消費で5秒間の無敵（従来通り）。</li>
+            <li>画面上端には行けないよう制限（最高高度）。</li>
+            <li>目的：長く生きてスコアを伸ばすこと。ハイスコアは自動保存。</li>
+          </ol>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">
+          <button class="icon" id="backBtn">← 閉じる</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panelPause" style="display:none;max-width:480px;">
+        <div class="big">一時停止</div>
+        <div class="small" id="pauseText">再開は ▶ をタップ</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+          <button class="icon" id="resumeBtn">▶ 再開</button>
+          <button class="icon" id="titleBtnPause">🏠 タイトルに戻る</button>
+          <button class="icon" id="restartBtn">↻ リスタート</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panelGameOver" style="display:none;max-width:520px;">
+        <div class="big">ゲームオーバー</div>
+        <div class="small" id="gameOverText">スコア: 0</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+          <button class="icon" id="goRestartBtn">↻ リスタート</button>
+          <button class="icon" id="titleBtnGameOver">🏠 タイトルに戻る</button>
+        </div>
+        <small style="display:block;color:var(--muted);margin-top:8px">ハイスコアは自動保存されます。</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="crouchBtn" id="crouchBtn">しゃがむ</div>
+
+  <div class="footerHint">タップでジャンプ • 長押しで高く or ☆で飛行 • 左下でしゃがむ</div>
+  <div class="copy">© 2025 Night Walk</div>
+</div>
+
+<!-- Scoreboard + Settings UI (left top & right top modal) -->
+<div id="scoreboard">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-weight:800;">スコアボード</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="sb_tab_score" class="icon" style="width:42px;height:36px;font-size:13px;padding:6px;">得点</button>
+        <button id="sb_tab_time" class="icon" style="width:42px;height:36px;font-size:13px;padding:6px;">時間</button>
+      </div>
+    </div>
+
+    <div id="sb_list"><div class="small" style="color:var(--muted)">読み込み中…</div></div>
+
+    <div style="font-size:12px;color:var(--muted);border-top:1px solid rgba(255,255,255,0.03);padding-top:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700">保留（あなた）</div>
+        <div style="font-size:11px;color:#c9d9f1" id="pendingCount">0</div>
+      </div>
+      <div id="pending_list"></div>
+    </div>
+  </div>
+</div>
+
+<button id="settingsBtn" class="icon" style="position:fixed;right:12px;top:12px;z-index:130;">⚙️</button>
+<div id="settingsModal">
+  <div class="box">
+    <div style="font-weight:800;margin-bottom:6px;">設定</div>
+    <div class="small" style="margin-bottom:8px;">表示名と、結果を公開するかを設定できます（公開 OFF のときは保留へ自動保存）。</div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:13px;color:var(--fg)">表示名</label><br>
+      <input id="playerNameInput" type="text" placeholder="名無し" style="width:100%;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--fg)">
+    </div>
+    <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+      <input id="publishToggle" type="checkbox"><label for="publishToggle" style="font-size:13px;color:var(--fg)">公開する</label>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="saveSettingsBtn" class="icon" style="padding:6px 10px;">保存</button>
+      <button id="closeSettingsBtn" class="icon" style="padding:6px 10px;">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* Night Walk — combined game + Firebase scoreboard/pending
+   Firebase config: use provided project
+*/
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, deleteDoc, addDoc, runTransaction,
+  query, orderBy, limit, onSnapshot, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+/* ===================== Firebase setup ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAEf0FkFE53SInWZkQbp2WfOw9g49Y0z_4",
+  authDomain: "jumpgame-keke.firebaseapp.com",
+  projectId: "jumpgame-keke",
+  storageBucket: "jumpgame-keke.firebasestorage.app",
+  messagingSenderId: "890383268948",
+  appId: "1:890383268948:web:44d0e03d9824da94d941c1",
+  measurementId: "G-Q6FXEQHWF6"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ===================== DOM refs for scoreboard/settings ===================== */
+const sbList = document.getElementById('sb_list');
+const tabScoreBtn = document.getElementById('sb_tab_score');
+const tabTimeBtn = document.getElementById('sb_tab_time');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const playerNameInput = document.getElementById('playerNameInput');
+const publishToggle = document.getElementById('publishToggle');
+const pendingListEl = document.getElementById('pending_list');
+const pendingCountEl = document.getElementById('pendingCount');
+
+const LS_NAME = 'skyb_name_v1';
+const LS_PUB = 'skyb_pub_v1';
+const LS_PLAYER = 'skyb_player_id_v1';
+const LS_LASTPUB = 'skyb_last_pub_v1';
+const PUBLISH_COOLDOWN_MS = 30 * 60 * 1000; // 30分
+
+// load saved settings
+playerNameInput.value = localStorage.getItem(LS_NAME) || '';
+publishToggle.checked = localStorage.getItem(LS_PUB) === '1';
+
+// ensure playerId
+function genId(){ return 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+let playerId = localStorage.getItem(LS_PLAYER);
+if(!playerId){ playerId = genId(); localStorage.setItem(LS_PLAYER, playerId); }
+
+// UI handlers
+settingsBtn.addEventListener('click', ()=>{ settingsModal.style.display = 'block'; });
+closeSettingsBtn.addEventListener('click', ()=>{ settingsModal.style.display = 'none'; });
+saveSettingsBtn.addEventListener('click', ()=>{
+  localStorage.setItem(LS_NAME, playerNameInput.value || '');
+  localStorage.setItem(LS_PUB, publishToggle.checked ? '1' : '0');
+  settingsModal.style.display = 'none';
+});
+
+/* ===================== Scoreboard realtime (top lists) ===================== */
+let currentTab = 'score';
+tabScoreBtn.addEventListener('click', ()=>{ currentTab='score'; attachSnapshot(); });
+tabTimeBtn.addEventListener('click', ()=>{ currentTab='time'; attachSnapshot(); });
+
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function formatTime(ms){ const s=Math.floor(ms/1000); const mm=Math.floor(s/60).toString().padStart(2,'0'); const ss=(s%60).toString().padStart(2,'0'); return mm+':'+ss; }
+
+function renderList(docs, tab){
+  let html='';
+  docs.forEach((d,i)=>{
+    const rank=i+1;
+    const name=d.name||'名無し';
+    if(tab==='score'){
+      html += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)"><div>#${rank} ${escapeHtml(name)}</div><div>${Math.floor(d.score)}</div></div>`;
+    } else {
+      html += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)"><div>#${rank} ${escapeHtml(name)}</div><div>${formatTime(d.timeMs||0)}</div></div>`;
+    }
+  });
+  sbList.innerHTML = html || `<div style="color:var(--muted)">データがありません</div>`;
+}
+
+let unsubscribe = null;
+function attachSnapshot(){
+  if(unsubscribe) unsubscribe();
+  if(currentTab === 'score'){
+    const q = query(collection(db,'leaderboard_score'), orderBy('score','desc'), limit(30));
+    unsubscribe = onSnapshot(q, snap=>{
+      const docs=[];
+      snap.forEach(s=>{ const D=s.data(); D.id=s.id; docs.push(D); });
+      renderList(docs,'score');
+    }, err=>{ sbList.innerHTML=`<div style="color:#f88">読み取りエラー</div>`; console.error(err); });
+  } else {
+    const q = query(collection(db,'leaderboard_time'), orderBy('timeMs','desc'), limit(30));
+    unsubscribe = onSnapshot(q, snap=>{
+      const docs=[];
+      snap.forEach(s=>{ const D=s.data(); D.id=s.id; docs.push(D); });
+      renderList(docs,'time');
+    }, err=>{ sbList.innerHTML=`<div style="color:#f88">読み取りエラー</div>`; console.error(err); });
+  }
+}
+attachSnapshot();
+
+/* ===================== Pending snapshot for this player ===================== */
+let unsubPending = null;
+function attachPendingSnapshot(){
+  if(unsubPending) unsubPending();
+  const pq = query(collection(db,'pending_submissions'), where('playerId','==', playerId), orderBy('createdAt','desc'));
+  unsubPending = onSnapshot(pq, snap=>{
+    const items=[];
+    snap.forEach(s=>{ const D=s.data(); D.id=s.id; items.push(D); });
+    renderPending(items);
+  }, err=>{ pendingListEl.innerHTML=`<div style="color:#f88">保留取得エラー</div>`; console.error(err); });
+}
+attachPendingSnapshot();
+
+function renderPending(items){
+  pendingCountEl.textContent = items.length;
+  if(items.length===0){ pendingListEl.innerHTML = `<div style="color:var(--muted);font-size:13px">保留はありません</div>`; return; }
+  let html='';
+  for(const it of items){
+    const score=Math.floor(it.score||0), t=formatTime(it.timeMs||0);
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02)">
+      <div style="font-size:13px">${escapeHtml(it.name||'名無し')}<div style="font-size:11px;color:var(--muted)">${score} • ${t}</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="icon sb-promote" data-id="${it.id}" style="font-size:12px;padding:6px">公開</button>
+        <button class="icon sb-delete" data-id="${it.id}" style="font-size:12px;padding:6px">削除</button>
+      </div>
+    </div>`;
+  }
+  pendingListEl.innerHTML = html;
+
+  // wire buttons
+  pendingListEl.querySelectorAll('.sb-delete').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const id=b.getAttribute('data-id');
+      if(!confirm('この保留を削除していいですか？')) return;
+      try{ await deleteDoc(doc(db,'pending_submissions',id)); alert('削除しました'); }
+      catch(e){ console.error(e); alert('削除失敗'); }
+    });
+  });
+  pendingListEl.querySelectorAll('.sb-promote').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const id=b.getAttribute('data-id');
+      try{
+        const now=Date.now();
+        const lastPub = parseInt(localStorage.getItem(LS_LASTPUB)||'0',10);
+        if(now - lastPub < PUBLISH_COOLDOWN_MS){
+          const remain = Math.ceil((PUBLISH_COOLDOWN_MS - (now-lastPub))/1000);
+          alert(`まだ公開できません。残り ${remain} 秒。`);
+          return;
+        }
+        const pd = await getDoc(doc(db,'pending_submissions',id));
+        if(!pd.exists()){ alert('保留が見つかりません'); return; }
+        const data = pd.data();
+        await promoteSubmission(data, id);
+      } catch(e){ console.error(e); alert('昇格に失敗しました'); }
+    });
+  });
+}
+
+/* ===================== Upsert / promote logic (TRANSACTION FIXED) ===================== */
+async function upsertBest(pid, {name, score, timeMs}){
+  const scoreRef = doc(db,'leaderboard_score', pid);
+  const timeRef = doc(db,'leaderboard_time', pid);
+
+  await runTransaction(db, async (t) => {
+    // 必ず「先に」全て読み取る
+    const [sSnap, tSnap] = await Promise.all([ t.get(scoreRef), t.get(timeRef) ]);
+
+    // score doc
+    if(!sSnap.exists()){
+      t.set(scoreRef, { name, score, timeMs, ts: serverTimestamp() });
+    } else {
+      const cur = sSnap.data();
+      if((score||0) > (cur.score||0)){
+        t.update(scoreRef, { name, score, timeMs, ts: serverTimestamp() });
+      } else if(cur.name !== name){
+        t.update(scoreRef, { name });
+      }
+    }
+
+    // time doc
+    if(!tSnap.exists()){
+      t.set(timeRef, { name, score, timeMs, ts: serverTimestamp() });
+    } else {
+      const curT = tSnap.data();
+      if((timeMs||0) > (curT.timeMs||0)){
+        t.update(timeRef, { name, score, timeMs, ts: serverTimestamp() });
+      } else if(curT.name !== name){
+        t.update(timeRef, { name });
+      }
+    }
+  });
+}
+
+async function promoteSubmission(data, pendingDocId){
+  await upsertBest(data.playerId, { name: data.name || '名無し', score: Math.floor(data.score||0), timeMs: Math.floor(data.timeMs||0) });
+  await deleteDoc(doc(db,'pending_submissions', pendingDocId));
+  localStorage.setItem(LS_LASTPUB, String(Date.now()));
+  alert('保留を公開しました。');
+}
+
+/* ===================== Publish entrypoint (called by game over button) ===================== */
+async function publishRecord(){
+  try{
+    const name = (localStorage.getItem(LS_NAME) || '').trim() || '名無し';
+    const settingPublish = localStorage.getItem(LS_PUB) === '1';
+    const sb = window._sb || null;
+    if(!sb || !sb.game){ alert('ゲームデータが見つかりません'); return; }
+    const finalScore = Math.floor(sb.game.score || 0);
+    const finalTimeMs = Math.floor((sb.game.elapsedWhenPaused || 0) + (sb.game.startTimestamp ? (performance.now() - sb.game.startTimestamp) : 0));
+    const now = Date.now();
+    const lastPub = parseInt(localStorage.getItem(LS_LASTPUB) || '0',10);
+    const allowed = (now - lastPub) >= PUBLISH_COOLDOWN_MS;
+
+    // helper fallback
+    async function saveToPending(reason){
+      try{
+        await addDoc(collection(db,'pending_submissions'), {
+          playerId, name, score: finalScore, timeMs: finalTimeMs, createdAt: serverTimestamp(), note: reason || ''
+        });
+        alert('記録は保留に保存されました（pending_submissions）。理由: ' + (reason || '保留'));
+      }catch(e2){
+        console.error('Failed to save to pending_submissions', e2);
+        alert('保留への保存にも失敗しました。コンソールを確認してください。');
+      }
+    }
+
+    if(!settingPublish){
+      // 公開オフ -> 即保留
+      await saveToPending('公開OFFで自動保留');
+      return;
+    }
+
+    if(allowed){
+      try{
+        await upsertBest(playerId, { name, score: finalScore, timeMs: finalTimeMs });
+        localStorage.setItem(LS_LASTPUB, String(now));
+        alert('公開しました！ 左上のスコアボードを確認してください。');
+      }catch(e){
+        console.error('publish -> upsertBest failed', e);
+        if(String(e).toLowerCase().includes('permission') || String(e).toLowerCase().includes('insufficient')){
+          alert('Firestore の書き込みが拒否されました（権限エラー）。一時的に保留へ保存します。コンソールのエラーを確認してください。');
+          await saveToPending('権限エラーでフォールバック');
+        } else {
+          alert('公開処理でエラーが発生しました。保留に保存を試みます。');
+          await saveToPending('upsert失敗でフォールバック');
+        }
+      }
+    } else {
+      await saveToPending('クールダウン中で保留');
+    }
+  } catch(e){
+    console.error('publishRecord unexpected error', e);
+    alert('公開に失敗しました（予期せぬエラー）。コンソールを確認してください。\n' + (e && e.message ? e.message : String(e)));
+  }
+}
+window.publishRecordToFirebase = publishRecord;
+
+/* inject "記録を公開する" button into panelGameOver */
+(function injectGameOverButton(){
+  const panel = document.getElementById('panelGameOver');
+  if(!panel) return;
+  if(panel.querySelector('.publish-btn')) return;
+  const btn = document.createElement('button');
+  btn.textContent = '記録を公開する';
+  btn.className = 'icon publish-btn';
+  btn.style.marginLeft = '8px';
+  btn.addEventListener('click', async ()=>{ await publishRecord(); });
+  const actionRow = panel.querySelector('div[style*="display:flex"]');
+  if(actionRow) actionRow.appendChild(btn);
+  else panel.appendChild(btn);
+})();
+
+/* ===================== Game logic (same as last working version) ===================== */
+(() => {
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d', {alpha:true});
+  let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.round(rect.width * DPR);
+    canvas.height = Math.round(rect.height * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    computeGround();
+    render();
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // Elements
+  const overlayBg = document.getElementById('overlayBg');
+  const panelStart = document.getElementById('panelStart');
+  const panelHow = document.getElementById('panelHow');
+  const panelPause = document.getElementById('panelPause');
+  const panelGameOver = document.getElementById('panelGameOver');
+  const startBtn = document.getElementById('startBtn');
+  const howBtn = document.getElementById('howBtn');
+  const backBtn = document.getElementById('backBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const goRestartBtn = document.getElementById('goRestartBtn');
+  const titleBtnPause = document.getElementById('titleBtnPause');
+  const titleBtnGameOver = document.getElementById('titleBtnGameOver');
+  const scoreLabel = document.getElementById('score');
+  const highLabel = document.getElementById('highscore');
+  const timeLabel = document.getElementById('timeLabel');
+  const coinUI = document.getElementById('coinUI');
+  const heartUI = document.getElementById('heartUI');
+  const starUI = document.getElementById('starUI');
+  const soundBtn = document.getElementById('soundBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const crouchBtn = document.getElementById('crouchBtn');
+  const gameOverText = document.getElementById('gameOverText');
+  const pauseText = document.getElementById('pauseText');
+
+  // audio
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  function ensureAudio(){ if(!audioCtx){ try{ audioCtx = new AudioContext(); }catch(e){ audioCtx = null; } } }
+  function playBeep(freq=440, time=0.05, type='sine', gain=0.12){
+    if(!game.soundOn) return; ensureAudio(); if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = gain;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + time); o.stop(audioCtx.currentTime + time + 0.02);
+  }
+  function vib(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+  // game state
+  const TOP_MARGIN = 10;
+  const game = {
+    running:false, paused:false, lastTime:0, dt:0,
+    score:0, speed:260, spawnTimer:0, spawnInterval:1.4,
+    gravity:1500, groundY:0, player:null, obstacles:[], particles:[],
+    difficultyTimer:0, soundOn:true, startTimestamp:0, elapsedWhenPaused:0,
+    backgrounds:[], currentBg:0, bgTimer:0, bgChangeInterval:60000,
+    coins:0, heartCount:0, invincibleUntil:0, collectSpawnTimer:0, collectSpawnInterval:1.6,
+    flightUntil:0,
+    _invRemaining:0, _flightRemaining:0,
+    _resumeIntervalId: null
+  };
+
+  game.backgrounds = [
+    {skyA:'#071231', skyB:'#08203a', cloud:'#cfe8ff'},
+    {skyA:'#03203b', skyB:'#0b4b72', cloud:'#dff3ff'},
+    {skyA:'#87ceff', skyB:'#0b9bd6', cloud:'#ffffff'},
+    {skyA:'#140f2d', skyB:'#0b0520', cloud:'#d0c1ff'}
+  ];
+
+  function createPlayer(){
+    return {
+      x:80, y:0, vy:0, w:40, h:34, onGround:false,
+      jumpPower:520, alive:true, color:'#7ef', chargeStart:null,
+      crouching:false, crouchH:20,
+      jumps:0,
+      visible:true, blinkTimer:0
+    };
+  }
+
+  const HS_KEY = 'nightwalk_v1_hs';
+  function getHighscore(){ try{ const v = localStorage.getItem(HS_KEY); return v?Number(v):0; }catch(e){ return 0; } }
+  function saveHighscore(score){ try{ const prev = getHighscore(); if(Math.floor(score) > prev) localStorage.setItem(HS_KEY, String(Math.floor(score))); updateScoreUI(); }catch(e){} }
+  function updateScoreUI(){ scoreLabel.textContent = `Score: ${Math.floor(game.score)}`; highLabel.textContent = `Hi: ${getHighscore()}`; coinUI.textContent = `💰 x${game.coins}`; heartUI.textContent = `❤ x${game.heartCount}`; }
+
+  function computeGround(){ const H = canvas.height / DPR; game.groundY = Math.round(H - Math.min(140, H*0.18)); if(game.player){ if(!game.player.onGround) {} else { game.player.y = game.groundY - game.player.h; } } }
+
+  function spawnParticles(x,y,color,count=12){ for(let i=0;i<count;i++){ const a=Math.random()*Math.PI*2, s=Math.random()*220+80; game.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s*-0.5,life:Math.random()*0.6+0.4,color,size:Math.random()*3+1}); } }
+
+  function makeObstacle(x,y,w,h, kind, extra){ return Object.assign({x,y,w,h,kind,passed:false}, extra||{}); }
+
+  function spawnObstacle(){
+    const W = canvas.width / DPR, r = Math.random();
+    if(r < 0.28){ const w=Math.random()*38+28, h=Math.random()*52+36; game.obstacles.push(makeObstacle(W+20, game.groundY - h, w, h, 'ground')); }
+    else if(r < 0.44){ const w=Math.random()*28+22, h=Math.random()*18+16, y=Math.random()*(game.groundY*0.45)+40; game.obstacles.push(makeObstacle(W+20,y,w,h,'flying',{orbit:Math.random()*60+20})); }
+    else if(r < 0.59){ const w=Math.random()*36+48, h=Math.random()*8+12; game.obstacles.push(makeObstacle(W+20, game.groundY - h, w, h, 'low')); }
+    else if(r < 0.74){ const w=Math.random()*30+30, h=Math.random()*28+26, baseY = game.groundY - h - (Math.random()*80+10); game.obstacles.push(makeObstacle(W+20, baseY, w, h, 'moving', {phase:Math.random()*Math.PI*2, amp: Math.random()*28+18, speed: Math.random()*0.8+0.6})); }
+    else if(r < 0.85){ const w=Math.random()*36+48, h=Math.random()*10+12; game.obstacles.push(makeObstacle(W+20, game.groundY - h, w, h, 'slider')); }
+    else if(r < 0.93){ const w=36,h=40; game.obstacles.push(makeObstacle(W+20, game.groundY - h, w, h, 'splitter', {split:false})); }
+    else if(r < 0.98){ const w=34,h=34,y=Math.random()*(game.groundY*0.45)+40; game.obstacles.push(makeObstacle(W+20,y,w,h,'shooter',{fireTimer:0.9+Math.random()*1.2})); }
+    else { const w=28,h=20,y=Math.random()*(game.groundY*0.5)+40; game.obstacles.push(makeObstacle(W+20,y,w,h,'zigzag',{tOffset:Math.random()*10})); }
+  }
+
+  function spawnCollectible(){
+    const W = canvas.width / DPR, r = Math.random();
+    if(r < 0.65){
+      const y = game.groundY - (Math.random()*160 + 40);
+      game.obstacles.push(makeObstacle(W+20, y, 20, 20, 'coin'));
+    } else if(r < 0.73){
+      const y = game.groundY - (Math.random()*160 + 60);
+      game.obstacles.push(makeObstacle(W+20, y, 24, 24, 'heart'));
+    } else if(r < 0.83){
+      const y = game.groundY - (Math.random()*200 + 60);
+      game.obstacles.push(makeObstacle(W+20, y, 26, 26, 'star'));
+    }
+  }
+
+  function rectIntersect(a,b){ return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h); }
+
+  function resetGame(){
+    if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId = null; }
+    game.running=false; game.paused=false; game.lastTime=0; game.dt=0; game.score=0;
+    game.speed=260; game.spawnTimer=0; game.spawnInterval=1.4; game.obstacles=[]; game.particles=[];
+    game.player = createPlayer(); game.difficultyTimer=0; game.elapsedWhenPaused = 0; game.startTimestamp = 0; game.bgTimer = 0;
+    game.coins = 0; game.heartCount = 0; game.invincibleUntil = 0; game.collectSpawnTimer = 0;
+    game.flightUntil = 0; game._invRemaining = 0; game._flightRemaining = 0;
+    updateScoreUI(); updateTimeUI(0); updateStarUI();
+    pauseText.textContent = '再開は ▶ をタップ';
+  }
+
+  function startGame(){
+    hideAllPanels();
+    resetGame(); computeGround();
+    game.running = true; game.startTimestamp = performance.now();
+    game.spawnTimer = 1.0;
+    ensureAudio(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    requestAnimationFrame(loop);
+    playBeep(880,0.06,'sine',0.08);
+  }
+
+  function consumeHeartOnHit(){
+    if(game.heartCount > 0){
+      game.heartCount = Math.max(0, game.heartCount - 1);
+      game.invincibleUntil = performance.now() + 5000;
+      spawnParticles(game.player.x + game.player.w/2, game.player.y + game.player.h/2, '#ff99aa', 20);
+      playBeep(520,0.18,'sine',0.14);
+      updateScoreUI();
+      return true;
+    }
+    return false;
+  }
+
+  function grantStarFlight(){
+    game.flightUntil = performance.now() + 10000;
+    playBeep(1100,0.12,'sine',0.12);
+    spawnParticles(game.player.x + game.player.w/2, game.player.y + game.player.h/2, '#fff0a8', 26);
+    updateStarUI();
+  }
+
+  function updateStarUI(){
+    const rem = Math.max(0, Math.floor((game.flightUntil - performance.now())/1000));
+    starUI.textContent = (game.flightUntil > performance.now()) ? `☆ ${rem}s` : '☆ 0s';
+  }
+
+  function endGame(){
+    if(!game.player.alive) return;
+    game.player.alive = false; game.running = false;
+    playBeep(120,0.28,'sawtooth',0.18); vib(160);
+    spawnParticles(game.player.x + game.player.w/2, game.player.y + game.player.h/2, game.player.color, 36);
+    saveHighscore(game.score);
+    gameOverText.textContent = `スコア: ${Math.floor(game.score)} • 生存 ${formatTime(getElapsedMs())}`;
+    showPanel('panelGameOver');
+    updateScoreUI();
+  }
+
+  // pause/resume
+  function pauseGame(){
+    if(!game.running || game.paused) return;
+    const now = performance.now();
+    game.paused = true;
+    game.elapsedWhenPaused += (now - game.startTimestamp);
+    game._invRemaining = Math.max(0, (game.invincibleUntil || 0) - now);
+    game._flightRemaining = Math.max(0, (game.flightUntil || 0) - now);
+    game.invincibleUntil = 0;
+    game.flightUntil = 0;
+    if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId = null; }
+    pauseText.textContent = '再開は ▶ をタップ';
+    showPanel('panelPause');
+    playBeep(440,0.06,'sine',0.06);
+  }
+
+  function startResumeCountdown(){
+    if(!game.running || !game.paused) return;
+    if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId = null; }
+    let cnt = 3;
+    pauseText.textContent = `開始まで ${cnt} ...`;
+    game._resumeIntervalId = setInterval(() => {
+      cnt--;
+      if(cnt > 0){
+        pauseText.textContent = `開始まで ${cnt} ...`;
+      } else {
+        clearInterval(game._resumeIntervalId);
+        game._resumeIntervalId = null;
+        resumeFromCountdown();
+      }
+    }, 1000);
+  }
+
+  function resumeFromCountdown(){
+    if(!game.running || !game.paused) return;
+    const now = performance.now();
+    game.paused = false;
+    if(game._invRemaining && game._invRemaining > 0) game.invincibleUntil = now + game._invRemaining;
+    else game.invincibleUntil = 0;
+    if(game._flightRemaining && game._flightRemaining > 0) game.flightUntil = now + game._flightRemaining;
+    else game.flightUntil = 0;
+    game._invRemaining = 0;
+    game._flightRemaining = 0;
+    game.startTimestamp = now;
+    game.lastTime = now;
+    pauseText.textContent = '再開は ▶ をタップ';
+    hideAllPanels();
+    requestAnimationFrame(loop);
+    playBeep(440,0.06,'sine',0.06);
+  }
+
+  function togglePause(){
+    if(!game.running) return;
+    if(game.paused) startResumeCountdown();
+    else pauseGame();
+  }
+
+  function goToTitle(){
+    if(game._resumeIntervalId){ clearInterval(game._resumeIntervalId); game._resumeIntervalId = null; }
+    game.running = false;
+    resetGame();
+    showStartPanel();
+  }
+
+  function loop(ts){
+    if(!game.running) return;
+    if(!game.lastTime) game.lastTime = ts;
+    game.dt = Math.min(0.05, (ts - game.lastTime)/1000);
+    game.lastTime = ts;
+    if(!game.paused) update(game.dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt){
+    const p = game.player;
+    const now = performance.now();
+
+    game.difficultyTimer += dt;
+    if(game.difficultyTimer > 11){ game.difficultyTimer = 0; game.speed *= 1.02; game.spawnInterval = Math.max(0.7, game.spawnInterval * 0.985); }
+
+    game.bgTimer += dt*1000;
+    if(game.bgTimer >= game.bgChangeInterval){ game.bgTimer = 0; game.currentBg = (game.currentBg + 1) % game.backgrounds.length; }
+
+    game.spawnTimer -= dt;
+    if(game.spawnTimer <= 0){ spawnObstacle(); game.spawnTimer = game.spawnInterval + Math.random()*0.5 - 0.25; }
+
+    game.collectSpawnTimer -= dt;
+    if(game.collectSpawnTimer <= 0){ spawnCollectible(); game.collectSpawnTimer = game.collectSpawnInterval + Math.random()*0.6 - 0.3; }
+
+    const flightActive = now < (game.flightUntil || 0);
+    if(flightActive){
+      const remMs = game.flightUntil - now;
+      if(remMs < 1400){
+        p.blinkTimer = (p.blinkTimer || 0) + dt;
+        const blinkInterval = remMs < 600 ? 0.08 : 0.16;
+        if(p.blinkTimer >= blinkInterval){ p.visible = !p.visible; p.blinkTimer = 0; }
+      } else { p.visible = true; p.blinkTimer = 0; }
+    } else { p.visible = true; p.blinkTimer = 0; }
+
+    if(flightActive){
+      if(input.touching) p.vy = -420;
+      else p.vy += (game.gravity * 0.9) * dt;
+    } else {
+      p.vy += game.gravity * dt;
+    }
+
+    p.y += p.vy * dt;
+
+    if(p.y < TOP_MARGIN){
+      p.y = TOP_MARGIN;
+      if(p.vy < 0) p.vy = 0;
+    }
+
+    if(p.crouching){ if(p.h > p.crouchH){ const dh = p.h - p.crouchH; p.h = p.crouchH; p.y += dh; } }
+    else { const normalH = 34; if(p.h < normalH){ const dh = normalH - p.h; p.h = normalH; p.y -= dh; } }
+
+    if(p.y + p.h > game.groundY){
+      p.y = game.groundY - p.h;
+      p.vy = 0;
+      p.onGround = true;
+      p.jumps = 0;
+    } else {
+      p.onGround = false;
+    }
+
+    for(let i=game.obstacles.length-1;i>=0;i--){
+      const o = game.obstacles[i];
+      if(o.kind === 'moving'){ const t=performance.now()/1000; o.y += Math.sin(t*o.speed + (o.phase||0)) * 0.6; }
+      else if(o.kind === 'flying'){ o.y += Math.sin(performance.now()/500 + (o.orbit||0)) * 0.2; }
+      else if(o.kind === 'zigzag'){ const t=(performance.now()/1000)+(o.tOffset||0); o.y += Math.sin(t*6)*0.8; }
+      else if(o.kind === 'shooter'){
+        o.fireTimer -= dt;
+        if(o.fireTimer <= 0){ o.fireTimer = 0.9 + Math.random()*1.4;
+          const projW=12, projH=10; const startX=o.x - 8; const startY=o.y + o.h/2 - projH/2;
+          game.obstacles.push(makeObstacle(startX, startY, projW, projH, 'proj', {vx: - (game.speed*1.6), color:'#ffdd77'}));
+        }
+      } else if(o.kind === 'splitter'){
+        if(!o.split && o.x < (canvas.width/DPR) * 0.7){ o.split = true;
+          const smallA = makeObstacle(o.x, o.y - 30, 22, 18, 'flying', {orbit:10});
+          const smallB = makeObstacle(o.x, o.y - 10, 22, 18, 'flying', {orbit:30});
+          game.obstacles.push(smallA, smallB);
+        }
+      }
+      if(o.kind === 'proj'){ o.x += (o.vx || - (game.speed*1.6)) * dt; }
+      else { const speedMultiplier = (o.kind === 'slider' ? 1.6 : 1.0); o.x -= game.speed * dt * speedMultiplier; }
+      if(o.x + o.w < -80) game.obstacles.splice(i,1);
+    }
+
+    for(let i=game.particles.length-1;i>=0;i--){
+      const q = game.particles[i];
+      q.vy += 1200 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      if(q.life <= 0) game.particles.splice(i,1);
+    }
+
+    game.score += dt * 10;
+    updateScoreUI();
+    updateTimeUI(getElapsedMs());
+    updateStarUI();
+
+    if(p.alive){
+      const pr = {x:p.x,y:p.y,w:p.w,h:p.h};
+      for(let i=game.obstacles.length-1;i>=0;i--){
+        const o = game.obstacles[i];
+        if(o.kind === 'coin' || o.kind === 'heart' || o.kind === 'star'){
+          const or = {x:o.x,y:o.y,w:o.w,h:o.h};
+          if(rectIntersect(pr,or)){
+            if(o.kind === 'coin'){
+              game.coins += 1; game.score += 300; spawnParticles(o.x + o.w/2, o.y + o.h/2, '#ffdd66', 12); playBeep(980,0.05,'sine',0.10);
+            } else if(o.kind === 'heart'){
+              if(game.heartCount < 3){
+                game.heartCount += 1; spawnParticles(o.x + o.w/2, o.y + o.h/2, '#ff99aa', 18); playBeep(720,0.12,'sine',0.12);
+              } else {
+                game.score += 1000; spawnParticles(o.x + o.w/2, o.y + o.h/2, '#ffd6a6', 20); playBeep(820,0.12,'sine',0.12);
+              }
+            } else if(o.kind === 'star'){
+              grantStarFlight();
+            }
+            game.obstacles.splice(i,1);
+            updateScoreUI();
+          }
+        }
+      }
+
+      for(const o of game.obstacles){
+        if(o.kind === 'coin' || o.kind === 'heart' || o.kind === 'star') continue;
+        const or = {x:o.x,y:o.y,w:o.w,h:o.h};
+        if(rectIntersect(pr,or)){
+          if(performance.now() < (game.invincibleUntil || 0)) continue;
+          if(game.heartCount > 0){
+            consumeHeartOnHit();
+            break;
+          } else {
+            endGame();
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  function getElapsedMs(){ if(!game.startTimestamp) return 0; if(game.paused) return Math.max(0, game.elapsedWhenPaused); return Math.max(0, game.elapsedWhenPaused + (performance.now() - game.startTimestamp)); }
+  function formatTime(ms){ const s = Math.floor(ms/1000), mm = Math.floor(s/60).toString().padStart(2,'0'), ss = (s%60).toString().padStart(2,'0'); return `${mm}:${ss}`; }
+  function updateTimeUI(ms){ timeLabel.textContent = formatTime(ms); }
+
+  function render(){
+    const W = canvas.width / DPR, H = canvas.height / DPR;
+    const bgIndex = game.currentBg, nextIndex = (bgIndex + 1) % game.backgrounds.length;
+    const t = Math.min(1, game.bgTimer / game.bgChangeInterval);
+    const a0 = lerpColor(game.backgrounds[bgIndex].skyA, game.backgrounds[nextIndex].skyA, t);
+    const b0 = lerpColor(game.backgrounds[bgIndex].skyB, game.backgrounds[nextIndex].skyB, t);
+    const cloudColor = lerpColor(game.backgrounds[bgIndex].cloud, game.backgrounds[nextIndex].cloud, t);
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,a0); g.addColorStop(1,b0); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    drawClouds(W,H, cloudColor);
+
+    // ground with clearer boundary
+    ctx.fillStyle = '#071428'; ctx.fillRect(0, game.groundY, W, H - game.groundY);
+    ctx.fillStyle = '#0f2a44'; ctx.fillRect(0, game.groundY - 8, W, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, game.groundY - 12, W, 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.02)'; for(let x=0;x<W;x+=18) ctx.fillRect(x, game.groundY - 6 + (x%36===0?0:1), 12, 1);
+
+    // obstacles & collectibles
+    for(const o of game.obstacles){
+      if(o.kind === 'coin'){
+        const cx = o.x + o.w/2, cy = o.y + o.h/2, r = Math.max(o.w,o.h)/2;
+        ctx.beginPath(); ctx.fillStyle = '#b88600'; ctx.ellipse(cx, cy, r, r, 0, 0, Math.PI*2); ctx.fill();
+        const cg = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.05, cx, cy, r);
+        cg.addColorStop(0,'#fff4cc'); cg.addColorStop(0.4,'#ffd94d'); cg.addColorStop(1,'#d79f1a');
+        ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(cx, cy, r*0.85, r*0.85, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(cx - r*0.25, cy - r*0.5); ctx.lineTo(cx - r*0.05, cy - r*0.2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + r*0.12, cy - r*0.45); ctx.lineTo(cx + r*0.35, cy - r*0.25); ctx.stroke();
+      } else if(o.kind === 'heart'){
+        ctx.save(); ctx.font = `${o.h}px system-ui`; ctx.fillStyle = '#ff6b8a'; ctx.textAlign = 'center'; ctx.fillText('❤', o.x + o.w/2, o.y + o.h*0.85); ctx.restore();
+      } else if(o.kind === 'star'){
+        ctx.save();
+        ctx.font = `${o.h}px system-ui`;
+        ctx.fillStyle = '#ffea7a';
+        ctx.textAlign = 'center';
+        ctx.fillText('☆', o.x + o.w/2, o.y + o.h*0.85);
+        ctx.restore();
+      } else {
+        if(o.kind === 'flying' || o.kind==='proj') ctx.fillStyle = (o.color||'#ffd97a');
+        else if(o.kind === 'low' || o.kind === 'slider') ctx.fillStyle = '#ff9fbf';
+        else if(o.kind === 'splitter') ctx.fillStyle = '#ffb27a';
+        else if(o.kind === 'shooter') ctx.fillStyle = '#ffba6b';
+        else ctx.fillStyle = '#9cf';
+        roundRect(ctx, o.x, o.y, o.w, o.h, 6);
+        if(o.y >= game.groundY - o.h - 2){ ctx.fillStyle = 'rgba(0,0,0,0.09)'; ctx.fillRect(o.x+2, o.y+o.h-6, o.w-4, 6); }
+      }
+    }
+
+    // player
+    const p = game.player;
+    if(p){
+      if(p.visible){
+        const inv = performance.now() < (game.invincibleUntil || 0);
+        ctx.save();
+        if(inv){ const alpha = 0.4 + 0.6 * (Math.sin(performance.now()/80) * 0.5 + 0.5); ctx.globalAlpha = alpha; }
+        ctx.fillStyle = p.color; roundRect(ctx, p.x, p.y, p.w, p.h, 8);
+        ctx.fillStyle = '#022'; ctx.beginPath(); ctx.arc(p.x + p.w*0.65, p.y + p.h*0.35, 3, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+      if(p.crouching){ ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(p.x-6, p.y + p.h, p.w+12, 6); }
+      if(p.chargeStart && !(performance.now() < (game.flightUntil || 0))){
+        const heldMs = Math.max(0, performance.now() - p.chargeStart);
+        const maxMs = 1000; const ratio = Math.min(1, heldMs / maxMs);
+        const barW = p.w + 16; const barH = 8; const bx = p.x - 8; const by = p.y - 14 - barH;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; roundRect(ctx, bx-1, by-1, barW+2, barH+2, 6);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; roundRect(ctx, bx, by, barW, barH, 6);
+        ctx.fillStyle = '#7ef'; roundRect(ctx, bx, by, barW * ratio, barH, 6);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText(Math.round(ratio*100)+'%', bx + barW/2, by + barH + 10);
+      }
+    }
+
+    for(const q of game.particles){ ctx.fillStyle = q.color || '#fff'; ctx.globalAlpha = Math.max(0, Math.min(1, q.life)); ctx.beginPath(); ctx.arc(q.x, q.y, q.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1; }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.02)'; for(let i=0;i<3;i++) ctx.fillRect(20 + i*24, game.groundY - 6, 16, 4);
+  }
+
+  function drawClouds(W,H, color){
+    const t = (performance.now()||0)/1000;
+    ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = color || '#cfe8ff';
+    for(let i=0;i<6;i++){ const cx = ( (i*220) + (t*18*(i%2?1:-1)) ) % (W+260) - 130; const cy = 60 + (i*14);
+      ctx.beginPath(); ctx.ellipse(cx, cy, 90 - i*8, 26 - i*3, 0, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+  }
+
+  // utils
+  function hexToRgb(hex){ hex = hex.replace('#',''); if(hex.length===3) hex = hex.split('').map(c=>c+c).join(''); const n=parseInt(hex,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
+  function lerpColor(a,b,t){ const A=hexToRgb(a), B=hexToRgb(b); const r=Math.round(A.r + (B.r-A.r)*t), g=Math.round(A.g + (B.g-A.g)*t), bl=Math.round(A.b + (B.b-A.b)*t); return rgbToHex(r,g,bl); }
+  function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill(); }
+
+  // input
+  let input = {touching:false, lastTap:0};
+  function pressStart(){
+    if(!game.running){ startGame(); return; }
+    if(!game.player || !game.player.alive) return;
+    input.touching = true;
+    if(!(performance.now() < (game.flightUntil || 0))){
+      game.player.chargeStart = performance.now();
+    } else {
+      game.player.chargeStart = null;
+    }
+  }
+  function pressEnd(){
+    if(!game.player || !game.player.alive) return;
+    input.touching = false;
+    const now = performance.now();
+    const held = Math.max(0, now - (game.player.chargeStart || now));
+    if(performance.now() < (game.flightUntil || 0)){
+      game.player.chargeStart = null;
+      return;
+    }
+    if(game.player.jumps < 3){
+      const base = game.player.jumpPower;
+      const extra = Math.min(1.4, held / 450);
+      const jumpVel = - base * (0.88 + extra);
+      game.player.vy = jumpVel;
+      game.player.onGround = false;
+      game.player.jumps += 1;
+      spawnParticles(game.player.x + game.player.w/2, game.player.y + game.player.h, '#7ef', 10);
+      playBeep(750 - Math.min(420, held/2), 0.06, 'triangle', 0.08);
+    }
+    game.player.chargeStart = null;
+  }
+
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); pressStart(); }, {passive:false});
+  canvas.addEventListener('touchend', e => { e.preventDefault(); pressEnd(); }, {passive:false});
+  canvas.addEventListener('mousedown', e => { e.preventDefault(); pressStart(); });
+  window.addEventListener('mouseup', e => { pressEnd(); }); 
+
+  window.addEventListener('keydown', e => {
+    if(e.code === 'Space' || e.key === 'ArrowUp'){ if(!e.repeat) pressStart(); e.preventDefault(); }
+    else if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S'){ setCrouch(true); e.preventDefault(); }
+    else if(e.key === 'p'){ togglePause(); }
+  });
+  window.addEventListener('keyup', e => {
+    if(e.code === 'Space' || e.key === 'ArrowUp'){ pressEnd(); e.preventDefault(); }
+    else if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S'){ setCrouch(false); e.preventDefault(); }
+  });
+
+  // crouch
+  let crouchPointerActive = false;
+  crouchBtn.addEventListener('touchstart', e => { e.preventDefault(); setCrouch(true); crouchPointerActive=true; }, {passive:false});
+  crouchBtn.addEventListener('touchend', e => { e.preventDefault(); setCrouch(false); crouchPointerActive=false; }, {passive:false});
+  crouchBtn.addEventListener('mousedown', e => { e.preventDefault(); setCrouch(true); crouchPointerActive=true; });
+  window.addEventListener('mouseup', e => { if(crouchPointerActive){ setCrouch(false); crouchPointerActive=false; } });
+  function setCrouch(flag){ if(!game.player) return; game.player.crouching = !!flag; }
+
+  // panels / UI
+  function showPanel(id){
+    overlayBg.style.display = 'block';
+    panelStart.style.display = 'none';
+    panelHow.style.display = 'none';
+    panelPause.style.display = 'none';
+    panelGameOver.style.display = 'none';
+    document.getElementById(id).style.display = 'block';
+  }
+  function hideAllPanels(){ overlayBg.style.display = 'none'; panelStart.style.display = 'none'; panelHow.style.display = 'none'; panelPause.style.display = 'none'; panelGameOver.style.display = 'none'; }
+  function showStartPanel(){ overlayBg.style.display = 'block'; panelStart.style.display = 'block'; panelHow.style.display = 'none'; panelPause.style.display = 'none'; panelGameOver.style.display = 'none'; }
+  showStartPanel();
+
+  // buttons wiring
+  startBtn.addEventListener('click', startGame);
+  howBtn.addEventListener('click', ()=>{ showPanel('panelHow'); });
+  backBtn.addEventListener('click', ()=>{ overlayBg.style.display = 'none'; panelHow.style.display = 'none'; panelStart.style.display = 'block'; });
+  resumeBtn.addEventListener('click', ()=>{ startResumeCountdown(); });
+  restartBtn.addEventListener('click', ()=>{ overlayBg.style.display = 'none'; panelPause.style.display = 'none'; startGame(); });
+  goRestartBtn.addEventListener('click', ()=>{ overlayBg.style.display = 'none'; panelGameOver.style.display = 'none'; startGame(); });
+  titleBtnPause.addEventListener('click', ()=>{ goToTitle(); });
+  titleBtnGameOver.addEventListener('click', ()=>{ goToTitle(); });
+
+  pauseBtn.addEventListener('click', ()=>{ togglePause(); });
+  soundBtn.addEventListener('click', ()=>{ game.soundOn = !game.soundOn; soundBtn.textContent = game.soundOn ? '🔊' : '🔈'; playBeep(660,0.06,'sine',0.06); });
+  canvas.addEventListener('pointerdown', function one(){ ensureAudio(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); canvas.removeEventListener('pointerdown', one); });
+
+  // init
+  function init(){ resizeCanvas(); resetGame(); showStartPanel(); updateScoreUI(); requestAnimationFrame(()=>render()); }
+  init();
+
+  // expose debug
+  window._sb = { game, startGame, resetGame, endGame, pauseGame, startResumeCountdown, goToTitle };
+
+})();
+</script>
+</body>
+</html>

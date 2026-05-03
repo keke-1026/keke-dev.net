@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回線診断 - keke-dev</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #3b82f6; --text: #111827; --sub: #6b7280; --border: #f3f4f6; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: #ffffff; color: var(--text); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 500px; padding: 20px; text-align: center; }
+        
+        .main-val { font-size: 9rem; font-weight: 700; letter-spacing: -6px; line-height: 1; margin: 40px 0; font-variant-numeric: tabular-nums; }
+        .unit { font-size: 1.5rem; color: var(--sub); letter-spacing: 0; margin-left: 10px; }
+
+        .metrics { display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding-top: 30px; }
+        .m-item { display: flex; flex-direction: column; }
+        .m-label { font-size: 0.75rem; color: var(--sub); font-weight: 700; margin-bottom: 5px; }
+        .m-val { font-size: 1.4rem; font-weight: 700; font-family: monospace; }
+
+        .progress-bar { width: 100%; height: 3px; background: var(--border); margin: 20px 0; border-radius: 2px; overflow: hidden; }
+        #bar-inner { width: 0%; height: 100%; background: var(--accent); transition: width 0.1s; }
+
+        .status { font-size: 0.9rem; color: var(--accent); font-weight: 700; height: 1.5em; }
+        button { margin-top: 40px; background: var(--text); color: #fff; border: none; padding: 12px 30px; border-radius: 50px; cursor: pointer; font-weight: 700; }
+        .footer-info { margin-top: 30px; font-size: 0.75rem; color: var(--sub); text-align: left; background: var(--border); padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="status" id="status">サーバーに接続中...</div>
+    
+    <div class="main-val"><span id="speed">0</span><span class="unit">Mbps</span></div>
+
+    <div class="progress-bar"><div id="bar-inner"></div></div>
+
+    <div class="metrics">
+        <div class="m-item"><span class="m-label">PING</span><span class="m-val" id="ping">--</span></div>
+        <div class="m-item"><span class="m-label">JITTER</span><span class="m-val" id="jitter">--</span></div>
+    </div>
+
+    <div class="footer-info">
+        <div style="display:flex; justify-content:space-between;"><span>ISP</span><b id="isp">...</b></div>
+        <div style="display:flex; justify-content:space-between; margin-top:5px;"><span>NODE</span><b id="node">Cloudflare Edge</b></div>
+    </div>
+
+    <button onclick="runTest()">テストを再実行</button>
+</div>
+
+<script>
+    const CONCURRENCY = 8; // 同時接続数（スレッド数）。4-8が最適。
+    const TEST_DURATION = 8000; // 測定時間（8秒）。これくらいが一番安定します。
+    const URL = "https://speed.cloudflare.com/__down?bytes=50000000"; // 各スレッド50MB
+
+    let controllers = [];
+
+    async function measureLatency() {
+        const results = [];
+        for(let i=0; i<10; i++) {
+            const s = performance.now();
+            await fetch('/favicon.ico', { cache: 'no-store', mode: 'no-cors' });
+            results.push(performance.now() - s);
+        }
+        const avg = results.reduce((a,b)=>a+b)/results.length;
+        const jit = results.slice(1).map((v,i)=>Math.abs(v-results[i])).reduce((a,b)=>a+b)/9;
+        return {ping: avg.toFixed(1), jitter: jit.toFixed(1)};
+    }
+
+    async function runTest() {
+        // 初期化
+        controllers.forEach(c => c.abort());
+        controllers = [];
+        const speedEl = document.getElementById('speed');
+        const bar = document.getElementById('bar-inner');
+        const status = document.getElementById('status');
+        
+        speedEl.innerText = "0";
+        bar.style.width = "0%";
+        
+        // 1. レイテンシ測定
+        status.innerText = "信号の往復速度を確認中...";
+        const {ping, jitter} = await measureLatency();
+        document.getElementById('ping').innerText = ping + "ms";
+        document.getElementById('jitter').innerText = jitter + "ms";
+
+        // 2. ダウンロード測定 (並列スレッド)
+        status.innerText = "回線帯域をフル計測中...";
+        const startTime = performance.now();
+        let totalLoaded = 0;
+
+        const downloadThread = async () => {
+            const controller = new AbortController();
+            controllers.push(controller);
+            try {
+                const res = await fetch(URL, { signal: controller.signal, cache: 'no-store' });
+                const reader = res.body.getReader();
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    totalLoaded += value.length;
+                }
+            } catch (e) {}
+        };
+
+        // 指定した数だけスレッドを開始
+        const threads = Array(CONCURRENCY).fill().map(downloadThread);
+
+        // 表示の更新ループ
+        const updateInterval = setInterval(() => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            const mbps = ((totalLoaded * 8) / elapsed / 1000000).toFixed(1);
+            speedEl.innerText = mbps;
+            bar.style.width = Math.min(100, (elapsed / (TEST_DURATION/1000)) * 100) + "%";
+
+            if (elapsed * 1000 >= TEST_DURATION) {
+                clearInterval(updateInterval);
+                controllers.forEach(c => c.abort()); // 終了
+                status.innerText = "すべての測定が完了しました";
+                bar.style.width = "100%";
+            }
+        }, 100);
+
+        // ISP情報取得
+        fetch('https://www.cloudflare.com/cdn-cgi/trace').then(r=>r.text()).then(t=>{
+            const m = t.match(/aslo=(.*)\n/);
+            if(m) document.getElementById('isp').innerText = m[1];
+        });
+    }
+
+    window.onload = runTest;
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGP Public Key | keke-dev.net</title>
+    
+    <!-- Google Fonts: Inter (UI用) と Fira Code (コード/鍵用) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #1a1a1a;
+            --text-muted: #666666;
+            --border-color: #e5e5e5;
+            --bg-muted: #f9f9f9;
+            --accent: #000000;
+            --accent-hover: #333333;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 鍵のSVGアイコン */
+        .icon-key {
+            width: 28px;
+            height: 28px;
+            fill: none;
+            stroke: var(--text-main);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* フィンガープリント等の表示用 */
+        .data-block {
+            background-color: var(--bg-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            position: relative;
+        }
+
+        .data-block pre, .data-block code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-main);
+        }
+
+        /* PGPブロック専用のスタイル */
+        .pgp-block {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 48px; /* コピーボタンのスペース */
+        }
+
+        /* コピーボタン */
+        .btn-copy {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .btn-copy:hover {
+            color: var(--text-main);
+            border-color: var(--text-main);
+        }
+
+        .btn-copy svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .btn-copy.copied {
+            color: #10b981; /* Success green */
+            border-color: #10b981;
+        }
+
+        .user-id {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .meta-info {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* スクロールバーの装飾 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cccccc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <svg class="icon-key" viewBox="0 0 24 24">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+        </svg>
+        <h1>PGP Public Key</h1>
+    </header>
+
+    <div class="section">
+        <div class="user-id">keke (keke's PGP)</div>
+        <div class="meta-info">Algorithm: RSA 4096-bit</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Public Key Block</div>
+        <div class="data-block">
+            <pre class="pgp-block" id="pgp-text">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
+O0k4Y5OQ8E0KKx7nUrVazA==
+=yiEv</pre>
+            <button class="btn-copy" onclick="copyText('pgp-text', this)" title="Copy Public Key">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyText(elementId, btnElement) {
+        const textToCopy = document.getElementById(elementId).innerText;
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            // アイコンをチェックマークに変更
+            const originalSVG = btnElement.innerHTML;
+            btnElement.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            btnElement.classList.add('copied');
+            
+            // 2秒後に元に戻す
+            setTimeout(() => {
+                btnElement.innerHTML = originalSVG;
+                btnElement.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>

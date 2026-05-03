@@ -1,0 +1,38 @@
+{
+  "categories": [
+    {
+      "name": "主要プロジェクト",
+      "items": [
+        { "title": "keke-dev", "sub": "私のホームページ 中心部", "url": "https://keke-dev.net", "icon": "" },
+        { "title": "webprint", "sub": "ネップリの完全ネット完結", "url": "https://print.keke-dev.net", "icon": "" }
+      ]
+    },
+    {
+      "name": "ユーティリティ",
+      "items": [
+        { "title": "デバイス情報取得", "sub": "ブラウザ・ハードウェア情報の取得", "url": "https://keke-dev.net/useragent/index.html","icon": "" },
+        { "title": "テンポ測定", "sub": "BPMカウンター", "url": "https://keke-dev.net/bpm/index.html", "icon": "" },
+        { "title": "ベンチマーク", "sub": "ハードウェア性能評価", "url": "https://keke-dev.net/bm/index.html", "icon": "" },
+        { "title": "旧Ver.projects", "sub": "旧Ver.のproject一覧ページです｡", "url": "https://projects.keke-dev.net/old-project.html", "icon": "" },
+        { "title": "RSA", "sub": "RSAだよ☆適当に作ったよ!", "url": "https://keke-dev.net/rsa/index.html", "icon": "" },
+        { "title": "WebGL", "sub": "ファイルorDriveからニコニ立体のデータ入れれば現れるよ!(?)", "url": "https://webgl.keke-dev.net", "icon": "" }
+      ]
+    },
+    {
+      "name": "システム",
+      "items": [
+        { "title": "稼働状況", "sub": "システムステータス", "url": "https://status.keke-dev.net", "icon": "" },
+        { "title": "通信遅延測定", "sub": "ping / ネットワーク診断", "url": "https://ping.keke-dev.net", "icon": "" }
+      ]
+    },
+    {
+      "name": "その他(まとめるのめんどいからまとめただけ)",
+      "items": [
+        { "title": "コード", "sub": "コードが認証できるよ", "url": "https://code.keke-dev.net", "icon": "" },
+        { "title": "ニコニコランダム動画", "sub": "ランダムな動画に飛ぶよ", "url": "https://keke-dev.net/niconico-random/index.html", "icon": "" },
+        { "title": "アップデート履歴", "sub": "タイトルの通り", "url": "https://update.keke-dev.net", "icon": "" },
+        { "title": "矢印パスワード", "sub": "ピッピが理不尽のを出してきたあれです｡いえばあれ打てばクリアできます", "url": "https://keke-dev.net/arrow/index.html", "icon": "" }
+      ]
+    }
+  ]
+}

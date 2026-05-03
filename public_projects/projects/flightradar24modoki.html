@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flightradar24modoki</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --sidebar-bg: #0a0a0a;
+            --card-bg: #111111;
+            --card-hover: #1a1a1a;
+            --accent-blue: #00a8ff;
+            --text-main: #ffffff;
+            --text-dim: #777777;
+            --danger: #ff4757;
+            --lamp-green: #2ed573;
+            --border-gray: rgba(255,255,255,0.05);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- モニタービュー --- */
+        .monitor-view {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: center;
+        }
+
+        .header-status {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 0 30px 0;
+            z-index: 50;
+        }
+
+        .lamp {
+            width: 12px;
+            height: 12px;
+            background-color: var(--lamp-green);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--lamp-green);
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        #last-update {
+            margin-top: 15px;
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 4px;
+            font-weight: 700;
+        }
+
+        #refresh-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-gray);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        #refresh-btn svg { width: 22px; height: 22px; fill: var(--text-main); }
+        #refresh-btn:disabled svg { animation: rotate 1s linear infinite; fill: var(--text-dim); }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ログリスト */
+        #log-container {
+            width: 95%;
+            max-width: 520px;
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px 10px 50px 10px;
+        }
+
+        .log-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            border: 1px solid var(--border-gray);
+            transition: all 0.2s;
+        }
+        .log-card:hover { background: var(--card-hover); }
+        .log-card.active { border-color: var(--accent-blue); background: #0c0f13; }
+
+        .sq-badge {
+            font-weight: 800;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: #222222;
+        }
+        .sq7500 .sq-badge { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
+        /* --- 詳細パネル（黒・灰色ベース） --- */
+        #side-panel {
+            background: var(--sidebar-bg);
+            display: none;
+            flex-direction: column;
+            z-index: 200;
+            overflow-y: auto;
+        }
+
+        /* PC / iPad */
+        @media (min-width: 768px) {
+            #side-panel { width: 420px; height: 100vh; border-left: 1px solid var(--border-gray); }
+        }
+
+        /* スマホ */
+        @media (max-width: 767px) {
+            #side-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 90vh;
+                border-radius: 25px 25px 0 0;
+                box-shadow: 0 -15px 50px rgba(0,0,0,1);
+            }
+        }
+
+        .panel-header { padding: 40px 30px; border-bottom: 1px solid var(--border-gray); }
+        
+        .route-view {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.02);
+            text-align: center;
+        }
+        .route-code { font-size: 42px; font-weight: 900; color: #fff; line-height: 1; }
+        .route-label { font-size: 10px; color: var(--text-dim); margin-top: 8px; font-weight: 700; letter-spacing: 2px; }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-gray); margin-top: auto; }
+        .data-item { background: var(--sidebar-bg); padding: 25px 30px; }
+        .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+        .value { font-size: 17px; font-weight: 700; color: #fff; }
+
+        .btn-group { padding: 30px; display: flex; flex-direction: column; gap: 12px; }
+        .action-btn { padding: 18px; border-radius: 10px; font-weight: 800; font-size: 13px; text-decoration: none; text-align: center; transition: all 0.2s; }
+        .btn-primary { background: #fff; color: #000; }
+        .btn-secondary { background: #1a1a1a; color: #888; border: 1px solid var(--border-gray); }
+        
+        .close-btn { color: var(--text-dim); background: none; border: none; font-size: 36px; cursor: pointer; float: right; margin-top: -15px; }
+        .plane-icon { width: 32px; height: 32px; fill: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="monitor-view">
+        <button id="refresh-btn" onclick="update()">
+            <svg viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/></svg>
+        </button>
+        
+        <header class="header-status">
+            <div class="lamp"></div>
+            <div id="last-update">ACTIVE</div>
+        </header>
+
+        <div id="log-container">
+            <div id="no-data-msg" style="text-align: center; opacity: 0.2; font-size: 11px; margin-top: 40px; letter-spacing: 1px;">NO DATA ^-^</div>
+        </div>
+    </div>
+
+    <div id="side-panel">
+        <div class="panel-header">
+            <button class="close-btn" onclick="closePanel()">&times;</button>
+            <h1 id="p-callsign" style="margin:0; font-size: 42px; letter-spacing: -2px; line-height: 1;">---</h1>
+            <div id="p-reg" style="color: var(--text-dim); font-weight: 700; font-size: 14px; margin-top: 8px;">ICAO: ---</div>
+        </div>
+
+        <div class="route-view">
+            <div><div class="route-code" id="p-origin">---</div><div class="route-label">DEPARTURE</div></div>
+            <div style="font-size: 20px; color: var(--text-dim); opacity: 0.3;">>></div>
+            <div><div class="route-code" id="p-destination">---</div><div class="route-label">ARRIVAL</div></div>
+        </div>
+
+        <div class="data-grid">
+            <div class="data-item"><div class="label">Squawk</div><div class="value" id="p-squawk">---</div></div>
+            <div class="data-item"><div class="label">Altitude</div><div class="value" id="p-alt">--- ft</div></div>
+            <div class="data-item"><div class="label">G-Speed</div><div class="value" id="p-speed">--- kt</div></div>
+            <div class="data-item"><div class="label">Track</div><div class="value" id="p-track">--- deg</div></div>
+        </div>
+
+        <div class="btn-group">
+            <a id="p-link" href="#" target="_blank" class="action-btn btn-primary">VIEW ON FLIGHTRADAR24</a>
+            <a id="p-search" href="#" target="_blank" class="action-btn btn-secondary">SEARCH FLIGHT ROUTE</a>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw4ykmgwY8DELibkENP6AnOxbMsSqCXGKfmtT_cPRZoPcpBLX5-YgTa_F3mfhJpeWZMqA/exec';
+        const logContainer = document.getElementById('log-container');
+        const sidePanel = document.getElementById('side-panel');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const lastUpdateLabel = document.getElementById('last-update');
+        const detected = new Set();
+
+        async function update() {
+            refreshBtn.disabled = true;
+            lastUpdateLabel.innerText = 'FETCHING AIRSPACE...';
+            
+            try {
+                const res = await fetch(GAS_URL + '?mode=all');
+                const data = await res.json();
+                
+                // リアルな緊急機体のみをフィルタリング
+                const emergencies = data.states ? data.states.filter(s => ["7500", "7600", "7700"].includes(s[14])) : [];
+
+                if (emergencies.length > 0) {
+                    document.getElementById('no-data-msg').style.display = 'none';
+                    emergencies.forEach(s => {
+                        const flight = {
+                            icao: s[0],
+                            callsign: s[1] ? s[1].trim() : 'N/A',
+                            alt: s[7] ? Math.round(s[7] * 3.28084) : 0,
+                            speed: s[9] ? Math.round(s[9] * 1.94384) : 0,
+                            track: Math.round(s[10]) || 0,
+                            squawk: s[14],
+                            time: new Date().toLocaleTimeString()
+                        };
+
+                        const id = `${flight.icao}-${flight.squawk}`;
+                        if(!detected.has(id)) { createCard(flight); detected.add(id); }
+                    });
+                }
+                lastUpdateLabel.innerText = 'LAST UPDATE: ' + new Date().toLocaleTimeString();
+            } catch(e) { lastUpdateLabel.innerText = 'CONNECTION ERROR'; }
+            finally { setTimeout(() => { refreshBtn.disabled = false; }, 1000); }
+        }
+
+        function createCard(f) {
+            const el = document.createElement('div');
+            el.className = `log-card sq${f.squawk}`;
+            el.innerHTML = `
+                <svg class="plane-icon" viewBox="0 0 24 24" style="transform: rotate(${f.track}deg)">
+                    <path d="M21,16L21,14L13,9L13,3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5L10,9L2,14L2,16L10,13.5L10,19L8,20.5L8,22L11.5,21L15,22L15,20.5L13,19L13,13.5L21,16Z" />
+                </svg>
+                <div style="flex-grow:1">
+                    <div style="font-weight:900; font-size:18px;">${f.callsign}</div>
+                    <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${f.time}</div>
+                </div>
+                <div class="sq-badge">SQ ${f.squawk}</div>
+            `;
+            el.onclick = () => showDetail(f, el);
+            logContainer.prepend(el);
+        }
+
+        async function showDetail(f, el) {
+            document.querySelectorAll('.log-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            sidePanel.style.display = 'flex';
+            
+            document.getElementById('p-callsign').innerText = f.callsign;
+            document.getElementById('p-reg').innerText = `ICAO: ${f.icao.toUpperCase()}`;
+            document.getElementById('p-squawk').innerText = `SQ ${f.squawk}`;
+            document.getElementById('p-alt').innerText = f.alt.toLocaleString() + ' ft';
+            document.getElementById('p-speed').innerText = f.speed + ' kt';
+            document.getElementById('p-track').innerText = f.track + ' deg';
+            
+            document.getElementById('p-origin').innerText = '...';
+            document.getElementById('p-destination').innerText = '...';
+            document.getElementById('p-search').href = `https://www.google.com/search?q=flight+route+${f.callsign}`;
+            
+            if (f.callsign !== 'N/A') {
+                try {
+                    const res = await fetch(`${GAS_URL}?mode=route&callsign=${f.callsign}`);
+                    const routeData = await res.json();
+                    if (routeData.data && routeData.data.length > 0) {
+                        const flight = routeData.data[0];
+                        document.getElementById('p-origin').innerText = flight.departure.iata || 'N/A';
+                        document.getElementById('p-destination').innerText = flight.arrival.iata || 'N/A';
+                    } else {
+                        document.getElementById('p-origin').innerText = 'N/A';
+                        document.getElementById('p-destination').innerText = 'N/A';
+                    }
+                } catch (e) { console.error("Route error"); }
+            }
+            
+            document.getElementById('p-link').href = f.callsign !== 'N/A' 
+                ? `https://www.flightradar24.com/${f.callsign}` 
+                : `https://www.flightradar24.com/data/aircraft/${f.icao}`;
+        }
+
+        function closePanel() { sidePanel.style.display = 'none'; document.querySelectorAll('.log-card').forEach(c => c.classList.remove('active')); }
+
+        update();
+    </script>
+</body>
+</html>

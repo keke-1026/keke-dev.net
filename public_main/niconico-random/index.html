@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ニコニコ動画ランダムジェネレーター</title>
+    
+    <!-- Google Fonts (Noto Sans JP) の読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (スタイリング用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* 白ベースの背景とGoogle Fontsの適用 */
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="text-center p-8">
+        <h1 id="pageTitle" class="text-2xl font-bold mb-6">読み込み中...</h1>
+        <p id="pageSubtitle" class="mb-8 text-gray-600"></p>
+        
+        <!-- SVGアイコンを含むボタン -->
+        <button id="randomUrlButton" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            <span id="buttonText" class="font-bold">ランダムな動画を開く</span>
+            <!-- 外部リンクを示すSVGアイコン -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // 要素を取得
+        const button = document.getElementById('randomUrlButton');
+        const buttonText = document.getElementById('buttonText');
+        const titleElement = document.getElementById('pageTitle');
+        const subtitleElement = document.getElementById('pageSubtitle');
+
+        // 初期表示のテキストを設定
+        titleElement.textContent = 'ニコニコ動画 ランダムジェネレーター';
+        subtitleElement.textContent = '※存在しない動画や､非公開動画に当たる場合があります。その場合はタブを閉じてやり直してください。';
+
+        // ボタンがクリックされたときの処理
+        button.addEventListener('click', () => {
+            const minId = 1;
+            const maxId = 50000000;
+            
+            const randomIdNum = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+            const targetUrl = `https://www.nicovideo.jp/watch/sm${randomIdNum}`;
+            
+            // 新しいタブでURLを開く
+            window.open(targetUrl, '_blank');
+        });
+    </script>
+</body>
+</html>

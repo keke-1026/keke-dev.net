@@ -1,0 +1,20 @@
+{
+  "GACHATIME50": {
+    "type": "item",
+    "name": "時間短縮カード",
+    "amount": 50,
+    "message": "サイト開設記念！特別配布です。"
+  },
+  "SECRET_GACHATIME": {
+    "type": "item",
+    "name": "時間短縮カード",
+    "amount": 100,
+    "message": "秘密のコード！ガチャのクールダウンが合計100時間短縮されるよ！"
+  },
+  "100TICKET": {
+    "type": "item",
+    "name": "100連専用チケット",
+    "amount": 10,
+    "message": "これを使うと100連ガチャが引けるようになります！"
+  }
+}

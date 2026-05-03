@@ -1,0 +1,9 @@
+[
+  { "day": 1, "type": "item", "name": "時間短縮カード", "amount": 10 },
+  { "day": 2, "type": "item", "name": "時間短縮カード", "amount": 15 },
+  { "day": 3, "type": "item", "name": "時間短縮カード", "amount": 25 },
+  { "day": 4, "type": "item", "name": "時間短縮カード", "amount": 30 },
+  { "day": 5, "type": "item", "name": "時間短縮カード", "amount": 50 },
+  { "day": 6, "type": "item", "name": "時間短縮カード", "amount": 100 },
+  { "day": 7, "type": "item", "name": "100連専用チケット", "amount": 1 }
+]

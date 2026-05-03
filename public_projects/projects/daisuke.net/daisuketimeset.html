@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Daisuke⭐︎ スケジューラ（ローカル音声）</title>
+<style>
+  html,body{height:100%;margin:0;background:#05010b;color:#fff;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif}
+  canvas{display:block;width:100%;height:100%;position:fixed;inset:0;z-index:0}
+  .ui{position:fixed;left:12px;top:12px;z-index:12;pointer-events:auto;max-width:420px}
+  .card{background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.35));padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
+  label{font-size:13px;color:#d8d0ff;display:block;margin-bottom:6px}
+  input,select,button{font-size:14px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#fff;box-sizing:border-box}
+  .row{display:flex;gap:8px;align-items:center}
+  .muted{font-size:12px;color:#bfb8d9;margin-top:8px}
+  .big-count{position:fixed;left:0;right:0;bottom:24px;text-align:center;z-index:11;font-weight:700;font-size:28px;color:#fff;text-shadow:0 6px 20px rgba(0,0,0,0.6)}
+  .btn-primary{background:#ffd54f;border:none;color:#111;font-weight:700;padding:9px 12px;border-radius:8px;cursor:pointer}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);cursor:pointer;padding:8px;border-radius:8px}
+  .hint{font-size:12px;color:#cfcbe0;margin-top:6px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  #status{font-size:13px;color:#d4d0ff;margin-top:8px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="ui">
+  <div class="card" role="region" aria-label="Daisuke スケジューラ">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+      <strong>Daisuke⭐︎ スケジューラ</strong>
+    </div>
+
+    <label>モード</label>
+    <div class="row" style="margin-bottom:8px">
+      <select id="mode" aria-label="mode">
+        <option value="play_at">指定時刻に再生（再生開始を指定）</option>
+        <option value="align_at">歌詞が来るように合わせる（オフセットを使用）</option>
+      </select>
+    </div>
+
+    <label>再生／目標時刻（ローカル）</label>
+    <div class="row" style="margin-bottom:8px">
+      <input id="dateInput" type="date" style="flex:1"/>
+      <input id="timeInput" type="time" step="1" style="flex:1"/>
+    </div>
+    <div class="hint">日付を空欄にすると「次に来るその時刻」（今日または明日）を使います。</div>
+
+    <label style="margin-top:8px">オフセット（秒）</label>
+    <div class="row">
+      <input id="offset" type="number" value="92" style="width:110px"/>
+      <div class="muted">※モードが <strong>歌詞が来るように合わせる</strong> のときに使います（デフォルト92秒）。</div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="prepareBtn" class="btn-primary">準備（必須）</button>
+      <button id="setBtn" class="btn-ghost">スケジュールをセット</button>
+      <button id="downloadBtn" class="btn-ghost">HTMLを保存</button>
+    </div>
+
+    <div id="status" aria-live="polite">ステータス: 未設定。ページを開いたらまず「準備」を押してください。</div>
+    <div class="muted" style="margin-top:8px">音声ファイルは同じフォルダの <strong>daisuke.mp3</strong> を使用します。</div>
+  </div>
+</div>
+
+<div class="big-count" id="countDisplay">--:--:--</div>
+
+<!-- ローカル音声 -->
+<audio id="audio" src="daisuke.mp3" preload="auto"></audio>
+
+<script>
+/* Daisuke Scheduler
+ - この HTML と同じフォルダに daisuke.mp3 を置くこと
+ - モード:
+    - play_at : 入力した日時に"再生開始"する
+    - align_at: 入力した日時に"歌詞が来る"ように offset 秒だけ遡って再生開始する
+ - date を空欄にすると「次に来る time」を使う（今日 or 明日）
+ - まず「準備」を押してブラウザの再生許可を得てください
+*/
+
+(() => {
+  const audio = document.getElementById('audio');
+  const prepareBtn = document.getElementById('prepareBtn');
+  const setBtn = document.getElementById('setBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const dateInput = document.getElementById('dateInput');
+  const timeInput = document.getElementById('timeInput');
+  const offsetInput = document.getElementById('offset');
+  const modeSelect = document.getElementById('mode');
+  const statusEl = document.getElementById('status');
+  const countDisplay = document.getElementById('countDisplay');
+
+  // Canvas visuals (simple star + confetti on show)
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', {alpha:true});
+  let W = canvas.width = innerWidth, H = canvas.height = innerHeight;
+  addEventListener('resize', ()=>{ W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
+
+  const stars = [];
+  const confetti = [];
+  function rand(a,b){ return Math.random()*(b-a)+a; }
+  for(let i=0;i<160;i++) stars.push({x:rand(0,W),y:rand(0,H),r:rand(0.2,1.8),vx:rand(-0.02,0.02),vy:rand(-0.02,0.02)});
+  function drawLoop(){
+    ctx.clearRect(0,0,W,H);
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(7,3,20,0.95)'); g.addColorStop(1,'rgba(8,4,36,0.95)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // stars
+    for(const s of stars){
+      s.x += s.vx; s.y += s.vy;
+      if(s.x<0) s.x=W; if(s.x>W) s.x=0; if(s.y<0) s.y=H; if(s.y>H) s.y=0;
+      ctx.beginPath(); ctx.globalAlpha = 0.85; ctx.fillStyle='#fff'; ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.closePath(); ctx.globalAlpha = 1;
+    }
+    // confetti
+    for(let i=confetti.length-1;i>=0;i--){
+      const p = confetti[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.r += 0.08;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.color; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.7); ctx.restore();
+      if(p.y > H+40) confetti.splice(i,1);
+    }
+    requestAnimationFrame(drawLoop);
+  }
+  requestAnimationFrame(drawLoop);
+
+  function spawnConfetti(n){
+    const colors = ['#ffd54f','#ff6b6b','#6ee7b7','#9ae6ff','#d6b3ff'];
+    for(let i=0;i<n;i++){
+      confetti.push({x:rand(0,W),y:rand(-H,0),vx:rand(-1.5,1.5),vy:rand(2,6),s:rand(6,14),r:rand(0,Math.PI*2),color:colors[Math.floor(rand(0,colors.length))]});
+    }
+  }
+
+  // helper: compute target Date object from inputs
+  function computeTargetFromInputs(){
+    const dateVal = dateInput.value; // yyyy-mm-dd or empty
+    const timeVal = timeInput.value; // HH:MM:SS (or HH:MM)
+    if(!timeVal){
+      return null;
+    }
+    const now = new Date();
+    if(dateVal){
+      // use provided date
+      const [y,m,d] = dateVal.split('-').map(Number);
+      const [hh,mm,ss] = timeVal.split(':').map(v => Number(v || 0));
+      return new Date(y, m-1, d, hh, mm, ss || 0);
+    } else {
+      // no date: choose next occurrence of given time (today or tomorrow)
+      const [hh,mm,ss] = timeVal.split(':').map(v => Number(v || 0));
+      let candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss || 0);
+      if(candidate.getTime() <= now.getTime()){
+        // passed today -> tomorrow
+        candidate = new Date(candidate.getTime() + 24*3600*1000);
+      }
+      return candidate;
+    }
+  }
+
+  // schedule management
+  let armed = false;
+  let playTimer = null;
+  let showTimer = null;
+  let played = false;
+
+  function formatHMS(ms){
+    if(ms <= 0) return "--:--:--";
+    const s = Math.floor(ms/1000);
+    const h = String(Math.floor(s/3600)).padStart(2,'0');
+    const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const sec = String(s%60).padStart(2,'0');
+    return `${h}:${m}:${sec}`;
+  }
+
+  // update live countdown display (to chosen effective play time)
+  function updateDisplay(){
+    const now = new Date();
+    const target = getEffectivePlayTime();
+    if(!target) { countDisplay.textContent = "--:--:--"; return; }
+    const diff = target - now;
+    countDisplay.textContent = formatHMS(diff);
+    // auto note: if time passed and armed but not played, show message
+    if(diff <= 0 && armed && !played) statusEl.textContent = '再生時刻を過ぎました。手動で再生してください。';
+  }
+  setInterval(updateDisplay, 300);
+  updateDisplay();
+
+  function getEffectivePlayTime(){
+    // depending on mode:
+    const mode = modeSelect.value;
+    const baseTarget = computeTargetFromInputs();
+    if(!baseTarget) return null;
+    if(mode === 'play_at'){
+      return baseTarget;
+    } else { // align_at: user provided "target" when lyric should hit => start = target - offset
+      const off = Number(offsetInput.value) || 0;
+      return new Date(baseTarget.getTime() - off*1000);
+    }
+  }
+
+  function prepareGesture(){
+    // try muted play/pause to satisfy autoplay requirement
+    audio.muted = true;
+    const p = audio.play();
+    if(p && p.then){
+      p.then(()=> {
+        audio.pause();
+        audio.muted = false;
+        armed = true;
+        statusEl.textContent = 'ステータス: 再生許可を取得しました。スケジュールをセットしてください。';
+      }).catch(()=> {
+        // still mark armed to allow timers; may still be blocked on actual play
+        armed = true;
+        statusEl.textContent = 'ステータス: 再生許可の取得を試みました（ブロックされる場合あり）。スケジュールをセットしてください。';
+      });
+    } else {
+      armed = true;
+      statusEl.textContent = 'ステータス: 準備完了。';
+    }
+  }
+
+  function clearTimers(){
+    if(playTimer) { clearTimeout(playTimer); playTimer = null; }
+    if(showTimer) { clearTimeout(showTimer); showTimer = null; }
+  }
+
+  function schedulePlayback(){
+    if(!armed){ alert('まず「準備」を押してください（ブラウザのユーザー操作で再生許可を取得するため）。'); return; }
+    clearTimers();
+    played = false;
+    const effective = getEffectivePlayTime();
+    if(!effective){ alert('日時（時刻）を入力してください。'); return; }
+    const now = new Date();
+    const ms = effective - now;
+    if(ms <= 0){ alert('指定時刻は既に過ぎています。日時を確認してください。'); return; }
+
+    // set timers
+    playTimer = setTimeout(()=> {
+      attemptPlay();
+    }, ms);
+
+    // also schedule visual show at "target time" if mode is align_at use baseTarget, else use effective
+    let showAt;
+    if(modeSelect.value === 'align_at'){
+      // show big D at the user's "target" (when lyric should occur)
+      showAt = computeTargetFromInputs();
+    } else {
+      showAt = effective;
+    }
+    const showMs = showAt - now;
+    showTimer = setTimeout(()=> {
+      showBigD();
+    }, showMs);
+
+    statusEl.textContent = 'ステータス: スケジュールセット完了。予定再生時刻: ' + effective.toLocaleString();
+    // if timers are long, warn about tab visibility
+    if(ms > 60*60*6) statusEl.textContent += '（長時間タイマー：長時間の場合はタブを前面にしておくと安全）';
+  }
+
+  function attemptPlay(){
+    audio.currentTime = 0;
+    const p = audio.play();
+    if(p && p.then){
+      p.then(()=> {
+        played = true;
+        statusEl.textContent = 'ステータス: 再生中';
+      }).catch((e)=>{
+        console.warn('自動再生がブロックされました', e);
+        statusEl.textContent = '自動再生がブロックされました。手動で再生してください。';
+        // show a visible prompt
+        showManualPlayPrompt();
+      });
+    } else {
+      played = true;
+      statusEl.textContent = '再生指示送信（互換）';
+    }
+  }
+
+  function showManualPlayPrompt(){
+    // small overlay in status telling the user to click anywhere
+    alert('自動再生がブラウザによりブロックされました。ページ上でクリックして手動再生してください。');
+  }
+
+  function showBigD(){
+    // draw large "Daisuke⭐︎" and confetti
+    spawnConfetti(160);
+    const start = performance.now();
+    const DUR = 9000;
+    const text = 'Daisuke⭐︎';
+    const fontBase = Math.min(W, H) * 0.12;
+
+    function draw(nowTime){
+      const t = nowTime - start;
+      // background overlay
+      ctx.clearRect(0,0,W,H);
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'rgba(5,1,11,0.9)'); g.addColorStop(1,'rgba(10,3,30,0.95)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+      // stars
+      for(const s of stars){ ctx.beginPath(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff'; ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.closePath(); ctx.globalAlpha=1; }
+      // big text
+      const alpha = Math.min(1, t / 600);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `700 ${Math.floor(fontBase)}px sans-serif`;
+      ctx.shadowColor = 'rgba(255,213,79,0.95)'; ctx.shadowBlur = 40;
+      ctx.fillStyle = '#fff'; ctx.fillText(text, W/2, H/2);
+      ctx.restore();
+      // confetti update + draw (confetti array already updated in drawLoop)
+      if(t < DUR) requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // UI handlers
+  prepareBtn.addEventListener('click', () => {
+    prepareGesture();
+  });
+
+  setBtn.addEventListener('click', () => {
+    schedulePlayback();
+  });
+
+  // download current HTML blob
+  downloadBtn.addEventListener('click', () => {
+    const html = '<!doctype html>\\n' + document.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'daisuke_scheduler.html'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  // if audio file missing -> show hint
+  audio.addEventListener('error', () => {
+    statusEl.textContent = 'エラー: daisuke.mp3 が見つかりません。HTML と同じフォルダに置いてください。';
+  });
+
+  // small accessibility: allow Enter on time input to set schedule
+  timeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') schedulePlayback(); });
+
+  // initial message
+  statusEl.textContent = 'ステータス: 準備してください（「準備」ボタンで音声許可を取得）';
+})();
+</script>
+</body>
+</html>

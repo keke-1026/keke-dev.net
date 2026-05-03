@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>code.keke-dev.net</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: M PLUS Rounded 1c -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+        
+        /* アニメーション用クラス */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .slide-in-top { animation: slideInTop 0.3s ease-out; }
+        .slide-in-bottom { animation: slideInBottom 0.5s ease-out; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+        }
+        @keyframes slideInTop { 
+            from { transform: translateY(-10px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
+        @keyframes slideInBottom { 
+            from { transform: translateY(20px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
+        
+        /* ローディングスピナー */
+        .loader {
+            border: 4px solid #94a3b8; /* slate-400 */
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        .loader-indigo {
+            border: 4px solid #818cf8; /* indigo-400 */
+            border-top: 4px solid #ffffff;
+        }
+        
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 p-4 md:p-8 selection:bg-indigo-200">
+
+    <div class="max-w-3xl mx-auto space-y-6">
+        
+        <!-- ヘッダー -->
+        <header class="flex items-center justify-between bg-white p-4 rounded-[2rem] shadow-sm border border-slate-200">
+            <div class="flex items-center gap-3 px-3">
+                <div class="bg-indigo-100 p-2.5 rounded-2xl text-indigo-600">
+                    <i data-lucide="key" class="w-6 h-6" stroke-width="2.5"></i>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">code.keke-dev.net</h1>
+            </div>
+        </header>
+
+        <main class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-6 md:p-10 min-h-[400px]">
+                
+                <!-- コード認証（閲覧）エリア -->
+                <div class="space-y-8 fade-in max-w-xl mx-auto">
+                    <div class="text-center space-y-2 mb-8">
+                        <h2 class="text-2xl font-bold text-slate-700">秘密のテキストを解錠</h2>
+                        <p class="text-sm text-slate-500 font-bold">発行されたコードを入力して、隠されたメッセージを確認します。</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="search" class="w-5 h-5"></i>
+                            </div>
+                            <input
+                                type="text"
+                                id="verify-input"
+                                placeholder="コードを入力..."
+                                class="w-full pl-12 pr-6 py-5 rounded-[2rem] border-2 border-slate-100 focus:outline-none focus:border-indigo-400 bg-slate-50 focus:bg-white transition-all text-lg font-bold text-slate-800 tracking-wide"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- エラー表示エリア -->
+                    <div id="verify-error-box" class="hidden p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl items-start gap-3 slide-in-top">
+                        <i data-lucide="alert-circle" class="shrink-0 mt-0.5 w-5 h-5"></i>
+                        <p id="verify-error-msg" class="text-sm font-bold leading-relaxed"></p>
+                    </div>
+
+                    <button
+                        id="verify-btn"
+                        class="w-full py-5 bg-slate-800 hover:bg-slate-700 text-white rounded-[2rem] font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                        <div id="verify-btn-content" class="flex items-center gap-3">
+                            <i data-lucide="unlock" class="w-[22px] h-[22px]"></i>
+                            認証して開く
+                        </div>
+                        <div id="verify-btn-loading" class="hidden loader"></div>
+                    </button>
+
+                    <!-- 成功表示エリア -->
+                    <div id="verify-success-box" class="hidden mt-8 p-8 bg-indigo-50/50 rounded-[2.5rem] border border-indigo-100 space-y-4 slide-in-bottom">
+                        <h3 class="text-sm font-bold text-indigo-800 flex items-center gap-2 ml-2">
+                            <i data-lucide="check-circle" class="w-[18px] h-[18px]"></i>
+                            認証成功
+                        </h3>
+                        <div id="verify-secret-text" class="p-6 bg-white rounded-[2rem] border border-indigo-100 text-slate-800 break-words leading-relaxed min-h-[8rem] text-lg font-bold shadow-sm whitespace-pre-wrap"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- コード作成（保存）ポップアップ / ?add=true で表示 -->
+    <div id="add-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center p-4 z-50 fade-in">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100">
+            
+            <div class="p-6 md:p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="text-xl font-bold flex items-center gap-3 text-slate-800">
+                    <div class="bg-indigo-100 p-2 rounded-full text-indigo-600">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </div>
+                    新しいテキストを登録
+                </h2>
+                <button id="close-modal-btn" class="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 md:p-8 overflow-y-auto space-y-8">
+                <div class="text-center space-y-2 mb-4">
+                    <p class="text-sm text-slate-500 font-bold">好きなコード文字列と、紐付けるテキストをデータベースに保存します。</p>
+                </div>
+
+                <div class="space-y-6 bg-slate-50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100">
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-600 ml-2 flex items-center gap-2">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                            設定するコード
+                        </label>
+                        <input 
+                            type="text" 
+                            id="new-code-input"
+                            class="w-full px-5 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-indigo-400 bg-white transition-all font-bold tracking-wide" 
+                            placeholder="例: my-secret-2026" 
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-600 ml-2 flex items-center gap-2">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                            表示させるテキスト
+                        </label>
+                        <textarea 
+                            id="new-secret-text-input"
+                            class="w-full h-32 px-5 py-4 rounded-2xl border-2 border-slate-200 focus:outline-none focus:border-indigo-400 bg-white transition-all resize-none leading-relaxed" 
+                            placeholder="認証成功時に表示させたい文章を入力..." 
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- 登録エラー表示エリア -->
+                <div id="create-error-box" class="hidden p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl items-start gap-3 slide-in-top">
+                    <i data-lucide="alert-circle" class="shrink-0 mt-0.5 w-5 h-5"></i>
+                    <p id="create-error-msg" class="text-sm font-bold leading-relaxed"></p>
+                </div>
+
+                <!-- 登録成功表示エリア -->
+                <div id="create-success-box" class="hidden p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl items-start gap-3 slide-in-top">
+                    <i data-lucide="check-circle" class="shrink-0 mt-0.5 w-5 h-5"></i>
+                    <p class="text-sm font-bold leading-relaxed">正常にデータベースに保存されました！背景をクリックして閉じてください。</p>
+                </div>
+
+                <button
+                    id="create-btn"
+                    class="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-bold text-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                >
+                    <div id="create-btn-content" class="flex items-center gap-3">
+                        <i data-lucide="database" class="w-[22px] h-[22px]"></i>
+                        Firestoreに保存する
+                    </div>
+                    <div id="create-btn-loading" class="hidden loader loader-indigo"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK & 処理スクリプト -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ご指定のFirebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "keke-dev.firebaseapp.com",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 共通関数
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Lucideアイコンの初期化描画
+        lucide.createIcons();
+
+        // -----------------------
+        // URLパラメータによるモーダル表示制御
+        // -----------------------
+        const addModal = document.getElementById('add-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        function openModal() {
+            addModal.classList.remove('hidden');
+            addModal.classList.add('flex');
+        }
+
+        function closeModal() {
+            addModal.classList.add('hidden');
+            addModal.classList.remove('flex');
+            
+            // URLから ?add=true を消して履歴を更新する（リロードなし）
+            const url = new URL(window.location);
+            url.searchParams.delete('add');
+            window.history.replaceState({}, '', url);
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+
+        // 背景クリックで閉じる処理
+        addModal.addEventListener('click', (e) => {
+            if (e.target === addModal) closeModal();
+        });
+
+        // ページ読み込み時にパラメータを確認
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('add') === 'true') {
+                openModal();
+            }
+        });
+
+
+        // -----------------------
+        // コード認証処理
+        // -----------------------
+        const verifyInput = document.getElementById('verify-input');
+        const verifyBtn = document.getElementById('verify-btn');
+        const verifyBtnContent = document.getElementById('verify-btn-content');
+        const verifyBtnLoading = document.getElementById('verify-btn-loading');
+        
+        const verifyErrorBox = document.getElementById('verify-error-box');
+        const verifyErrorMsg = document.getElementById('verify-error-msg');
+        
+        const verifySuccessBox = document.getElementById('verify-success-box');
+        const verifySecretText = document.getElementById('verify-secret-text');
+
+        function showVerifyError(message) {
+            verifyErrorMsg.textContent = message;
+            verifyErrorBox.classList.remove('hidden');
+            verifyErrorBox.classList.add('flex');
+        }
+
+        function hideVerifyStatus() {
+            verifyErrorBox.classList.add('hidden');
+            verifyErrorBox.classList.remove('flex');
+            verifySuccessBox.classList.add('hidden');
+        }
+
+        function setVerifyLoading(isLoading) {
+            verifyBtn.disabled = isLoading;
+            if (isLoading) {
+                verifyBtnContent.classList.add('hidden');
+                verifyBtnLoading.classList.remove('hidden');
+            } else {
+                verifyBtnContent.classList.remove('hidden');
+                verifyBtnLoading.classList.add('hidden');
+            }
+        }
+
+        const handleVerify = async () => {
+            const code = verifyInput.value.trim();
+            if (!code) {
+                showVerifyError('コードを入力してください。');
+                return;
+            }
+
+            hideVerifyStatus();
+            setVerifyLoading(true);
+            await sleep(600);
+
+            try {
+                const docRef = doc(db, "secrets", code);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    verifySecretText.textContent = docSnap.data().content;
+                    verifySuccessBox.classList.remove('hidden');
+                } else {
+                    showVerifyError('入力されたコードは見つかりませんでした。');
+                }
+            } catch (error) {
+                console.error("Error fetching document:", error);
+                showVerifyError('通信エラー、またはアクセス権限がありません。Firestoreのルール設定を確認してください。');
+            } finally {
+                setVerifyLoading(false);
+            }
+        };
+
+        verifyBtn.addEventListener('click', handleVerify);
+        
+        verifyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleVerify();
+        });
+
+
+        // -----------------------
+        // 新規登録処理
+        // -----------------------
+        const newCodeInput = document.getElementById('new-code-input');
+        const newSecretTextInput = document.getElementById('new-secret-text-input');
+        
+        const createBtn = document.getElementById('create-btn');
+        const createBtnContent = document.getElementById('create-btn-content');
+        const createBtnLoading = document.getElementById('create-btn-loading');
+        
+        const createErrorBox = document.getElementById('create-error-box');
+        const createErrorMsg = document.getElementById('create-error-msg');
+        const createSuccessBox = document.getElementById('create-success-box');
+
+        function showCreateError(message) {
+            createErrorMsg.textContent = message;
+            createErrorBox.classList.remove('hidden');
+            createErrorBox.classList.add('flex');
+        }
+
+        function hideCreateStatus() {
+            createErrorBox.classList.add('hidden');
+            createErrorBox.classList.remove('flex');
+            createSuccessBox.classList.add('hidden');
+            createSuccessBox.classList.remove('flex');
+        }
+
+        function setCreateLoading(isLoading) {
+            createBtn.disabled = isLoading;
+            if (isLoading) {
+                createBtnContent.classList.add('hidden');
+                createBtnLoading.classList.remove('hidden');
+            } else {
+                createBtnContent.classList.remove('hidden');
+                createBtnLoading.classList.add('hidden');
+            }
+        }
+
+        const handleCreate = async () => {
+            const newCode = newCodeInput.value.trim();
+            const newSecretText = newSecretTextInput.value.trim();
+
+            if (!newCode || !newSecretText) {
+                showCreateError('コードとテキストの両方を入力してください。');
+                return;
+            }
+
+            hideCreateStatus();
+            setCreateLoading(true);
+            await sleep(600);
+
+            try {
+                const docRef = doc(db, "secrets", newCode);
+                
+                // 既に存在するかチェック
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    showCreateError('このコードは既に登録されています。別のコードを指定してください。');
+                    setCreateLoading(false);
+                    return;
+                }
+
+                // Firestoreに保存
+                await setDoc(docRef, {
+                    content: newSecretText,
+                    createdAt: serverTimestamp()
+                });
+
+                createSuccessBox.classList.remove('hidden');
+                createSuccessBox.classList.add('flex');
+                newCodeInput.value = '';
+                newSecretTextInput.value = '';
+            } catch (error) {
+                console.error("Error writing document:", error);
+                showCreateError('保存に失敗しました。Firestoreのルール設定で書き込みが許可されているか確認してください。');
+            } finally {
+                setCreateLoading(false);
+            }
+        };
+
+        createBtn.addEventListener('click', handleCreate);
+
+    </script>
+</body>
+</html>

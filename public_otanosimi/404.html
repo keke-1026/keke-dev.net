@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Not Found - otanosimi.keke-dev.net</title>
+  
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #fcfcfc;
+      --text-main: #333333;
+      --text-muted: #666666;
+      --accent-color: #000000;
+      --font-en: 'Inter', sans-serif;
+      --font-jp: 'Noto Sans JP', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-jp);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+      overflow-x: hidden;
+      transition: filter 0.3s ease, background-color 0.3s ease;
+    }
+
+    /* スコア10：色反転モード */
+    body.invert-mode {
+      filter: invert(1) hue-rotate(180deg);
+      background-color: #111;
+    }
+
+    /* グリッチエフェクト */
+    .glitch-wrapper {
+      margin-bottom: 10px;
+    }
+
+    .glitch {
+      font-family: var(--font-en);
+      font-size: 6rem;
+      font-weight: 900;
+      position: relative;
+      color: var(--text-main);
+      letter-spacing: -0.05em;
+      line-height: 1;
+    }
+
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color);
+    }
+    body.invert-mode .glitch::before, 
+    body.invert-mode .glitch::after {
+      background: #111; /* 反転時の背景色調整 */
+    }
+
+    .glitch::before {
+      left: 3px;
+      text-shadow: -1px 0 rgba(255, 0, 0, 0.5);
+      clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%);
+      animation: glitch-anim 2.5s infinite linear alternate-reverse;
+    }
+
+    .glitch::after {
+      left: -3px;
+      text-shadow: -1px 0 rgba(0, 0, 255, 0.5);
+      clip-path: polygon(0 60%, 100% 60%, 100% 70%, 0 70%);
+      animation: glitch-anim-2 3s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch-anim {
+      0% { clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%); transform: translate(0); }
+      20% { clip-path: polygon(0 10%, 100% 10%, 100% 40%, 0 40%); transform: translate(-2px, 2px); }
+      40% { clip-path: polygon(0 50%, 100% 50%, 100% 60%, 0 60%); transform: translate(2px, -2px); }
+      60% { clip-path: polygon(0 30%, 100% 30%, 100% 80%, 0 80%); transform: translate(-2px, 0); }
+      80% { clip-path: polygon(0 70%, 100% 70%, 100% 80%, 0 80%); transform: translate(2px, 2px); }
+      100% { clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%); transform: translate(0); }
+    }
+
+    @keyframes glitch-anim-2 {
+      0% { clip-path: polygon(0 60%, 100% 60%, 100% 70%, 0 70%); transform: translate(0); }
+      20% { clip-path: polygon(0 20%, 100% 20%, 100% 50%, 0 50%); transform: translate(2px, -2px); }
+      40% { clip-path: polygon(0 10%, 100% 10%, 100% 30%, 0 30%); transform: translate(-2px, 2px); }
+      60% { clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%); transform: translate(2px, 0); }
+      80% { clip-path: polygon(0 80%, 100% 80%, 100% 90%, 0 90%); transform: translate(-2px, -2px); }
+      100% { clip-path: polygon(0 60%, 100% 60%, 100% 70%, 0 70%); transform: translate(0); }
+    }
+
+    .message {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+    }
+
+    /* ゲームコンテナ */
+    .game-container {
+      margin: 20px 0 40px;
+    }
+
+    canvas {
+      background: #fff;
+      border: 1px solid #eaeaea;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      cursor: pointer;
+      max-width: 100%;
+      /* スマホでの長押し選択を防止 */
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* スコア20：画面揺れモード */
+    @keyframes shakeCanvas {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+    .shake-mode {
+      animation: shakeCanvas 0.4s infinite;
+    }
+
+    .game-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    /* 戻るボタン（逃げる用） */
+    .btn-home {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: var(--text-main);
+      color: #fff;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.3s ease, transform 0.1s;
+      position: relative;
+    }
+    .btn-home:hover {
+      background-color: #555;
+    }
+
+    /* 絶対に押すなボタン */
+    .btn-danger {
+      margin-top: 60px;
+      padding: 8px 16px;
+      background-color: transparent;
+      color: #ff4444;
+      border: 1px solid #ff4444;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-danger:hover {
+      background-color: #ff4444;
+      color: #fff;
+    }
+
+    /* 物理演算風の落下アニメーション */
+    @keyframes gravityFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(45deg); opacity: 0; }
+    }
+    .falling {
+      animation: gravityFall 2s forwards ease-in;
+      pointer-events: none;
+    }
+
+    /* 偽エラーポップアップ */
+    .custom-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .custom-modal.active {
+      display: flex;
+      opacity: 1;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      border-left: 5px solid #ff4444;
+    }
+    .modal-content h3 {
+      margin-bottom: 15px;
+      font-size: 1.4rem;
+      color: #333;
+    }
+    .modal-content p {
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .modal-close-btn {
+      padding: 10px 20px;
+      background: var(--text-main);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-jp);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="content-wrapper" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+    <div class="glitch-wrapper">
+      <h1 class="glitch" data-text="404">404</h1>
+    </div>
+    
+    <p class="message">お探しのページは宇宙の彼方へ消えたか、元々存在しません。<br>代わりに遊んでいきますか？</p>
+
+    <div class="game-container">
+      <canvas id="gameCanvas" width="500" height="200"></canvas>
+      <p class="game-hint" id="game-hint-text">画面をクリック（タップ）でジャンプ / 2段ジャンプ可</p>
+    </div>
+
+    <a href="/index.html" class="btn-home" id="escape-btn">トップページへ戻る</a>
+
+    <button class="btn-danger" id="do-not-push">絶対に押すな</button>
+  </div>
+
+  <div id="fake-error-modal" class="custom-modal">
+    <div class="modal-content">
+      <h3>致命的なエラー</h3>
+      <p>システム警告：寝不足が検知されました。<br>直ちに睡眠をとることを強く推奨します。</p>
+      <button id="fake-error-close" class="modal-close-btn">確認</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const body = document.body;
+    const gameHint = document.getElementById('game-hint-text');
+
+    let animationId;
+    let isGaming = false;
+    let isPaused = false; // ポップアップ中の停止用
+
+    // プレイヤー設定（2段ジャンプ対応）
+    let player = { x: 50, y: 150, width: 24, height: 24, dy: 0, jumpPower: -10, jumpCount: 0 };
+    let obstacle = { x: 500, y: 150, width: 16, height: 24, speed: 5 };
+    let score = 0;
+    let gravity = 0.6;
+    let fakeErrorTimer = null;
+
+    function drawStartScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = body.classList.contains('invert-mode') ? '#ccc' : '#333';
+      ctx.font = 'bold 20px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click to Start', canvas.width / 2, canvas.height / 2);
+      ctx.textAlign = 'left';
+      drawPlayer(50, 150);
+      
+      ctx.beginPath();
+      ctx.moveTo(0, 174);
+      ctx.lineTo(canvas.width, 174);
+      ctx.strokeStyle = '#eaeaea';
+      ctx.stroke();
+    }
+
+    // --- ジャンプ処理（mousedownとtouchstartでラグ解消） ---
+    function handleJump(e) {
+      // スクロールなどのデフォルト動作を防ぐ
+      if(e.type === 'touchstart') e.preventDefault();
+      
+      if (!isGaming && !isPaused) {
+        resetGame();
+        gameLoop();
+      } else if (isGaming && !isPaused) {
+        // 2段ジャンプまで許可
+        if (player.jumpCount < 2) {
+          player.dy = player.jumpPower;
+          player.jumpCount++;
+        }
+      }
+    }
+
+    canvas.addEventListener('mousedown', handleJump);
+    canvas.addEventListener('touchstart', handleJump, { passive: false });
+
+    function resetGame() {
+      player.y = 150;
+      player.dy = 0;
+      player.jumpCount = 0;
+      obstacle.x = canvas.width;
+      obstacle.speed = 5;
+      score = 0;
+      isGaming = true;
+      isPaused = false;
+      
+      body.classList.remove('invert-mode');
+      canvas.classList.remove('shake-mode');
+      gameHint.textContent = "画面をクリック（タップ）でジャンプ / 2段ジャンプ可";
+      
+      scheduleFakeError();
+    }
+
+    function drawPlayer(x, y) {
+      ctx.fillStyle = '#555';
+      ctx.beginPath();
+      ctx.roundRect(x, y, player.width, player.height, 6);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + 14, y + 6, 4, 4);
+    }
+
+    function drawObstacle() {
+      ctx.fillStyle = '#2ca02c';
+      ctx.beginPath();
+      ctx.roundRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, [8, 8, 0, 0]);
+      ctx.fill();
+      ctx.fillRect(obstacle.x - 4, obstacle.y + 8, 4, 8);
+    }
+
+    function gameLoop() {
+      if (!isGaming) return;
+      if (isPaused) {
+        animationId = requestAnimationFrame(gameLoop);
+        return; // ポップアップ中は描画更新を止める
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      player.dy += gravity;
+      player.y += player.dy;
+
+      // 着地判定
+      if (player.y >= 150) {
+        player.y = 150;
+        player.dy = 0;
+        player.jumpCount = 0; // 着地したらジャンプ回数リセット
+      }
+
+      obstacle.x -= obstacle.speed;
+      if (obstacle.x + obstacle.width < 0) {
+        obstacle.x = canvas.width;
+        score++;
+        obstacle.speed += 0.3; 
+
+        // スコアによるカオス進化
+        if (score === 10) {
+          body.classList.add('invert-mode');
+          gameHint.textContent = "警告：視覚異常が発生しています";
+        }
+        if (score === 20) {
+          canvas.classList.add('shake-mode');
+          gameHint.textContent = "警告：空間の揺らぎを検知しました";
+        }
+      }
+
+      // 当たり判定
+      if (
+        player.x < obstacle.x + obstacle.width &&
+        player.x + player.width > obstacle.x &&
+        player.y < obstacle.y + obstacle.height &&
+        player.y + player.height > obstacle.y
+      ) {
+        isGaming = false;
+        clearTimeout(fakeErrorTimer);
+        ctx.fillStyle = body.classList.contains('invert-mode') ? '#ccc' : '#000';
+        ctx.font = 'bold 24px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over', canvas.width / 2, 80);
+        ctx.font = '14px Noto Sans JP';
+        ctx.fillText('クリックして再挑戦', canvas.width / 2, 110);
+        ctx.textAlign = 'left';
+        return;
+      }
+
+      drawPlayer(player.x, player.y);
+      drawObstacle();
+
+      ctx.fillStyle = body.classList.contains('invert-mode') ? '#ccc' : '#000';
+      ctx.font = 'bold 16px Inter';
+      ctx.fillText('Score: ' + score, 15, 25);
+
+      ctx.beginPath();
+      ctx.moveTo(0, 174);
+      ctx.lineTo(canvas.width, 174);
+      ctx.strokeStyle = '#eaeaea';
+      ctx.stroke();
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    drawStartScreen();
+
+    // --- 逃げる戻るボタン処理 ---
+    const escapeBtn = document.getElementById('escape-btn');
+    let escapeCount = 0;
+    escapeBtn.addEventListener('mouseover', () => {
+      if (escapeCount < 10) {
+        // ランダムな方向に吹き飛ばす
+        const x = (Math.random() * 900) - 150;
+        const y = (Math.random() * 300) - 50;
+        escapeBtn.style.transform = `translate(${x}px, ${y}px)`;
+        escapeCount++;
+      } else {
+        // 3回逃げたら諦めて元の位置に戻る
+        escapeBtn.style.transform = `translate(0px, 0px)`;
+      }
+    });
+
+    // --- 画面崩壊ボタン処理 ---
+    document.getElementById('do-not-push').addEventListener('click', function() {
+      // 押されたボタン自身は消す
+      this.style.display = 'none';
+      isGaming = false;
+      clearTimeout(fakeErrorTimer);
+
+      // コンテンツ内の全要素に落下アニメーションを付与
+      const elements = document.getElementById('content-wrapper').children;
+      Array.from(elements).forEach((el, index) => {
+        // 少しずつ時間差で落とす
+        el.style.animationDelay = `${index * 0.2}s`;
+        el.classList.add('falling');
+      });
+    });
+
+    // --- 偽エラーポップアップ処理 ---
+    const modal = document.getElementById('fake-error-modal');
+    const modalCloseBtn = document.getElementById('fake-error-close');
+
+    function scheduleFakeError() {
+      // 5秒〜15秒の間のランダムなタイミングで発動
+      const randomTime = Math.floor(Math.random() * 10000) + 5000;
+      fakeErrorTimer = setTimeout(() => {
+        if (isGaming && !isPaused) {
+          isPaused = true;
+          modal.classList.add('active');
+        }
+      }, randomTime);
+    }
+
+    modalCloseBtn.addEventListener('click', () => {
+      modal.classList.remove('active');
+      isPaused = false;
+      // 閉じたらまた次のタイマーをセット
+      scheduleFakeError();
+    });
+
+  </script>
+</body>
+</html>

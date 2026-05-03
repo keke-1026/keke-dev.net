@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>自動おみくじ（今日のみ）</title>
+
+<!-- Google Font: Noto Sans JP -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{ color-scheme: light; }
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:#ffffff;
+    color:#000000;
+    font-family: "Noto Sans JP", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:560px;
+    text-align:center;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .wrap.show{ opacity:1; transform:translateY(0); }
+
+  .card{
+    border-radius:12px;
+    padding:28px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    background:#ffffff;
+    border:1px solid rgba(0,0,0,0.06);
+  }
+
+  .emoji{ font-size:56px; margin-bottom:12px; line-height:1; }
+  .title{ font-weight:700; font-size:22px; margin:0 0 8px; }
+  .desc{ font-size:15px; color:#111; margin:0 0 14px; }
+  .note{ font-size:13px; color:#333; margin-bottom:12px; }
+
+  .muted{ color:#444; font-size:13px; }
+
+  button{
+    background:transparent;
+    color:#000;
+    border:1px solid rgba(0,0,0,0.12);
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+  }
+
+  .bounce {
+    animation: bounce .5s ease;
+  }
+  @keyframes bounce {
+    0%{ transform: translateY(0) }
+    40%{ transform: translateY(-10px) scale(1.03) }
+    100%{ transform: translateY(0) }
+  }
+
+  ::selection{ background: rgba(0,0,0,0.05); }
+</style>
+</head>
+<body>
+  <!-- 最初は非表示。自動で抽選して必要なら表示 -->
+  <main id="app" class="wrap" role="main" aria-live="polite" aria-atomic="true" hidden>
+    <div class="card" id="card">
+      <div id="alreadyNote" class="note" style="display:none;"></div>
+      <div id="emoji" class="emoji" aria-hidden="true">🎋</div>
+      <h1 id="title" class="title">---</h1>
+      <p id="desc" class="desc">---</p>
+      <div id="hint" class="muted" style="margin-bottom:12px;">（この結果はローカルに保存され、今日のみ有効です）</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <!-- 開発用の記録削除ボタン（不要なら削除してOK） -->
+        <button id="clearBtn" type="button">今日の記録を削除</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+const fortunes = [
+  { key:'大吉', emoji:'✨', text:'最高の運勢！積極的に動こう。', weight:6 },
+  { key:'中吉', emoji:'🌞', text:'良い流れ。計画を一歩進めてOK。', weight:18 },
+  { key:'小吉', emoji:'🌿', text:'小さな幸運あり。丁寧に行動して。', weight:25 },
+  { key:'末吉', emoji:'🍀', text:'徐々に良くなる兆しあり。焦らず。', weight:28 },
+  { key:'凶',  emoji:'⚠️', text:'注意が必要。無理は禁物。', weight:18 },
+  { key:'大凶', emoji:'🌩️', text:'慎重に。今日は用心深く。', weight:5 }
+];
+
+const STORAGE_KEY = 'auto_omikuji_v1';
+
+function todayString(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function weightedRandom(items){
+  const total = items.reduce((s,i)=>s+i.weight,0);
+  let r = Math.random()*total;
+  for(const it of items){
+    if(r < it.weight) return it;
+    r -= it.weight;
+  }
+  return items[items.length-1];
+}
+
+const app = document.getElementById('app');
+const emojiEl = document.getElementById('emoji');
+const titleEl = document.getElementById('title');
+const descEl  = document.getElementById('desc');
+const alreadyNoteEl = document.getElementById('alreadyNote');
+const clearBtn = document.getElementById('clearBtn');
+
+function loadStored(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){
+    return null;
+  }
+}
+function saveStored(obj){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }catch(e){}
+}
+function clearStored(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+function showResult(resultObj, options = {already:false, animated:true}){
+  if(options.already){
+    alreadyNoteEl.style.display = 'block';
+    alreadyNoteEl.textContent = '※注意：この端末では今日すでにおみくじを引いています。以下は本日保存されている結果です。';
+  }else{
+    alreadyNoteEl.style.display = 'none';
+  }
+
+  emojiEl.textContent = resultObj.emoji;
+  titleEl.textContent = resultObj.key;
+  descEl.textContent = resultObj.text;
+
+  if(options.animated){
+    app.hidden = false;
+    requestAnimationFrame(()=>{ app.classList.add('show'); });
+    emojiEl.classList.remove('bounce');
+    void emojiEl.offsetWidth;
+    emojiEl.classList.add('bounce');
+  }else{
+    app.hidden = false;
+    app.classList.add('show');
+  }
+}
+
+function autoDrawOnLoad(){
+  const stored = loadStored();
+  const today = todayString();
+
+  if(stored && stored.date === today && stored.result){
+    showResult(stored.result, {already:true, animated:true});
+  } else {
+    const delayMs = 700 + Math.floor(Math.random()*300);
+    setTimeout(()=>{
+      const r = weightedRandom(fortunes);
+      const resultObj = { key:r.key, emoji:r.emoji, text:r.text };
+      saveStored({ date: today, result: resultObj });
+      showResult(resultObj, {already:false, animated:true});
+    }, delayMs);
+  }
+}
+
+// clearボタン（テスト用）。不要ならHTMLごと削除してOK。
+clearBtn.addEventListener('click', ()=>{
+  clearStored();
+  app.classList.remove('show');
+  setTimeout(()=>{ app.hidden = true; }, 250);
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  // ページ読み込み時は画面に何も表示せず、自動で抽選 or 保存済みを表示
+  autoDrawOnLoad();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+{
+  "heroTitles": [
+    "ごく一般的な小学生",
+    "AIと半分半分で活動中",
+    "圧倒的寝不足エンジニア" ,
+    "学校開門10分前に起きる人",
+    "紙1枚印刷=100円の世界で生きてる人",
+    "テストで算数100点連発してる人",
+    "国語は大の苦手な人",
+    "niconicoで動画投稿してる人",
+    "Webサイト作るのが好きな人",
+    "PCをいじるのが好きな人",
+    "実はmaimaiをやっている人",
+    "友達とGoogleドキュメントで会話する人",
+    "GCPがややこしすぎてわからない人",
+    "Firebaseも課金の海に飲み込まれそうな人",
+    "プロセカが好きな人",
+    "S◯GAで働きたい人",
+    "ニコニコ運営になりたい人",
+    "とにかくいろんなことに興味がある人",
+    "かきのたねは最高です",
+    "毎日大体1時に寝てます",
+    "毎日大体8時に起きてます",
+    "宿題はやる気が出たときにやります",
+    "スクエアくんかわいいですよね(?)",
+    "keke-dev.netを見てるみなさーん!!こんにちは～初音ミクでーす!!",
+    "こんにちは！keke-dev.netへようこそ！",
+    "ガチャガチャには写真が入ってるかも?",
+    "Ver.Comeback",
+    "このWebのコードはGithubに公開してるかも?",
+    "らんらんる～☆",
+    "5秒以内に､このサイトのどこかに隠れているスクエアくんを見つけられたらいいことがあるかも?",
+    "AIチャットがすごい流行ってるらしいね",
+    "100円玉100枚もらった!",
+    "ねむい｡(by 深夜2:00)",
+    "7×7×7=343",
+    "このサイトを維持するのに毎年2000円かかります",
+    "ボカロっていいよねぇ",
+    "まじでサイト作るのおもろいから無限にできる",
+    "ここに入れてほしい内容募集中",
+    "Re:MASTERだよぉー☆ReGLOSSじゃないよー☆",
+    "このサイトはHTML、CSS、JavaScriptで作られているよ",
+    "データの保存にはFirebaseを使っているよ",
+    "このサイトはスマホでも見やすいようにレスポンシブデザインになっているよ",
+    "カステラは美味しいからみんな食べてね",
+    "NHKをぶっ壊す☆(?)",
+    "東大医学部アタマワルイ!!",
+    "案がいっぱい出てきて大変､､",
+    "このサイトを見てくれてありがとう!!これからもよろしくね!!",
+    "このサイトはまだまだ発展途上だから、みんなの意見をどんどん聞かせてね!!",
+    "ﾁｮﾜﾖー☆",
+    "年度が変わるとverも変わるよ!(いまは､「Comeback」だよ!)"
+  ],
+  "about": {
+    "image": "about.png",
+    "text": "普通のごく一般的な小学生です｡AIと半分半分で活動しています｡このサイトは僕の個人ドメインで､なんかてきと～にやってます｡Ver.は年度ごとに変わります｡現在は「Comeback」だよ!",
+    "skills": ["HTML / CSS", "JavaScript", "Firebase", "PC"]
+  },
+  "works": [
+    {
+      "title": "flightradar24modoki",
+      "description": "flightradarでは公開されない､スコーク(緊急事態)を出している機体を､Openskyから取得して表示させるサイトです｡",
+      "image": "work1.png",
+      "link": "to-project.html?data=projects/flightradar24modoki.html"
+    },
+    {
+      "title": "space",
+      "description": "宇宙みたいな空間で遊べるよ 授業中の暇つぶしにいいかもね",
+      "image": "work2.png",
+      "link": "to-project.html?data=projects/space.html"
+    }
+  ],
+  "qa": [
+    {
+      "question": "どのような技術が得意ですか？",
+      "answer": "HTML、CSS、JavaScriptを使用したフロントエンド開発が得意です。Firebaseを組み合わせたデータ保存なども得意かもしれない"
+    },
+    {
+      "question": "お金ってもらってるんですか?",
+      "answer": "おかあさんからの案件(お手伝い)がやばいので紙1枚印刷=100円の世界で生きています｡あとはWeb作って1万とか?"
+    },
+    {
+      "question": "将来の夢は何ですか？",
+      "answer": "S◯GAで働くことです｡あとはニコニコ運営になってみたいのもあるなぁ､､"
+    },
+    {
+      "question": "好きな曲はなんですか?",
+      "answer": "ボカロ全般大体好きです｡でも特にバゥムクゥヘン・エンドロゥルとか好きですね｡"
+    }
+  ],
+  "quiz": [
+    {
+      "id": 1,
+      "question": "Q1. 私の得意な言語は？",
+      "description": "次のうち、フロントエンド開発でよく使う言語はどれでしょう。",
+      "options": [
+        { "text": "1. アセンブリ", "isCorrect": false },
+        { "text": "2. JavaScript", "isCorrect": true },
+        { "text": "3. Python", "isCorrect": false }
+      ],
+      "correctMessage": "正解です！JavaScriptをメインに使用して開発しています。",
+      "incorrectMessage": "残念、不正解です。Webフロントエンド開発では主にJavaScriptを使っているよ!アセンブリは無理だよ!!"
+    },
+    {
+      "id": 2,
+      "question": "Q2. 私が好きな授業は?",
+      "description": "次のうち､テストで100点を連発している授業はどれでしょう｡",
+      "options": [
+        { "text": "1. 理科", "isCorrect": false },
+        { "text": "2. 国語", "isCorrect": false },
+        { "text": "3. 算数", "isCorrect": true }
+      ],
+      "correctMessage": "正解です！算数で7割は自分の中で死亡宣告です｡",
+      "incorrectMessage": "残念、不正解です。算数が一番得意です｡国語は大の苦手でだいたいいつも合計点で見て200点満点中140ぐらいしか取れません､､"
+    },
+    {
+      "id": 3,
+      "question": "Q3. 私の欲しいものは?",
+      "description": "次のうち､欲しいものはどれでしょう｡",
+      "options": [
+        { "text": "1. GooglePixel(ピクルス)", "isCorrect": true },
+        { "text": "2. MetaQuest3s", "isCorrect": true },
+        { "text": "3. iPad Pro", "isCorrect": true }
+      ],
+      "correctMessage": "正解です！そりゃあ全部欲しいよね!!",
+      "incorrectMessage": "残念、不正解です。コード上この文章は出ないはずですが､妙ですねぇ､､"
+    },
+    {
+      "id": 4,
+      "question": "Q4. 私は何派?",
+      "description": "次のうち､kekeの好きなサービスはどれでしょう｡",
+      "options": [
+        { "text": "1. YouTube", "isCorrect": true },
+        { "text": "2. TikTok", "isCorrect": false },
+        { "text": "3. ニコニコ動画", "isCorrect": true }
+      ],
+      "correctMessage": "正解です！YouTubeとニコニコ動画をよく見ています!!ニコ厨になりそうです!!",
+      "incorrectMessage": "残念、不正解です。TikTokなんかもう前に保存した動画しか見てません､､"
+    }
+  ],
+  "social": [
+    {
+      "platform": "niconico",
+      "url": "https://www.nicovideo.jp/user/134010263"
+    },
+    {
+      "platform": "youtube",
+      "url": "https://www.youtube.com/@けーけー.keke1026"
+    },
+    {
+      "platform": "tiktok",
+      "url": "https://www.tiktok.com/@keikei1026"
+    },
+    {
+      "platform": "x",
+      "url": "https://x.com/keke_1026"
+    }
+  ],
+  "relatedLinks": [
+    {
+      "title": "作品集",
+      "url": "to-project.html"
+    },
+    {
+      "title": "アップデートログ",
+      "url": "to-update.html"
+    }
+  ]
+}
