@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利用規約</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .kiyaku-box {
+            height: 300px; overflow-y: scroll; border: 1px solid #ddd;
+            padding: 15px; margin: 20px 0; text-align: left; font-size: 0.9rem;
+            background: #fafafa; border-radius: 4px; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <header>利用規約</header>
+    <main>
+        <div class="card">
+            <h2>サービス利用規約</h2>
+            <p style="font-size:0.8rem; color:#666;">ご利用前に必ずお読みください</p>
+            
+<div class="kiyaku-box">
+    <h3>利用規約</h3>
+    <p>この利用規約（以下「本規約」）は、Web Download Service（以下「本サービス」）の利用条件を定めるものです。本サービスを利用するすべてのユーザー（閲覧者および投稿者）は、本規約に同意したものとみなします。</p>
+
+    <h4>第1条（サービス内容）</h4>
+    <p>本サービスは、ユーザーが画像をアップロードし、共有コード（ID）を用いて他のユーザーがその画像を閲覧・保存できるプラットフォームです。</p>
+
+    <h4>第2条（禁止事項・アップロード禁止コンテンツ）</h4>
+    <p>ユーザーは、本サービスを利用して、以下のいずれかに該当する画像（コンテンツ）をアップロードしてはなりません。</p>
+    <ul>
+        <li><strong>法令違反・犯罪行為</strong><br>
+        児童ポルノ、児童虐待にあたる画像（イラスト含む）、犯罪を助長する画像、その他日本の法令に違反する画像。</li>
+        <li><strong>他者の権利侵害</strong><br>
+        アニメ・マンガ・ゲーム・テレビ番組等の画像、芸能人の写真、他者が作成したイラストの無断転載など、著作権や肖像権を侵害する画像。</li>
+        <li><strong>アダルト・暴力的表現</strong><br>
+        わいせつな画像、性的な画像（R-18）、過度に暴力的・残虐な画像（グロテスクな表現）、自殺や自傷行為を誘引する画像。</li>
+        <li><strong>迷惑行為・その他</strong><br>
+        個人情報（住所、氏名、電話番号等）が含まれる画像、特定の個人や団体を誹謗中傷する画像、ウイルスの拡散を目的としたファイル。</li>
+    </ul>
+    <p>運営者は、これらの禁止事項に違反するコンテンツを発見した場合、<strong>予告なく削除し、当該ユーザーの利用を永久に停止（BAN）</strong>する権利を有します。</p>
+
+    <h4>第3条（免責事項）</h4>
+    <p>1. <strong>画像の管理責任</strong><br>
+    本サービスにアップロードされた画像の著作権は投稿者に帰属します。運営者は、ユーザーが投稿した画像の内容について一切の責任を負いません。</p>
+    <p>2. <strong>トラブルの解決</strong><br>
+    ユーザー間（投稿者とダウンロード者など）または第三者との間で生じたトラブル（著作権侵害の訴え等）について、運営者は一切関与せず、責任を負いません。</p>
+    <p>3. <strong>データの消失</strong><br>
+    本サービスは個人によって運営されています。システム障害、外部クラウドサービスの仕様変更、または運営者の都合により、予告なくデータが削除されたり、サービスが停止・終了したりする場合があります。これにより生じた損害について、運営者は責任を負いません。</p>
+
+    <h4>第4条（サービスの変更・終了）</h4>
+    <p>運営者は、ユーザーに通知することなく、本サービスの内容を変更し、または本サービスの提供を中止・終了することができるものとします。</p>
+
+    <h4>第5条（個人情報の扱い）</h4>
+    <p>本サービスは、Googleアカウント認証を利用しますが、ユーザーのパスワード等の機密情報を運営者が取得することはありません。取得したユーザー情報（表示名、アイコン等）は、本サービスの提供目的以外には利用しません。</p>
+
+    <p style="text-align:right; margin-top:20px; font-size:0.8rem; color:#999;">
+        制定日：2026年1月11日
+    </p>
+</div>
+
+            <div style="display: flex; gap: 10px;">
+                <a href="index.html" class="menu-btn" style="background:#f0f0f0; color:#666; border-color:#ccc; text-align:center;">
+                    同意しない
+                </a>
+                
+                <button id="agree-btn" class="menu-btn primary">
+                    同意して進む
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('agree-btn').addEventListener('click', () => {
+            // ローカルストレージに「同意済み」を保存
+            localStorage.setItem('agreed_terms', 'true');
+            
+            // ホームへ移動
+            window.location.href = 'home.html';
+        });
+    </script>
+</body>
+</html>

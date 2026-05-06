@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ようこそ</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body.splash {
+            background-color: #ffffff;
+            color: #0067c0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            cursor: pointer;
+            user-select: none;
+        }
+        .splash-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+        .splash-start {
+            font-size: 2rem;
+            font-weight: bold;
+            border: 2px solid #0067c0;
+            padding: 10px 40px;
+            border-radius: 50px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 103, 192, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 103, 192, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 103, 192, 0); }
+        }
+    </style>
+</head>
+<body class="splash" id="start-screen">
+
+    <div class="splash-title">ウェブプリント</div>
+    <div class="splash-start">スタート</div>
+
+    <p style="position:fixed; bottom:20px; font-size:0.8rem; color:#999;">
+        画面をタッチしてください
+    </p>
+
+    <script>
+        document.getElementById('start-screen').addEventListener('click', () => {
+            // ローカルストレージを確認
+            const hasAgreed = localStorage.getItem('agreed_terms');
+
+            if (hasAgreed === 'true') {
+                // 同意済みなら直接ホームへ
+                window.location.href = 'home.html';
+            } else {
+                // まだなら利用規約へ
+                window.location.href = 'terms.html';
+            }
+        });
+    </script>
+</body>
+</html>

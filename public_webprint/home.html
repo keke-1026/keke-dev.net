@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webダウンロードサービス</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header style="display:flex; align-items:center; justify-content:center; gap:10px;">
+    Webダウンロードサービス
+    <span style="background:#ff9800; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; vertical-align:middle;">BETA</span>
+</header>
+    
+    <main>
+        <div class="card hero-section">
+            <h2>コンテンツをダウンロード</h2>
+            <p class="hero-text">クリエイターが発行した「コンテンツ番号」を入力して<br>デジタル画像がダウンロードできます</p>
+            
+            <div class="input-group">
+                <input type="text" id="user-code" placeholder="IDを入力してください" maxlength="10" oninput="this.value = this.value.toUpperCase()">
+                <button id="search-btn" class="menu-btn primary">ダウンロード画面へ</button>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: right;">
+                <a href="mypage.html" style="font-size: 0.8rem; color: #aaa; text-decoration: none;">クリエイターの方はこちら &gt;</a>
+            </div>
+        </div>
+
+        <div class="steps-container">
+            <h3>使い方</h3>
+            <div class="steps">
+                <div class="step-item">
+                    <span class="step-num">1</span>
+                    <p>IDを入手</p>
+                </div>
+                <div class="step-arrow">▶</div>
+                <div class="step-item">
+                    <span class="step-num">2</span>
+                    <p>入力して検索</p>
+                </div>
+                <div class="step-arrow">▶</div>
+                <div class="step-item">
+                    <span class="step-num">3</span>
+                    <p>端末に保存</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 Web Download Service
+    </footer>
+
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div id="modal-title" class="modal-title">タイトル</div>
+            <div id="modal-msg" class="modal-message">メッセージ</div>
+            <button id="modal-close" class="modal-btn">閉じる</button>
+        </div>
+    </div>
+
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "print.keke-dev.net",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- モーダル制御 ---
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-msg');
+        const modalCloseBtn = document.getElementById('modal-close');
+
+        function showPopup(title, message, isError = false) {
+            modalTitle.textContent = title;
+            // 改行コードを <br> に変換して表示
+            modalMsg.innerHTML = message.replace(/\n/g, '<br>');
+            
+            if (isError) {
+                modalTitle.style.color = "#d9534f";
+                modalCloseBtn.classList.add('error');
+            } else {
+                modalTitle.style.color = "#333";
+                modalCloseBtn.classList.remove('error');
+            }
+            modal.classList.add('active');
+        }
+
+        modalCloseBtn.addEventListener('click', () => modal.classList.remove('active'));
+        // 背景クリックでも閉じる
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+
+        // --- 検索処理 ---
+        const searchBtn = document.getElementById('search-btn');
+        const userCodeInput = document.getElementById('user-code');
+
+        async function searchFunction() {
+            const code = userCodeInput.value.trim(); // 空白削除
+            if(!code) {
+                showPopup("入力エラー", "番号が入力されていません。\n正しい番号を入力してください。", true);
+                return;
+            }
+
+            searchBtn.textContent = "検索中...";
+            searchBtn.disabled = true;
+
+            try {
+                // FirestoreからIDを検索
+                const docRef = doc(db, "contents", code);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+
+                    // ★ここが重要：非公開（停止中）なら弾く
+                    if (data.isPublic === false) {
+                        showPopup("利用できません", "このコンテンツは投稿者により\n公開停止されています。", true);
+                        return;
+                    }
+
+                    // データがあって、公開中なら移動
+                    window.location.href = `result.html?id=${code}`;
+                } else {
+                    showPopup("見つかりません", "入力された番号に該当するコンテンツは\nありませんでした。\n番号を確認してください。", true);
+                }
+            } catch (e) {
+                console.error(e);
+                showPopup("通信エラー", "データの取得に失敗しました。", true);
+            } finally {
+                searchBtn.textContent = "ダウンロード画面へ";
+                searchBtn.disabled = false;
+            }
+        }
+
+        // ボタンクリックとエンターキーで実行
+        searchBtn.addEventListener('click', searchFunction);
+        userCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchFunction();
+        });
+    </script>
+</body>
+</html>

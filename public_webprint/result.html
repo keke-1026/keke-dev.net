@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダウンロードプレビュー</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+
+        /* エラー時の表示用エリア */
+        .error-box {
+            background: #fff0f0; border: 1px solid #ffcdd2; color: #c62828;
+            padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: bold;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 詳細（備考）エリア */
+        .desc-box {
+            background: #f9f9f9; border-radius: 8px; padding: 15px;
+            margin: 15px 0; text-align: left; font-size: 0.9rem; color: #555;
+            white-space: pre-wrap; /* 改行を反映 */
+            line-height: 1.6;
+        }
+
+        /* ステータスバッジ */
+        .status-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 20px;
+            font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;
+        }
+        .status-badge.expire { background: #ffebee; color: #c62828; }
+        .status-badge.limit { background: #fff8e1; color: #f57f17; }
+        
+        .preview-img {
+            max-width: 100%; border-radius: 8px; margin: 15px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: none; /* 初期状態は非表示 */
+        }
+    </style>
+</head>
+<body>
+    <header>ダウンロード</header>
+    <main>
+        <div class="card">
+            <h2 id="print-title" style="margin-bottom:5px;">読み込み中...</h2>
+            <p id="creator-name" style="color:#0067c0; font-weight:bold; margin-bottom:15px; font-size:0.9rem;"></p>
+            
+            <div id="status-area"></div>
+
+            <img id="print-img" src="" alt="Content" class="preview-img">
+            
+            <div id="desc-area" class="desc-box" style="display:none;"></div>
+            
+            <a id="download-btn" href="#" class="menu-btn primary" style="display:none;">
+                この画像を保存する
+            </a>
+            
+            <div id="error-msg" class="error-box" style="display:none;"></div>
+
+            <p id="print-date" style="color:#999; font-size:0.8rem; margin-top:20px;"></p>
+            
+            <a href="home.html" class="back-link">トップへ戻る</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, runTransaction, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "print.keke-dev.net",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+
+        const titleEl = document.getElementById('print-title');
+        const creatorEl = document.getElementById('creator-name');
+        const dateEl = document.getElementById('print-date');
+        const imgEl = document.getElementById('print-img');
+        const dlBtn = document.getElementById('download-btn');
+        const descArea = document.getElementById('desc-area');
+        const errorMsg = document.getElementById('error-msg');
+        const statusArea = document.getElementById('status-area');
+
+        // コンテンツ読み込み
+        async function loadContent() {
+            if (!id) { showError("IDが指定されていません"); return; }
+
+            try {
+                const docRef = doc(db, "contents", id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+
+                    // 1. 簡易チェック (画面表示時)
+                    if (data.isPublic === false) {
+                        showError("このコンテンツは現在非公開です。");
+                        titleEl.textContent = "非公開コンテンツ";
+                        return;
+                    }
+                    const now = new Date();
+                    if (data.expireAt && now > data.expireAt.toDate()) {
+                        showError("有効期限が切れています。");
+                        titleEl.textContent = data.title;
+                        return;
+                    }
+                    if (data.dlLimit && (data.dlCount || 0) >= data.dlLimit) {
+                        showError("配布予定数に達しました。");
+                        titleEl.textContent = data.title;
+                        return;
+                    }
+
+                    // --- 表示 ---
+                    titleEl.textContent = data.title;
+                    creatorEl.textContent = data.creatorName ? `${data.creatorName} さんの作品` : "クリエイターの作品";
+                    dateEl.textContent = `登録日: ${data.createdAt ? data.createdAt.toDate().toLocaleDateString() : "---"}`;
+                    
+                    if (data.description) {
+                        descArea.textContent = data.description;
+                        descArea.style.display = 'block';
+                    }
+
+                    imgEl.src = data.url;
+                    imgEl.style.display = 'block';
+                    dlBtn.style.display = 'inline-block';
+
+                    // ボタンに機能をセット
+                    setupSecureDownload(data.url, id, docRef);
+
+                } else {
+                    showError("データが見つかりません。");
+                }
+            } catch (e) {
+                console.error(e);
+                showError("読み込みエラーが発生しました。");
+            }
+        }
+
+        // トランザクションを使った安全なダウンロード処理
+        function setupSecureDownload(url, fileId, docRef) {
+            dlBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                const originalText = dlBtn.textContent;
+                dlBtn.textContent = "確認中...";
+                dlBtn.style.pointerEvents = "none"; // 連打防止
+
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        // 1. 最新データを取得
+                        const sfDoc = await transaction.get(docRef);
+                        if (!sfDoc.exists()) { throw "Document does not exist!"; }
+
+                        const data = sfDoc.data();
+                        const newCount = (data.dlCount || 0) + 1;
+
+                        // 2. 上限チェック (タッチの差で負けた場合)
+                        if (data.dlLimit && newCount > data.dlLimit) {
+                            throw "Limit Reached"; 
+                        }
+                        // 3. 期限チェック
+                        const now = new Date();
+                        if (data.expireAt && now > data.expireAt.toDate()) {
+                            throw "Expired";
+                        }
+
+                        // 4. カウントアップ
+                        transaction.update(docRef, { dlCount: newCount });
+                    });
+
+                    // --- 成功時 ---
+                    dlBtn.textContent = "保存中...";
+
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    
+                    const tempLink = document.createElement('a');
+                    tempLink.href = blobUrl;
+                    tempLink.download = `content_${fileId}.jpg`;
+                    document.body.appendChild(tempLink);
+                    tempLink.click();
+                    document.body.removeChild(tempLink);
+                    
+                    window.URL.revokeObjectURL(blobUrl);
+                    dlBtn.textContent = "保存完了！";
+                    
+                    setTimeout(() => {
+                        dlBtn.textContent = originalText;
+                        dlBtn.style.pointerEvents = "auto";
+                    }, 2000);
+
+                } catch (err) {
+                    // --- 失敗時 (エラーメッセージを表示) ---
+                    console.error("Transaction failed: ", err);
+                    
+                    if (err === "Limit Reached") {
+                        showError("配布予定数に達しました。");
+                    } else if (err === "Expired") {
+                        showError("有効期限が切れました。");
+                    } else {
+                        showError("エラーが発生しました: " + err);
+                    }
+                }
+            });
+        }
+
+        // エラー表示関数
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.innerHTML = msg.replace(/\n/g, '<br>'); // 改行対応
+            errorMsg.style.display = 'block';
+            
+            // エラー時はボタンと画像を隠す
+            dlBtn.style.display = 'none';
+            imgEl.style.display = 'none';
+        }
+
+        loadContent();
+    </script>
+</body>
+</html>
