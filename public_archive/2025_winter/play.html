@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お絵かき伝言ゲーム | お茶摘み2026ver. | 元from 2025年度お楽しみ会-冬(ほぼ春)-</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 紙吹雪アニメーション用のライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- 画像保存(ダウンロード)用のライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* CSS読み込み前の一瞬のチラつき(FOUC)を防止 */
+    body {
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    body.ready {
+      opacity: 1;
+    }
+    
+    /* キャンバス描画中のスクロールを防止 */
+    canvas { touch-action: none; }
+    /* フェードインアニメーション */
+    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-gray-800 font-sans min-h-screen selection:bg-blue-100 relative flex flex-col" id="main-body">
+  <div id="app-container" class="w-full relative flex-grow flex flex-col">
+    <div id="announcement-container" class="w-full shrink-0"></div>
+    <!-- iPad向けに中央寄せ (my-auto と min-h-[80vh] などで調整) -->
+    <div id="app" class="w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col justify-center flex-grow min-h-[85vh]">
+      <div class="text-center text-xl text-gray-500 animate-pulse flex flex-col items-center justify-center my-auto">
+        <svg class="w-10 h-10 mb-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        読み込み中...
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, addDoc, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Firebase Initialization ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const AppId = 'keke-dev'; 
+    const globalStateRef = doc(db, 'artifacts', AppId, 'public', 'data', 'global_state', 'main');
+    const teamsCollRef = collection(db, 'artifacts', AppId, 'public', 'data', 'teams');
+
+    // --- App State ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('admin') === 'true';
+    const roomId = urlParams.get('room');
+    
+    let user = null;
+    let globalState = null;
+    let allTeams = [];
+    let myTeamData = null;
+    let myName = null;
+
+    let currentTimer = null;
+    let previewInterval = null;
+    let currentActionState = null; 
+    let memoryPhase = null; // 記憶モード用のフェーズ管理 (true: 記憶中, false: 描画中)
+    let isDrawing = false;
+    let ctx = null;
+    let canvasEl = null;
+    let drawingHistory = [];
+    let hasFiredConfetti = false;
+    let isBodyVisible = false; // FOUC対策フラグ
+    let allTeamsUnsubscribe = null;
+
+    const appDiv = document.getElementById('app');
+
+    // ★チカチカ防止: HTML文字列が変更された場合のみDOMを更新する
+    let currentAppHTML = "";
+    function updateAppHTML(html) {
+      if (currentAppHTML !== html) {
+        appDiv.innerHTML = html;
+        currentAppHTML = html;
+      }
+    }
+
+    async function loadExternalData() {
+      try {
+        const themeRes = await fetch('theme.json');
+        if (themeRes.ok) themeList = await themeRes.json();
+      } catch(e) { console.warn('theme.json load failed', e); }
+    }
+    let themeList = ["りんご"];
+
+    // --- Authentication ---
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (e) {
+        console.error("Auth error", e);
+        updateAppHTML(`<div class="p-4 text-red-500 bg-red-50 rounded-lg border border-red-200">認証エラーが発生しました。</div>`);
+        showBody();
+      }
+    };
+
+    onAuthStateChanged(auth, (u) => {
+      if (u) {
+        user = u;
+        setupListeners();
+      }
+    });
+
+    // 画面を表示する関数
+    function showBody() {
+      if (!isBodyVisible) {
+        document.getElementById('main-body').classList.add('ready');
+        isBodyVisible = true;
+      }
+    }
+
+    // --- Firestore Listeners ---
+    function setupListeners() {
+      onSnapshot(globalStateRef, (docSnap) => {
+        if (!docSnap.exists() && isAdmin) {
+          setDoc(globalStateRef, { 
+            status: 'waiting', 
+            announcement: "", 
+            settings: { drawTime: 30, textTime: 20, memoryTime: 5, mode: 'normal', showResultsToPlayers: true },
+            themes: ["りんご", "ゴリラ", "パンダ", "タイムマシン", "自転車", "宇宙人"] 
+          });
+        } else if (docSnap.exists()) {
+          globalState = docSnap.data();
+          
+          if (!isAdmin) {
+             if (globalState.status === 'results' && globalState.settings?.showResultsToPlayers !== false) {
+                 if (!allTeamsUnsubscribe) {
+                     allTeamsUnsubscribe = onSnapshot(teamsCollRef, (snapshot) => {
+                         allTeams = [];
+                         snapshot.forEach(doc => {
+                             allTeams.push({ id: doc.id, ...doc.data() });
+                         });
+                         allTeams.sort((a, b) => a.name.localeCompare(b.name));
+                         renderApp();
+                     }, (err) => console.error(err));
+                 }
+             } else {
+                 if (allTeamsUnsubscribe) {
+                     allTeamsUnsubscribe();
+                     allTeamsUnsubscribe = null;
+                 }
+                 if (myTeamData) {
+                     allTeams = [myTeamData];
+                 }
+             }
+          }
+
+          renderApp();
+        }
+      }, (err) => console.error(err));
+
+      if (isAdmin) {
+        onSnapshot(teamsCollRef, (snapshot) => {
+          allTeams = [];
+          snapshot.forEach(doc => {
+            allTeams.push({ id: doc.id, ...doc.data() });
+          });
+          allTeams.sort((a, b) => a.name.localeCompare(b.name));
+          renderApp();
+        }, (err) => console.error(err));
+      } else if (roomId) {
+        onSnapshot(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', roomId), (docSnap) => {
+          if (docSnap.exists()) {
+            myTeamData = { id: docSnap.id, ...docSnap.data() };
+            if (!(globalState && globalState.status === 'results' && globalState.settings?.showResultsToPlayers !== false)) {
+                allTeams = [myTeamData]; 
+            }
+            renderApp();
+          } else {
+            updateAppHTML(`<div class="p-8 text-center text-red-500 bg-white rounded-xl shadow border border-red-100 my-auto fade-in">指定された班が見つかりません。</div>`);
+            showBody();
+          }
+        }, (err) => console.error(err));
+      }
+    }
+
+    // --- UI Update ---
+    function updateAnnouncementDOM() {
+      const annContainer = document.getElementById('announcement-container');
+      if (!annContainer) return;
+      if (globalState && globalState.announcement) {
+        annContainer.innerHTML = `
+          <div class="bg-blue-600 text-white px-4 py-3 text-center font-bold sticky top-0 z-50 shadow-md flex justify-center items-center break-words">
+            <svg class="w-5 h-5 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+            <span>${globalState.announcement}</span>
+          </div>
+        `;
+      } else {
+        annContainer.innerHTML = '';
+      }
+    }
+
+    // --- Render Logic Router ---
+    function renderApp() {
+      if (!globalState) return;
+      showBody(); // データが取得できたら画面を表示する
+
+      updateAnnouncementDOM();
+
+      if (globalState.status !== 'results') {
+        hasFiredConfetti = false;
+      } else if (globalState.status === 'results' && !hasFiredConfetti) {
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+        hasFiredConfetti = true;
+      }
+
+      if (isAdmin) {
+        renderAdmin();
+      } else {
+        if (!roomId) {
+          updateAppHTML(`<div class="p-8 text-center text-red-500 font-bold bg-white rounded-xl shadow border border-red-100 my-auto fade-in">エラー: URLに ?room=班のID が指定されていません。</div>`);
+          return;
+        }
+        if (!myName) {
+          renderPlayerLogin();
+        } else {
+          renderPlayerView();
+        }
+      }
+    }
+
+    // --- Player Views ---
+    window.selectName = async (name) => {
+      myName = name;
+      renderApp();
+      if (myTeamData) {
+        const teamRef = doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id);
+        await updateDoc(teamRef, { readyPlayers: arrayUnion(name) }).catch(e => console.warn(e));
+      }
+    };
+
+    window.reselectName = async () => {
+      if (myTeamData && myName) {
+        const teamRef = doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id);
+        await updateDoc(teamRef, { readyPlayers: arrayRemove(myName) }).catch(e => console.warn(e));
+      }
+      myName = null;
+      renderApp();
+    };
+
+    function renderPlayerLogin() {
+      if (!myTeamData) return;
+      let html = `
+        <div class="fade-in w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 my-auto text-center">
+          <h2 class="text-3xl font-black mb-6 text-gray-800 tracking-tight">${myTeamData.name}</h2>
+          <p class="mb-6 text-gray-500 font-bold">あなたの名前を選択してください</p>
+          <div class="flex flex-col space-y-4">
+      `;
+      if (myTeamData.players.length === 0) {
+         html += `<p class="text-gray-400 p-6 bg-slate-50 rounded-xl border border-dashed border-gray-200">2班がプレイヤーを追加するのをお待ちください...</p>`;
+      } else {
+         myTeamData.players.forEach(p => {
+           html += `<button onclick="selectName('${p}')" class="px-6 py-4 bg-white hover:bg-blue-50 border-2 border-gray-100 hover:border-blue-200 rounded-xl font-bold text-lg text-gray-700 hover:text-blue-700 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md">${p}</button>`;
+         });
+      }
+      html += `</div></div>`;
+      updateAppHTML(html);
+    }
+
+    function renderPlayerWaiting() {
+      const html = `
+        <div class="fade-in w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 my-auto text-center">
+          <h2 class="text-2xl font-black mb-4 text-gray-800">${myTeamData.name}</h2>
+          <p class="text-lg mb-8 text-gray-600">名前: <span class="font-bold border-b-2 border-blue-200 pb-1 text-gray-800">${myName}</span></p>
+          <div class="p-8 bg-slate-50 rounded-xl text-gray-500 font-bold flex flex-col items-center justify-center border border-gray-100">
+            <svg class="w-8 h-8 mb-3 text-gray-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            2班がゲームを開始するのを<br>お待ちください...
+          </div>
+          <div class="mt-6">
+            <button onclick="reselectName()" class="px-5 py-2 bg-white text-gray-500 border border-gray-200 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm">名前を選び直す</button>
+          </div>
+        </div>
+      `;
+      updateAppHTML(html);
+
+      // リロード時等のためのフェイルセーフでここでも記録
+      if (myTeamData && myName) {
+        const teamRef = doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id);
+        updateDoc(teamRef, { readyPlayers: arrayUnion(myName) }).catch(e => console.warn(e));
+      }
+    }
+
+    function renderPlayerView() {
+      if (globalState.status === 'results') {
+         resetActionState();
+         
+         const isAllTeams = globalState.settings?.showResultsToPlayers !== false;
+         const headerText = isAllTeams ? "全班の結果が出てるよ!" : "自分たちの班の結果が出てるよ!";
+         
+         const html = `
+           <div class="fade-in w-full max-w-5xl mx-auto my-auto flex flex-col items-center">
+             <div class="mb-8 p-6 bg-white rounded-2xl shadow-sm text-center border border-gray-200 w-full max-w-md">
+               <h2 class="text-3xl font-black text-gray-800 mb-2">結果発表！</h2>
+               <p class="text-gray-500 font-bold text-sm">${headerText}</p>
+             </div>
+             <div class="w-full">
+               ${buildResultsHTML()}
+             </div>
+           </div>
+         `;
+         updateAppHTML(html);
+         applyRevealState();
+         return;
+      }
+      if (globalState.status === 'waiting') {
+         resetActionState();
+         renderPlayerWaiting();
+         return;
+      }
+      if (globalState.status === 'playing' || globalState.status === 'checking') {
+         if (myTeamData.status === 'finished') {
+           resetActionState();
+           updateAppHTML(`
+             <div class="fade-in w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-sm my-auto text-center border border-gray-100">
+               <div class="flex justify-center mb-4">
+                 <svg class="w-12 h-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                 </svg>
+               </div>
+               <div class="text-xl font-bold text-gray-800 mb-2">あなたの班は全員回答or絵描きが終了しました!</div>
+               <span class="text-sm font-bold text-gray-500 block">結果発表をお待ちください...</span>
+             </div>`);
+           return;
+         }
+
+         const myIndex = myTeamData.players.indexOf(myName);
+         if (myTeamData.currentTurn === myIndex) {
+            // フェーズとインデックスを組み合わせたキーで再描画を制御
+            const stateKey = `${myIndex}-${memoryPhase}`;
+            if (currentActionState === stateKey) return; 
+            currentActionState = stateKey;
+            renderActionView(myIndex);
+         } else {
+            resetActionState();
+            const currentActor = myTeamData.players[myTeamData.currentTurn] || "誰か";
+            const totalPlayers = myTeamData.players.length;
+            const currentTurn = myTeamData.currentTurn;
+            let percent = (currentTurn / totalPlayers) * 100;
+            let message = "";
+            if (myIndex < currentTurn) {
+              message = "あなたの番は終了しました！他の人の回答を待っています。";
+            } else {
+              const waitCount = myIndex - currentTurn;
+              message = `あと <span class="text-xl font-black text-red-500 mx-1">${waitCount}</span> 人であなたの番です！`;
+            }
+
+            // 何をしているか表示のロジック
+            const mode = globalState.settings?.mode || 'normal';
+            let isDrawingTask = mode === 'memory' ? true : (currentTurn % 2 === 0);
+            if (mode === 'memory' && currentTurn === totalPlayers - 1) {
+              isDrawingTask = false; // 記憶モードでも最後の人は文字
+            }
+            const taskText = isDrawingTask 
+              ? `<svg class="w-6 h-6 inline mr-1 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>絵を描いています` 
+              : `<svg class="w-6 h-6 inline mr-1 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>文字で答えています`;
+
+            updateAppHTML(`
+              <div class="fade-in w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-sm my-auto text-center border border-gray-100">
+                <div class="flex justify-center mb-4">
+                  <svg class="w-10 h-10 text-yellow-500 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="animation: spin 3s linear infinite;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <h2 class="text-2xl font-black text-gray-800 mb-2">待機中</h2>
+                <p class="text-gray-600 font-bold mb-6 leading-relaxed">現在、<span class="text-blue-600 underline decoration-2 underline-offset-4">${currentActor}</span> さんが<br><span class="text-xl text-gray-800 flex items-center justify-center mt-2">${taskText}</span></p>
+                
+                <div class="mt-6 text-center bg-slate-50 p-4 rounded-xl border border-gray-100">
+                  <p class="text-sm font-bold text-gray-600 mb-3">${message}</p>
+                  <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div class="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: ${percent}%"></div>
+                  </div>
+                  <div class="text-xs text-gray-400 font-bold mt-2 text-right">進行度: ${currentTurn} / ${totalPlayers}</div>
+                </div>
+              </div>`);
+         }
+      }
+    }
+
+    function resetActionState() {
+       currentActionState = null;
+       memoryPhase = null;
+       if(currentTimer) { clearInterval(currentTimer); currentTimer = null; }
+       if(previewInterval) { clearInterval(previewInterval); previewInterval = null; }
+    }
+
+    window.skipMemoryPhase = () => {
+      if(currentTimer) clearInterval(currentTimer);
+      memoryPhase = false;
+      renderApp(); // フェーズ変更後に再評価させて画面を描き変える
+    };
+
+    // --- Action Views (Draw & Guess) ---
+    function renderActionView(myIndex) {
+      const mode = globalState.settings?.mode || 'normal';
+      const isLastPlayer = myTeamData && (myIndex === myTeamData.players.length - 1);
+      let isDrawTurn = mode === 'memory' ? true : (myIndex % 2 === 0);
+      if (mode === 'memory' && isLastPlayer) {
+        isDrawTurn = false; // 記憶モードでも最後の人は文字
+      }
+
+      const previousData = myIndex === 0 ? myTeamData.theme : myTeamData.chain[myIndex - 1].data;
+      const drawTime = globalState.settings?.drawTime || 30;
+      const textTime = globalState.settings?.textTime || 20;
+      const memTime = globalState.settings?.memoryTime || 5;
+
+      // === 記憶スケッチモードの特別処理 ===
+      // ※最後の人は絵を見て文字で答えるため、記憶フェーズはスキップ
+      if (mode === 'memory' && myIndex > 0 && !isLastPlayer) {
+        if (memoryPhase === null) memoryPhase = true; // 初回は記憶フェーズ
+
+        if (memoryPhase) {
+          const prevPlayer = myTeamData.chain[myIndex - 1].player;
+          // 1. 記憶フェーズ
+          updateAppHTML(`
+            <div class="fade-in w-full max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
+              <h2 class="text-2xl md:text-3xl font-black text-red-500 mb-2 animate-pulse">前の人の絵を覚えて！</h2>
+              <div class="text-lg font-bold text-gray-600 mb-4 bg-gray-100 px-6 py-1.5 rounded-full border border-gray-200">${prevPlayer} さんの絵</div>
+              <div class="text-6xl font-black text-gray-800 mb-6 flex items-center" id="timer-display">
+                <span>${memTime}</span><span class="text-2xl ml-2 text-gray-500">秒</span>
+              </div>
+              <img src="${previousData}" class="w-full max-w-[500px] h-auto aspect-square object-contain border-4 border-red-200 rounded-xl bg-white shadow-sm pointer-events-none mb-8" />
+              <button onclick="skipMemoryPhase()" class="px-8 py-4 w-full max-w-[500px] bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition-all duration-300 hover:-translate-y-1">覚えた！すぐに描く</button>
+            </div>
+          `);
+          startTimer(memTime, () => {
+            memoryPhase = false; // 描画フェーズへ移行
+            renderApp(); // フェーズ変更後に再評価させて画面を描き変える
+          }, true); // true = 数字だけシンプルに更新するモード
+          return;
+        } else {
+          // 2. 描画フェーズ (キャンバスサイズを500pxに拡大)
+          updateAppHTML(`
+            <div class="fade-in w-full max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
+              <div class="flex items-center space-x-2 text-2xl mb-6 font-black text-gray-800 tracking-wider" id="timer-display">
+                <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>残り時間: ${drawTime}秒</span>
+              </div>
+              <div class="text-lg text-red-500 mb-6 font-bold flex items-center bg-red-50 p-3 rounded-lg border border-red-100">
+                さっきの絵を思い出して書いてね!
+              </div>
+              <canvas id="draw-canvas" width="500" height="500" class="border-2 border-gray-200 rounded-xl bg-white mb-8 shadow-sm touch-none cursor-crosshair w-full max-w-[500px] h-auto aspect-square"></canvas>
+              <div class="flex space-x-2 md:space-x-4 w-full max-w-[500px]">
+                <button onclick="clearCanvas()" class="flex-1 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 font-bold transition-all duration-300 hover:shadow text-sm md:text-lg">すべて消す</button>
+                <button onclick="undoCanvas()" class="flex-1 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 font-bold transition-all duration-300 hover:shadow text-sm md:text-lg">1つ戻す</button>
+                <button onclick="submitTurn('draw')" class="flex-1 py-3 bg-gray-800 text-white rounded-xl hover:bg-black font-bold shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-sm md:text-lg">完了する</button>
+              </div>
+            </div>
+          `);
+          initCanvas();
+          startTimer(drawTime, () => submitTurn('draw'));
+          startPreviewStream();
+          return;
+        }
+      }
+      // ===================================
+
+      // 通常モード ＋ 記憶モードの1番目の人
+      const limitTime = isDrawTurn ? drawTime : textTime;
+
+      if (isDrawTurn) {
+        updateAppHTML(`
+          <div class="fade-in w-full max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
+            <div class="flex items-center space-x-2 text-2xl mb-6 font-black text-gray-800 tracking-wider" id="timer-display">
+              <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>残り時間: ${limitTime}秒</span>
+            </div>
+            <div class="mb-8 text-center w-full max-w-[500px] bg-slate-50 p-6 rounded-xl border border-gray-100 shadow-inner">
+              <span class="text-sm text-gray-500 font-bold block mb-2">${myIndex === 0 ? '最初のお題' : '前の人の回答'}</span>
+              <span class="font-black text-3xl text-gray-800 break-words">${previousData}</span>
+            </div>
+            <div class="text-sm text-gray-500 mb-3 font-bold flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              この内容を絵に書いてね!
+            </div>
+            <canvas id="draw-canvas" width="500" height="500" class="border-2 border-gray-200 rounded-xl bg-white mb-8 shadow-sm touch-none cursor-crosshair w-full max-w-[500px] h-auto aspect-square"></canvas>
+            <div class="flex space-x-2 md:space-x-4 w-full max-w-[500px]">
+              <button onclick="clearCanvas()" class="flex-1 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 font-bold transition-all duration-300 hover:shadow text-sm md:text-lg">すべて消す</button>
+              <button onclick="undoCanvas()" class="flex-1 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 font-bold transition-all duration-300 hover:shadow text-sm md:text-lg">1つ戻す</button>
+              <button onclick="submitTurn('draw')" class="flex-1 py-3 bg-gray-800 text-white rounded-xl hover:bg-black font-bold shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-sm md:text-lg">完了する</button>
+            </div>
+          </div>
+        `);
+        initCanvas();
+        startTimer(limitTime, () => submitTurn('draw'));
+        startPreviewStream();
+      } else {
+        updateAppHTML(`
+          <div class="fade-in w-full max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
+            <div class="flex items-center space-x-2 text-2xl mb-6 font-black text-gray-800 tracking-wider" id="timer-display">
+              <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>残り時間: ${limitTime}秒</span>
+            </div>
+            <div class="text-sm text-gray-500 mb-3 font-bold flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              この絵は何でしょう?
+            </div>
+            <img src="${previousData}" class="w-full max-w-[500px] h-auto aspect-square object-contain border-2 border-gray-200 rounded-xl bg-white mb-8 shadow-sm pointer-events-none" />
+            <div class="w-full max-w-[500px] relative mb-8">
+              <input type="text" id="text-input" maxlength="30" oninput="document.getElementById('char-count').innerText = this.value.length" placeholder="回答を入力 (最大30文字)" class="border-2 border-gray-200 rounded-xl p-4 w-full text-center text-xl font-bold shadow-inner focus:border-gray-800 focus:ring-0 focus:outline-none transition-all duration-300" />
+              <div class="absolute bottom-3 right-4 text-sm font-bold text-gray-400"><span id="char-count">0</span> / 30</div>
+            </div>
+            <button onclick="submitTurn('text')" class="w-full max-w-[500px] py-4 bg-gray-800 text-white rounded-xl hover:bg-black font-bold text-lg shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">完了する</button>
+          </div>
+        `);
+        startTimer(limitTime, () => submitTurn('text'));
+        setTimeout(() => {
+          const el = document.getElementById('text-input');
+          if(el) el.focus();
+        }, 100);
+      }
+    }
+
+    function initCanvas() {
+      canvasEl = document.getElementById('draw-canvas');
+      if (!canvasEl) return;
+      ctx = canvasEl.getContext('2d');
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      ctx.strokeStyle = "#333333";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      drawingHistory = [];
+
+      const saveHistory = () => {
+        drawingHistory.push(ctx.getImageData(0, 0, canvasEl.width, canvasEl.height));
+      };
+
+      const startPos = (e) => {
+        saveHistory();
+        isDrawing = true;
+        draw(e);
+      };
+      const endPos = () => {
+        isDrawing = false;
+        ctx.beginPath();
+      };
+      const draw = (e) => {
+        if (!isDrawing) return;
+        e.preventDefault(); 
+        const rect = canvasEl.getBoundingClientRect();
+        const scaleX = canvasEl.width / rect.width;
+        const scaleY = canvasEl.height / rect.height;
+
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+        if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        }
+        
+        const x = (clientX - rect.left) * scaleX;
+        const boundedY = (clientY - rect.top) * scaleY;
+        
+        ctx.lineTo(x, boundedY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, boundedY);
+      };
+
+      canvasEl.addEventListener('mousedown', startPos);
+      canvasEl.addEventListener('mouseup', endPos);
+      canvasEl.addEventListener('mousemove', draw);
+      canvasEl.addEventListener('touchstart', startPos, {passive: false});
+      canvasEl.addEventListener('touchend', endPos);
+      canvasEl.addEventListener('touchmove', draw, {passive: false});
+    }
+
+    window.clearCanvas = () => {
+      if (!ctx || !canvasEl) return;
+      drawingHistory.push(ctx.getImageData(0, 0, canvasEl.width, canvasEl.height));
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      ctx.beginPath();
+    };
+
+    window.undoCanvas = () => {
+      if (!ctx || !canvasEl) return;
+      if (drawingHistory.length > 0) {
+        const lastState = drawingHistory.pop();
+        ctx.putImageData(lastState, 0, 0);
+        ctx.beginPath(); 
+      } else {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.beginPath();
+      }
+    };
+
+    function startTimer(seconds, onTimeout, simpleMode = false) {
+      if (currentTimer) clearInterval(currentTimer);
+      let timeLeft = seconds;
+      const updateUI = () => {
+        const el = document.getElementById('timer-display');
+        if (el) {
+          if (simpleMode) {
+            el.innerHTML = `<span>${timeLeft}</span><span class="text-2xl ml-2 text-gray-500">秒</span>`;
+          } else {
+            const span = el.querySelector('span:last-child');
+            if (span) span.innerText = `残り時間: ${timeLeft}秒`;
+          }
+        }
+      };
+      updateUI();
+      currentTimer = setInterval(() => {
+        timeLeft--;
+        updateUI();
+        if (timeLeft <= 0) {
+          clearInterval(currentTimer);
+          onTimeout();
+        }
+      }, 1000);
+    }
+
+    function startPreviewStream() {
+      if (previewInterval) clearInterval(previewInterval);
+      previewInterval = setInterval(() => {
+        if (!isDrawing && canvasEl && myTeamData) {
+          const dataUrl = canvasEl.toDataURL('image/jpeg', 0.1); 
+          updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id), { currentPreview: dataUrl }).catch(e => console.warn("Preview error:", e));
+        }
+      }, 2000);
+    }
+
+    window.submitTurn = async (type) => {
+      resetActionState();
+
+      let data = '無回答';
+      if (type === 'draw') {
+        data = canvasEl.toDataURL('image/jpeg', 0.3);
+      } else {
+        const inputEl = document.getElementById('text-input');
+        if (inputEl) {
+          data = inputEl.value.trim() || '無回答';
+        }
+      }
+
+      updateAppHTML(`
+        <div class="fade-in w-full max-w-md mx-auto mt-10 p-8 text-center text-gray-500 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
+          <svg class="w-10 h-10 mb-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="font-bold text-lg">送信中...</span>
+        </div>`);
+
+      try {
+        const teamRef = doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id);
+        const newChain = [...myTeamData.chain, { player: myName, type, data }];
+        const newTurn = myTeamData.currentTurn + 1;
+        const status = newTurn >= myTeamData.players.length ? 'finished' : 'playing';
+
+        await updateDoc(teamRef, {
+          chain: newChain,
+          currentTurn: newTurn,
+          status: status,
+          currentPreview: null 
+        });
+      } catch (error) {
+        console.error("Submit Error:", error);
+        updateAppHTML(`
+          <div class="fade-in w-full max-w-md mx-auto mt-10 p-8 text-center bg-white rounded-2xl shadow-sm border-2 border-red-200 my-auto">
+            <div class="text-red-600 mb-4 font-bold text-xl">送信エラーが発生しました</div>
+            <p class="text-gray-600 text-sm mb-4 break-words bg-slate-50 p-3 rounded border border-gray-100">エラー内容: ${error.message}</p>
+            <p class="text-gray-500 text-sm mb-6 font-bold">データ容量オーバー、または通信エラーの可能性があります。</p>
+            <button onclick="renderApp()" class="px-6 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-black transition shadow-md hover:-translate-y-1">画面を戻す</button>
+          </div>
+        `);
+      }
+    };
+
+    // --- Admin View ---
+    function renderAdmin() {
+      let html = `<div class="fade-in w-full max-w-4xl mx-auto my-auto">`;
+      
+      // アナウンス入力枠
+      html += `
+        <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-blue-200 flex flex-col md:flex-row items-center gap-3">
+          <svg class="w-6 h-6 text-blue-500 hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+          <input type="text" id="admin-announcement" placeholder="全員の画面にお知らせを表示します" value="${globalState.announcement || ''}" class="flex-grow border-2 border-gray-200 p-3 rounded-lg w-full font-bold focus:outline-none focus:border-blue-400 transition-colors">
+          <div class="flex space-x-2 w-full md:w-auto">
+            <button onclick="clearAnnouncement()" class="flex-1 md:flex-none px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">消す</button>
+            <button onclick="setAnnouncement()" class="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow">送信</button>
+          </div>
+        </div>
+      `;
+
+      html += `<h1 class="text-3xl font-black mb-8 text-gray-800 flex items-center"><svg class="w-8 h-8 mr-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>管理者パネル</h1>`;
+
+      if (globalState.status === 'waiting') {
+        html += `
+          <div class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <h2 class="text-xl font-bold text-gray-800">ステータス: 待機中</h2>
+              </div>
+              <p class="text-sm text-gray-500 mt-2 font-bold">プレイヤーの登録とお題の設定を行ってください。</p>
+            </div>
+            <button onclick="startGame()" class="w-full md:w-auto px-8 py-4 bg-gray-800 text-white rounded-xl font-bold text-lg hover:bg-black shadow-md transition-all duration-300 hover:-translate-y-1">全班ゲームスタート</button>
+          </div>
+
+          <!-- 設定エリア -->
+          <div class="mb-6 bg-slate-50 p-5 rounded-2xl shadow-inner border border-gray-200 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div class="flex flex-wrap gap-4 items-center">
+              <label class="font-bold text-gray-600 text-sm flex items-center">
+                ゲームモード:
+              </label>
+              <select id="setting-mode" class="border-2 border-gray-300 p-2 rounded-lg font-bold text-gray-700 focus:outline-none focus:border-blue-400" onchange="updateSettings('mode', this.value)">
+                <option value="normal" ${globalState.settings?.mode !== 'memory' ? 'selected' : ''}>通常伝言 (絵 → 文字 → 絵)</option>
+                <option value="memory" ${globalState.settings?.mode === 'memory' ? 'selected' : ''}>記憶スケッチ (全員が絵を描く)</option>
+              </select>
+
+              <label class="font-bold text-gray-600 text-sm flex items-center ml-2">
+                制限時間 (絵):
+              </label>
+              <input type="number" id="setting-drawTime" value="${globalState.settings?.drawTime || 30}" class="w-20 border-2 border-gray-300 p-2 rounded-lg text-center font-bold" onchange="updateSettings('drawTime', this.value)">
+              <span class="text-gray-500 text-sm font-bold">秒</span>
+              
+              <label class="font-bold text-gray-600 text-sm flex items-center ml-2">
+                制限時間 (文字):
+              </label>
+              <input type="number" id="setting-textTime" value="${globalState.settings?.textTime || 20}" class="w-20 border-2 border-gray-300 p-2 rounded-lg text-center font-bold" onchange="updateSettings('textTime', this.value)">
+              <span class="text-gray-500 text-sm font-bold">秒</span>
+
+              <!-- 記憶時間の設定を追加 -->
+              <label class="font-bold text-gray-600 text-sm flex items-center ml-2">
+                制限時間 (記憶):
+              </label>
+              <input type="number" id="setting-memoryTime" value="${globalState.settings?.memoryTime || 5}" class="w-20 border-2 border-gray-300 p-2 rounded-lg text-center font-bold" onchange="updateSettings('memoryTime', this.value)">
+              <span class="text-gray-500 text-sm font-bold">秒</span>
+
+              <!-- プレイヤーへの結果公開 -->
+              <label class="font-bold text-gray-600 text-sm flex items-center ml-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                <input type="checkbox" id="setting-showResults" ${globalState.settings?.showResultsToPlayers !== false ? 'checked' : ''} onchange="updateSettings('showResultsToPlayers', this.checked)" class="mr-2 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                結果発表時、全班の結果をプレイヤー端末にも表示する
+              </label>
+            </div>
+          </div>
+
+          <!-- お題リスト管理エリア -->
+          <div class="mb-6 bg-slate-50 p-5 rounded-2xl shadow-inner border border-gray-200">
+            <h3 class="font-bold text-gray-600 text-sm mb-3 flex items-center">
+              <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              お題リスト (ランダム割り当て用)
+            </h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+              ${(globalState.themes || []).map((t, i) => `
+                <span class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-full text-sm font-bold flex items-center shadow-sm">
+                  ${t}
+                  <button onclick="removeTheme(${i})" class="ml-2 text-gray-400 hover:text-red-500 transition focus:outline-none">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              `).join('')}
+            </div>
+            <div class="flex flex-col md:flex-row items-center gap-3">
+              <div class="flex flex-grow w-full md:w-auto space-x-2">
+                <input type="text" id="add-theme-input" placeholder="新しいお題を追加" class="border border-gray-300 p-3 rounded-lg flex-grow font-bold focus:outline-none focus:border-blue-400 transition-colors shadow-sm">
+                <button onclick="addTheme()" class="px-5 py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition shadow-sm whitespace-nowrap">追加</button>
+              </div>
+              <button onclick="randomizeAllThemes()" class="w-full md:w-auto px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition shadow-sm whitespace-nowrap flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                全班にランダム割り当て
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <button onclick="addTeam()" class="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl font-bold hover:bg-slate-50 transition-all duration-300 shadow-sm flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+              新しい班を追加
+            </button>
+          </div>
+        `;
+
+        allTeams.forEach(team => {
+          html += `
+            <div class="bg-white p-6 rounded-2xl shadow-sm mb-6 border border-gray-100 relative transition-all duration-300 hover:shadow-md">
+              <button onclick="deleteTeam('${team.id}')" class="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+              
+              <div class="flex items-center space-x-3 mb-6">
+                <span class="font-bold text-gray-400">班名</span>
+                <input type="text" value="${team.name}" onchange="updateTeamName('${team.id}', this.value)" class="text-xl font-black border-b-2 border-gray-200 focus:border-gray-800 outline-none p-1 w-1/2 transition-colors bg-transparent">
+              </div>
+              
+              <div class="mb-6 bg-slate-50 p-4 rounded-xl border border-gray-100">
+                <label class="text-sm font-bold text-gray-500 block mb-2 flex items-center">
+                  <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  最初のお題
+                </label>
+                <input type="text" value="${team.theme}" onchange="updateTeamTheme('${team.id}', this.value)" placeholder="お題を入力" class="border border-gray-200 p-3 rounded-lg w-full text-lg font-bold shadow-sm focus:outline-none focus:border-gray-400 transition-colors">
+              </div>
+
+              <div class="mb-4">
+                <div class="flex justify-between items-center mb-3">
+                  <label class="text-sm font-bold text-gray-500">プレイヤー (上から順番に進行)</label>
+                  <div class="flex space-x-2">
+                    <button onclick="rotatePlayers('${team.id}', -1)" class="text-xs px-2 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-bold transition-colors flex items-center border border-indigo-100" title="全員を1つ上へ">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                    </button>
+                    <button onclick="rotatePlayers('${team.id}', 1)" class="text-xs px-2 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-bold transition-colors flex items-center border border-indigo-100" title="全員を1つ下へ">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <button onclick="shufflePlayers('${team.id}')" class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-bold transition-colors flex items-center border border-indigo-100">
+                      <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      シャッフル
+                    </button>
+                  </div>
+                </div>
+                <ul class="space-y-2">
+                  ${team.players.map((p, i) => {
+                    const isReady = (team.readyPlayers || []).includes(p);
+                    return `
+                    <li draggable="true" 
+                        ondragstart="handleDragStart(event, '${team.id}', ${i})"
+                        ondragover="handleDragOver(event)"
+                        ondrop="handleDrop(event, '${team.id}', ${i})"
+                        ondragenter="handleDragEnter(event)"
+                        ondragleave="handleDragLeave(event)"
+                        ondragend="handleDragEnd(event)"
+                        class="flex items-center bg-white border border-gray-100 p-3 rounded-xl shadow-sm cursor-grab active:cursor-grabbing transition-all">
+                      <div class="mr-2 text-gray-300 pointer-events-none">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" /></svg>
+                      </div>
+                      <span class="font-black w-8 text-center text-gray-300 text-sm pointer-events-none">${i+1}</span>
+                      <div class="flex-grow flex items-center">
+                        <input type="text" value="${p}" onchange="updatePlayerName('${team.id}', ${i}, this.value)" class="font-bold text-gray-700 bg-transparent border-b border-transparent focus:border-gray-400 outline-none w-24 md:w-32 mr-2">
+                        ${isReady ? `<span class="ml-2 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">準備OK</span>` : `<span class="ml-2 text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-bold border border-gray-200">未入室</span>`}
+                      </div>
+                      <div class="flex space-x-1 shrink-0">
+                        <button onclick="movePlayer('${team.id}', ${i}, -1)" class="p-2 bg-slate-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="1つ上へ">
+                          <svg class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                        </button>
+                        <button onclick="movePlayer('${team.id}', ${i}, 1)" class="p-2 bg-slate-50 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="1つ下へ">
+                          <svg class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        <button onclick="removePlayer('${team.id}', ${i})" class="p-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg transition-colors ml-2" title="削除">
+                          <svg class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    </li>
+                  `}).join('')}
+                </ul>
+              </div>
+              <div class="flex items-center space-x-2 mt-4 p-4 bg-slate-50 rounded-xl border border-dashed border-gray-200">
+                <input type="text" id="add-player-${team.id}" placeholder="新しいプレイヤー名" class="border border-gray-200 p-3 rounded-lg flex-grow font-bold focus:outline-none focus:border-gray-400 transition-colors" onkeypress="if(event.key === 'Enter') addPlayer('${team.id}')">
+                <button onclick="addPlayer('${team.id}')" class="px-5 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-colors">追加</button>
+              </div>
+              <div class="mt-6 pt-4 border-t border-gray-100 text-sm text-gray-500 flex justify-between items-center">
+                <span class="font-bold">プレイヤー用URL:</span>
+                <a href="?room=${team.id}" target="_blank" class="text-blue-500 hover:text-blue-700 font-mono bg-blue-50 px-3 py-1 rounded-lg transition-colors">?room=${team.id}</a>
+              </div>
+            </div>
+          `;
+        });
+      } else if (globalState.status === 'playing') {
+        html += `<div class="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+          <div class="flex items-center space-x-4">
+            <svg class="w-8 h-8 text-blue-500 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="animation: spin 3s linear infinite;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <h2 class="text-xl font-bold text-gray-800">ゲーム進行中...</h2>
+          </div>
+          <button onclick="forceEndGame()" class="px-4 py-2 bg-red-50 text-red-500 rounded-lg font-bold hover:bg-red-100 transition-colors text-sm border border-red-200">強制終了</button>
+        </div>`;
+        
+        allTeams.forEach(team => {
+          let progressText = '';
+          if (team.status === 'finished') {
+             progressText = '<span class="text-green-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>完了</span>';
+          } else {
+             const currentActor = team.players[team.currentTurn] || "誰か";
+             const mode = globalState.settings?.mode || 'normal';
+             let isDrawingTask = mode === 'memory' ? true : (team.currentTurn % 2 === 0);
+             if (mode === 'memory' && team.currentTurn === team.players.length - 1) {
+               isDrawingTask = false;
+             }
+             const taskIcon = isDrawingTask 
+               ? `<svg class="w-4 h-4 mr-1 text-gray-500 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>` 
+               : `<svg class="w-4 h-4 mr-1 text-gray-500 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>`;
+             const taskName = isDrawingTask ? "絵を描いています" : "文字で答えています";
+             progressText = `<span class="text-gray-600 flex items-center"><span class="font-bold mr-2">${currentActor}</span>さんが ${taskIcon} ${taskName}</span>`;
+          }
+
+          let progressPercent = team.players.length > 0 ? (team.chain.length / team.players.length) * 100 : 0;
+          
+          let previewHtml = '';
+          let isPreviewTask = (globalState.settings?.mode === 'memory') ? true : (team.currentTurn % 2 === 0);
+          if (globalState.settings?.mode === 'memory' && team.currentTurn === team.players.length - 1) {
+            isPreviewTask = false;
+          }
+          if (team.status !== 'finished' && team.currentPreview && isPreviewTask) {
+             previewHtml = `
+               <div class="mt-6 pt-6 border-t border-gray-100">
+                 <span class="text-xs text-gray-400 font-bold mb-3 flex items-center">
+                   <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                   リアルタイム描画プレビュー:
+                 </span>
+                 <img src="${team.currentPreview}" class="w-full max-w-[200px] border border-gray-200 rounded-lg bg-slate-50 shadow-sm">
+               </div>
+             `;
+          }
+
+          html += `
+            <div class="bg-white p-6 rounded-2xl shadow-sm mb-6 border border-gray-100">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl text-gray-800">${team.name}</h3>
+                <div class="font-bold bg-slate-50 border border-gray-100 px-3 py-1.5 rounded-lg text-sm">${progressText}</div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3 mb-3 overflow-hidden">
+                <div class="bg-gray-800 h-3 rounded-full transition-all duration-500 ease-out" style="width: ${progressPercent}%"></div>
+              </div>
+              <div class="text-xs text-gray-400 font-bold text-right">進行度: ${team.chain.length} / ${team.players.length}</div>
+              ${previewHtml}
+            </div>
+          `;
+        });
+
+        const allFinished = allTeams.length > 0 && allTeams.every(t => t.status === 'finished');
+        if (allFinished) {
+           html += `
+             <div class="mt-10 p-8 bg-white rounded-2xl shadow-md border border-gray-200 text-center fade-in">
+               <p class="mb-6 text-xl font-black text-gray-800">すべての班が完了しました！</p>
+               <button onclick="goToChecking()" class="px-8 py-4 bg-gray-800 text-white rounded-xl font-bold text-lg hover:bg-black shadow-md transition-all duration-300 hover:-translate-y-1">回答チェックへ進む</button>
+             </div>
+           `;
+        }
+      } else if (globalState.status === 'checking') {
+        html += `
+          <div class="mb-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-black mb-3 text-gray-800 flex items-center">
+              <svg class="w-6 h-6 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+              回答チェック
+            </h2>
+            <p class="text-gray-500 mb-8 font-bold">各班の最初のお題と最後の回答を見比べて、正解・不正解を判定してください。</p>
+            <button onclick="showResultsToAll()" class="w-full px-6 py-4 bg-gray-800 text-white rounded-xl font-bold text-lg hover:bg-black shadow-md transition-all duration-300 hover:-translate-y-1">チェック完了！結果発表を全画面に表示する</button>
+          </div>
+        `;
+
+        allTeams.forEach(team => {
+          const finalItem = team.chain.length > 0 ? team.chain[team.chain.length - 1] : null;
+          let finalAnswerHtml = '<span class="font-black text-2xl text-gray-800">なし</span>';
+          if (finalItem) {
+            if (finalItem.type === 'draw') {
+               finalAnswerHtml = `<img src="${finalItem.data}" class="w-full max-h-40 object-contain mx-auto border border-gray-200 rounded-xl bg-white p-2">`;
+            } else {
+               finalAnswerHtml = `<span class="font-black text-2xl text-gray-800">${finalItem.data}</span>`;
+            }
+          }
+          const isCorrect = team.isCorrect === true;
+          const isIncorrect = team.isCorrect === false;
+          const bgClass = isCorrect ? 'bg-slate-50 border-gray-300' : isIncorrect ? 'bg-slate-50 border-gray-300' : 'bg-white border-gray-100';
+
+          html += `
+            <div class="p-6 rounded-2xl shadow-sm mb-6 border-2 ${bgClass} transition-colors duration-300">
+              <h3 class="font-black text-xl mb-6 text-gray-800 border-b border-gray-100 pb-3">${team.name}</h3>
+              <div class="grid grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm text-center flex flex-col justify-center">
+                  <span class="text-xs text-gray-400 font-bold block mb-2">最初のお題</span>
+                  <span class="font-black text-2xl text-gray-800">${team.theme}</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm text-center flex flex-col justify-center">
+                  <span class="text-xs text-gray-400 font-bold block mb-2">最後の回答</span>
+                  ${finalAnswerHtml}
+                </div>
+              </div>
+              <div class="flex space-x-4">
+                <button onclick="setTeamCorrect('${team.id}', true)" class="flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex justify-center items-center ${isCorrect ? 'bg-gray-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}">
+                  <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" /></svg>
+                  正解
+                </button>
+                <button onclick="setTeamCorrect('${team.id}', false)" class="flex-1 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex justify-center items-center ${isIncorrect ? 'bg-gray-800 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}">
+                  <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  不正解
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      } else if (globalState.status === 'results') {
+        const showToPlayers = globalState.settings?.showResultsToPlayers !== false;
+        const visibilityText = showToPlayers 
+          ? "全班の結果はこちら!" 
+          : "自分たちの結果はこちら!";
+
+        html += `
+          <div class="mb-10 p-8 bg-white rounded-2xl shadow-sm text-center border border-gray-200 fade-in">
+            <h2 class="text-2xl font-black text-gray-800 mb-3">結果発表中</h2>
+            <p class="text-gray-500 mb-6 font-bold">${visibilityText}</p>
+            <div class="flex flex-wrap justify-center items-center gap-4">
+              <button onclick="revealNextAll()" class="px-6 py-4 bg-gray-800 text-white rounded-xl font-bold text-lg hover:bg-black transition shadow-md flex items-center transform hover:-translate-y-1">
+                <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                全班をいっせいに1つ進める
+              </button>
+              <button onclick="resetGame()" class="px-6 py-4 bg-white text-gray-500 border border-gray-200 rounded-xl font-bold hover:bg-slate-50 transition-colors">ゲームをリセットして最初に戻る</button>
+            </div>
+          </div>
+        `;
+        html += `<div id="admin-results-container">${buildResultsHTML()}</div>`;
+      }
+
+      html += `</div>`;
+      updateAppHTML(html);
+
+      // HTML再生成後に表示状態を適用
+      if (globalState.status === 'results') {
+         applyRevealState();
+      }
+    }
+
+    // --- Admin Actions ---
+    window.setAnnouncement = async () => {
+      const val = document.getElementById('admin-announcement').value.trim();
+      await updateDoc(globalStateRef, { announcement: val });
+    };
+
+    window.clearAnnouncement = async () => {
+      document.getElementById('admin-announcement').value = '';
+      await updateDoc(globalStateRef, { announcement: "" });
+    };
+
+    window.updateSettings = async (key, val) => {
+      if (key === 'mode') {
+        await updateDoc(globalStateRef, { [`settings.${key}`]: val });
+      } else if (key === 'showResultsToPlayers') {
+        await updateDoc(globalStateRef, { [`settings.${key}`]: val });
+      } else {
+        const num = parseInt(val, 10) || 10;
+        await updateDoc(globalStateRef, { [`settings.${key}`]: num });
+      }
+    };
+
+    window.addTheme = async () => {
+      const input = document.getElementById('add-theme-input');
+      const val = input.value.trim();
+      if (!val) return;
+      const currentThemes = globalState.themes || [];
+      await updateDoc(globalStateRef, { themes: [...currentThemes, val] });
+    };
+
+    window.removeTheme = async (index) => {
+      const currentThemes = [...(globalState.themes || [])];
+      currentThemes.splice(index, 1);
+      await updateDoc(globalStateRef, { themes: currentThemes });
+    };
+
+    window.randomizeAllThemes = async () => {
+      const themes = globalState.themes || ["りんご"];
+      if (themes.length === 0) return;
+      if(!confirm('全班のお題を現在のお題リストからランダムに変更しますか？')) return;
+      const promises = allTeams.map(t => {
+        const theme = themes[Math.floor(Math.random() * themes.length)];
+        return updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', t.id), { theme });
+      });
+      await Promise.all(promises);
+    };
+
+    let draggedPlayer = null;
+
+    window.handleDragStart = (e, teamId, index) => {
+      draggedPlayer = { teamId, index };
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => e.target.classList.add('opacity-50'), 0);
+    };
+
+    window.handleDragOver = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+
+    window.handleDrop = async (e, targetTeamId, targetIndex) => {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if(li) li.classList.remove('border-blue-400', 'bg-blue-50');
+      
+      if (!draggedPlayer || draggedPlayer.teamId !== targetTeamId || draggedPlayer.index === targetIndex) return;
+
+      const team = allTeams.find(t => t.id === targetTeamId);
+      const newPlayers = [...team.players];
+      
+      const [removed] = newPlayers.splice(draggedPlayer.index, 1);
+      newPlayers.splice(targetIndex, 0, removed);
+
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', targetTeamId), { players: newPlayers });
+      draggedPlayer = null;
+    };
+
+    window.handleDragEnter = (e) => {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if(li) li.classList.add('border-blue-400', 'bg-blue-50');
+    };
+
+    window.handleDragLeave = (e) => {
+      const li = e.target.closest('li');
+      if(li) li.classList.remove('border-blue-400', 'bg-blue-50');
+    };
+
+    window.handleDragEnd = (e) => {
+      e.target.classList.remove('opacity-50');
+      draggedPlayer = null;
+    };
+
+    window.shufflePlayers = async (id) => {
+      const team = allTeams.find(t => t.id === id);
+      const newPlayers = [...team.players];
+      for (let i = newPlayers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newPlayers[i], newPlayers[j]] = [newPlayers[j], newPlayers[i]];
+      }
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+    };
+
+    window.rotatePlayers = async (id, dir) => {
+      const team = allTeams.find(t => t.id === id);
+      if (!team || team.players.length <= 1) return;
+      
+      let newPlayers = [...team.players];
+      if (dir === -1) {
+        const first = newPlayers.shift();
+        newPlayers.push(first);
+      } else if (dir === 1) {
+        const last = newPlayers.pop();
+        newPlayers.unshift(last);
+      }
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+    };
+
+    window.addTeam = async () => {
+      const themes = globalState.themes || ["りんご"];
+      const defaultTheme = themes.length > 0 ? themes[Math.floor(Math.random() * themes.length)] : "りんご";
+      await addDoc(teamsCollRef, {
+        name: "新しい班",
+        players: [],
+        readyPlayers: [],
+        theme: defaultTheme,
+        status: "waiting",
+        currentTurn: 0,
+        chain: [],
+        isCorrect: null,
+        currentPreview: null
+      });
+    };
+    window.deleteTeam = async (id) => {
+      if(confirm('本当に削除しますか？')) {
+        await deleteDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id));
+      }
+    };
+    window.updateTeamName = async (id, name) => {
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { name });
+    };
+    window.updateTeamTheme = async (id, theme) => {
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { theme });
+    };
+    window.addPlayer = async (id) => {
+      const input = document.getElementById(`add-player-${id}`);
+      const val = input.value.trim();
+      if(!val) return;
+      const team = allTeams.find(t => t.id === id);
+      const newPlayers = [...team.players, val];
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+      input.value = ''; // 追加後に入力欄を空にする
+    };
+    window.updatePlayerName = async (id, index, newName) => {
+      const name = newName.trim();
+      if (!name) return;
+      const team = allTeams.find(t => t.id === id);
+      const newPlayers = [...team.players];
+      newPlayers[index] = name;
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+    };
+    window.removePlayer = async (id, index) => {
+      const team = allTeams.find(t => t.id === id);
+      const newPlayers = [...team.players];
+      newPlayers.splice(index, 1);
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+    };
+    window.movePlayer = async (id, index, dir) => {
+      const team = allTeams.find(t => t.id === id);
+      const newPlayers = [...team.players];
+      if(index + dir < 0 || index + dir >= newPlayers.length) return;
+      const temp = newPlayers[index];
+      newPlayers[index] = newPlayers[index + dir];
+      newPlayers[index + dir] = temp;
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { players: newPlayers });
+    };
+    window.startGame = async () => {
+      if(!confirm('全班のゲームを開始しますか？')) return;
+      const promises = allTeams.map(t =>
+        updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', t.id), {
+          status: 'playing', currentTurn: 0, chain: [], isCorrect: null, currentPreview: null
+        })
+      );
+      await Promise.all(promises);
+      await updateDoc(globalStateRef, { status: 'playing' });
+    };
+    window.goToChecking = async () => {
+      await updateDoc(globalStateRef, { status: 'checking' });
+    };
+    window.forceEndGame = async () => {
+      if(!confirm('本当に現在の状態でゲームを強制終了して、回答チェックへ進みますか？\n（未完了の班もそこで打ち切られます）')) return;
+      
+      const promises = allTeams.map(t => {
+        if (t.status !== 'finished') {
+          return updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', t.id), {
+            status: 'finished',
+            currentPreview: null
+          });
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(promises);
+      await updateDoc(globalStateRef, { status: 'checking' });
+    };
+    window.setTeamCorrect = async (id, val) => {
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', id), { isCorrect: val });
+    };
+    window.showResultsToAll = async () => {
+      await updateDoc(globalStateRef, { status: 'results' });
+    };
+    window.resetGame = async () => {
+      if(!confirm('リセットしますか？回答データは消去されます。')) return;
+      const promises = allTeams.map(t =>
+        updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', t.id), {
+          status: 'waiting', currentTurn: 0, chain: [], isCorrect: null, currentPreview: null, readyPlayers: [], revealedIndex: 0
+        })
+      );
+      await Promise.all(promises);
+      await updateDoc(globalStateRef, { status: 'waiting' });
+    };
+
+    // --- Image Download & Reveal ---
+    // DBに保存された状態に基づいて、DOMの表示/非表示を切り替える関数
+    window.applyRevealState = () => {
+      allTeams.forEach(team => {
+        const revealedIndex = team.revealedIndex || 0;
+        const items = document.querySelectorAll(`.reveal-item-${team.id}`);
+        let latestItem = null;
+        let latestIdx = -1;
+
+        items.forEach(item => {
+          const idx = parseInt(item.getAttribute('data-reveal-idx'));
+          if (idx <= revealedIndex) {
+            // 表示する
+            if (item.classList.contains('hidden')) {
+              item.classList.remove('hidden');
+              // わずかに遅らせてopacityを外すことでフェードインさせる
+              setTimeout(() => item.classList.remove('opacity-0'), 50);
+            } else {
+              item.classList.remove('opacity-0');
+            }
+            if (idx > latestIdx) {
+              latestIdx = idx;
+              latestItem = item;
+            }
+          } else {
+            // 隠す
+            item.classList.add('hidden', 'opacity-0');
+          }
+        });
+
+        // 直近で新しく表示された要素まで自動横スクロール（少し待機してから）
+        if (latestItem && latestIdx === revealedIndex) {
+          setTimeout(() => {
+            latestItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }, 150);
+        }
+      });
+    };
+
+    // 管理者専用: 次を見る
+    window.revealNext = async (teamId) => {
+      const team = allTeams.find(t => t.id === teamId);
+      if (!team) return;
+      const currentIndex = team.revealedIndex || 0;
+      const maxIndex = team.chain.length * 2 + 1; // 初期テーマ(0) + (矢印と回答)*人数
+      if (currentIndex < maxIndex) {
+         await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', teamId), { revealedIndex: currentIndex + 1 });
+      }
+    };
+
+    // 管理者専用: 全班を次へ見る
+    window.revealNextAll = async () => {
+      const promises = allTeams.map(team => {
+        const currentIndex = team.revealedIndex || 0;
+        const maxIndex = team.chain.length * 2 + 1;
+        if (currentIndex < maxIndex) {
+           return updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', team.id), { revealedIndex: currentIndex + 1 });
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(promises);
+    };
+
+    // 管理者専用: すべて表示
+    window.revealAll = async (teamId) => {
+      const team = allTeams.find(t => t.id === teamId);
+      if (!team) return;
+      const maxIndex = team.chain.length * 2 + 1;
+      await updateDoc(doc(db, 'artifacts', AppId, 'public', 'data', 'teams', teamId), { revealedIndex: maxIndex });
+    };
+
+    // --- Shared Results Component ---
+    function buildResultsHTML() {
+      let html = `<div class="space-y-8 w-full fade-in pb-10">`;
+
+      allTeams.forEach(team => {
+        const isCorrect = team.isCorrect;
+        const iconHtml = isCorrect 
+          ? `<svg class="w-8 h-8 text-gray-800 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" /></svg>` 
+          : `<svg class="w-8 h-8 text-gray-400 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+        const resultText = isCorrect ? `<span class="text-gray-800 font-black flex items-center">${iconHtml}大正解</span>` : `<span class="text-gray-400 font-bold flex items-center">${iconHtml}残念</span>`;
+        
+        // 管理者のみ操作ボタンを表示する
+        const adminButtons = isAdmin ? `
+          <button onclick="revealNext('${team.id}')" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-black transition flex items-center" data-html2canvas-ignore>
+            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            次を見る
+          </button>
+          <button onclick="revealAll('${team.id}')" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-300 transition" data-html2canvas-ignore>すべて表示</button>
+        ` : '';
+
+        html += `
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md" id="result-team-${team.id}">
+            <h3 class="text-xl font-black mb-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 px-8 py-5 gap-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-gray-700 mr-2">${team.name}</span>
+                ${adminButtons}
+              </div>
+              <span>${resultText}</span>
+            </h3>
+            
+            <div class="flex items-center overflow-x-auto pb-8 pt-4 space-x-6 custom-scrollbar px-8">
+              
+              <!-- Initial Theme -->
+              <div class="shrink-0 flex flex-col items-center reveal-item-${team.id} opacity-0 transition-opacity duration-500 hidden" data-reveal-idx="0">
+                <div class="text-xs font-bold text-gray-400 mb-3 tracking-widest">START</div>
+                <div class="font-black text-2xl border-b-4 border-gray-800 px-6 py-8 bg-white rounded-xl min-w-[140px] text-center shadow-sm">${team.theme}</div>
+              </div>
+        `;
+
+        // Chain items
+        team.chain.forEach((item, index) => {
+          html += `
+              <!-- Arrow -->
+              <svg class="w-8 h-8 shrink-0 text-gray-300 reveal-item-${team.id} opacity-0 transition-opacity duration-500 hidden" data-reveal-idx="${index * 2 + 1}" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+          `;
+
+          html += `
+            <div class="shrink-0 flex flex-col items-center p-4 rounded-2xl bg-slate-50 border border-gray-100 shadow-sm relative pt-8 reveal-item-${team.id} opacity-0 transition-opacity duration-500 hidden" data-reveal-idx="${index * 2 + 2}">
+              <div class="absolute -top-3 bg-gray-800 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md tracking-wider">${item.player}</div>
+              <div class="mt-2">
+              ${item.type === 'draw'
+                ? `<img src="${item.data}" class="w-40 h-40 object-contain bg-white border border-gray-200 rounded-xl shadow-sm">`
+                : `<div class="font-black text-xl p-8 bg-white border border-gray-200 rounded-xl shadow-sm min-w-[160px] max-w-[220px] text-center break-words text-gray-800">${item.data}</div>`
+              }
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      
+      // Add custom scrollbar style for results
+      html += `<style>
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      </style>`;
+      
+      return html;
+    }
+
+    // --- Boot ---
+    loadExternalData().then(() => {
+      initAuth();
+    });
+
+  </script>
+</body>
+</html>
