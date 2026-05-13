@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - keke-dev.net</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* =========================================
+       CSS Variables & Base
+       ========================================= */
+    :root {
+      --bg-color: #fcfcfc; --text-main: #333333; --text-muted: #666666;
+      --accent-color: #000000; --border-color: #eaeaea;
+      --font-en: 'Inter', sans-serif; --font-jp: 'Noto Sans JP', sans-serif; --font-code: 'Fira Code', monospace;
+      --error-color: #ef4444; --hover-bg: #f5f5f5; --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-jp); background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
+    body.modal-open { overflow: hidden; }
+
+    h1, h2, h3, .nav a, .subtitle { font-family: var(--font-en); }
+    a { color: inherit; text-decoration: none; transition: opacity 0.3s ease; }
+    a:hover { opacity: 0.6; }
+
+    /* =========================================
+       Header & Navigation
+       ========================================= */
+    .header { position: fixed; top: 0; width: 100%; padding: 15px 0; background-color: rgba(252, 252, 252, 0.9); backdrop-filter: blur(8px); z-index: 100; border-bottom: 1px solid var(--border-color); }
+    .header-container { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; flex-wrap: wrap; gap: 10px; }
+    .logo { font-size: 1.2rem; font-weight: 800; letter-spacing: 0.05em; text-decoration: none; }
+
+    /* =========================================
+       Buttons
+       ========================================= */
+    .btn-auth { padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: #fff; color: var(--text-main); transition: all 0.2s; font-family: inherit; white-space: nowrap; }
+    .btn-auth:hover:not(:disabled) { background: var(--hover-bg); }
+    .btn-auth:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-auth-primary { background: var(--text-main); color: #fff; border-color: var(--text-main); }
+    .btn-auth-primary:hover:not(:disabled) { background: #555; border-color: #555; }
+    .btn-danger { color: #fff; background: var(--error-color); border-color: var(--error-color); }
+    .btn-danger:hover { background: #d32f2f; border-color: #d32f2f; }
+    .btn-success { background: #2ca02c; border-color: #2ca02c; color: #fff; }
+    .btn-success:hover { background: #248824; border-color: #248824; }
+
+    /* =========================================
+       Layout & Cards
+       ========================================= */
+    .container { max-width: 1000px; margin: 100px auto 60px; padding: 0 20px; display: none; }
+    .container.active { display: block; }
+    
+    .card { padding: 30px; border: 1px solid var(--border-color); border-radius: var(--radius); background: #fff; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    .card h2 { font-size: 1.4rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+    
+    /* Login Screen */
+    #login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box { background: #fff; padding: 40px; border-radius: var(--radius); border: 1px solid var(--border-color); width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+
+    /* Tables */
+    .table-responsive { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+    th { background: var(--hover-bg); font-weight: 600; color: var(--text-muted); position: sticky; top: 0; }
+    tr:hover td { background: var(--hover-bg); }
+    .banned-row td { background-color: #fff5f5; color: var(--text-muted); }
+    
+    /* Inputs */
+    .input-group { margin-bottom: 16px; text-align: left; }
+    .input-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+    .input-group input, .input-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; transition: border-color 0.2s; background: #fff; }
+    .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--text-main); }
+    .flex-row { display: flex; gap: 10px; align-items: center; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; overflow-x: auto; white-space: nowrap; }
+    .tab-btn { padding: 12px 20px; border: none; background: none; font-weight: 600; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 0.95rem; }
+    .tab-btn.active { color: var(--text-main); border-bottom-color: var(--text-main); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Modals */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 2000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(3px); }
+    .modal.active { display: flex; opacity: 1; }
+    .modal-content { background: #fff; padding: 30px; border-radius: var(--radius); max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); transform: translateY(20px); transition: transform 0.3s ease; }
+    .modal.active .modal-content { transform: translateY(0); }
+    .modal-content h3 { margin-bottom: 10px; font-size: 1.4rem; font-weight: 700; }
+    .close-icon-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1;}
+
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text-main); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; z-index: 9999; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* お知らせユーザーリスト用スタイル */
+    .user-list-container { border: 1px solid var(--border-color); border-radius: 6px; max-height: 200px; overflow-y: auto; padding: 10px; background: #fafafa; margin-top: 10px; }
+    .user-item { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border-color); }
+    .user-item:last-child { border-bottom: none; }
+    .user-item label { margin-left: 10px; cursor: pointer; font-size: 0.9rem; flex-grow: 1; display:flex; justify-content:space-between;}
+  </style>
+</head>
+<body>
+
+  <div id="login-screen">
+    <div class="login-box">
+      <h2 style="font-family: var(--font-en); font-weight: 800; font-size: 2rem; margin-bottom: 5px;">Admin Panel</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 25px;">keke-dev.net 統合管理システム</p>
+      <div class="input-group">
+        <input type="password" id="admin-pass-input" placeholder="管理者パスワード">
+      </div>
+      <button class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="handleLogin()">ログイン</button>
+    </div>
+  </div>
+
+  <div id="dashboard" style="display: none;">
+    <header class="header">
+      <div class="header-container">
+        <div class="logo">Admin Dashboard</div>
+        <div class="flex-row">
+          <button class="btn-auth" onclick="openModal('settings-modal')">設定</button>
+          <button class="btn-auth" style="color:var(--error-color); border-color:var(--error-color);" onclick="location.reload()">ログアウト</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container active">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('users')">ユーザー管理</button>
+        <button class="tab-btn" onclick="switchTab('distribute')">全体配布</button>
+        <button class="tab-btn" onclick="switchTab('announce')">お知らせ管理</button>
+      </div>
+
+      <div id="tab-users" class="tab-content active">
+        <div class="card">
+          <h2>
+            ユーザー一覧
+            <span style="font-size: 0.8rem; color: #2ca02c; font-weight:normal;">🟢 リアルタイム監視中</span>
+          </h2>
+          <div class="table-responsive">
+            <table id="user-table">
+              <thead>
+                <tr>
+                  <th width="60">No.</th>
+                  <th>ユーザー名</th>
+                  <th>ID (UUID)</th>
+                  <th width="100">累計日数</th>
+                  <th width="80">状態</th>
+                  <th width="80">操作</th>
+                </tr>
+              </thead>
+              <tbody id="user-tbody">
+                <tr><td colspan="6" style="text-align:center;">読み込み中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-distribute" class="tab-content">
+        <div class="card">
+          <h2>全体一斉配布 (プレゼント)</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+            BANされていない全ユーザーに、ログイン時に受け取れるプレゼントを一斉送信します。
+          </p>
+          <div class="input-group">
+            <label>送信元の名前 (ユーザー側に表示されます)</label>
+            <input type="text" id="dist-sender" value="運営チーム" placeholder="例：運営チーム">
+          </div>
+
+          <div class="input-group">
+            <label>報酬タイプ</label>
+            <select id="dist-reward-type" onchange="toggleDistRewardInput()">
+              <option value="item">アイテム</option>
+              <option value="title">称号</option>
+            </select>
+          </div>
+
+          <div class="input-group" id="dist-reward-item-group">
+            <label>付与するアイテムと個数</label>
+            <div class="flex-row">
+              <select id="dist-reward-item" style="flex: 1;"></select>
+              <input type="number" id="dist-reward-amount" value="1" style="width: 80px;">
+            </div>
+          </div>
+
+          <div class="input-group" id="dist-reward-title-group" style="display: none;">
+            <label>付与する称号</label>
+            <select id="dist-reward-title"></select>
+          </div>
+
+          <button class="btn-auth btn-success" style="padding: 10px 20px; margin-top: 10px;" onclick="distributeToAll()">全ユーザーに一斉配布する</button>
+        </div>
+      </div>
+
+      <div id="tab-announce" class="tab-content">
+        <div class="card">
+          <h2>お知らせ送信</h2>
+          <div class="input-group">
+            <label>送信先</label>
+            <div class="flex-row">
+              <label><input type="radio" name="target-type" value="all" checked onchange="toggleUserList()"> 全員（グローバル）</label>
+              <label><input type="radio" name="target-type" value="personal" onchange="toggleUserList()"> 特定のユーザー（個別）</label>
+            </div>
+          </div>
+          
+          <div id="personal-target-section" style="display: none; margin-bottom: 15px;">
+            <label style="font-size: 0.85rem; font-weight: 600;">送信するユーザーを選択</label>
+            <div style="margin-bottom: 5px;">
+              <button class="btn-auth" style="padding: 4px 8px; font-size: 0.8rem;" onclick="selectAllUsers(true)">全選択</button>
+              <button class="btn-auth" style="padding: 4px 8px; font-size: 0.8rem;" onclick="selectAllUsers(false)">全解除</button>
+            </div>
+            <div id="announce-user-list" class="user-list-container">
+              <p style="color: var(--text-muted); font-size: 0.85rem;">読み込み中...</p>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>タイトル</label>
+            <input type="text" id="announce-title" placeholder="例: メンテナンスのお知らせ">
+          </div>
+          <div class="input-group">
+            <label>メッセージ内容</label>
+            <textarea id="announce-body" placeholder="お知らせの内容..." style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; min-height: 100px; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+          </div>
+          <button class="btn-auth btn-success" style="padding: 10px 20px; margin-top: 10px;" onclick="sendAnnouncement()">お知らせを送信する</button>
+        </div>
+
+        <div class="card">
+          <h2>送信済み 全体お知らせ管理</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">ここから削除すると、全ユーザーの画面からもお知らせが消えます。（個別送信したお知らせはここには表示されません）</p>
+          <div id="admin-announce-list" class="user-list-container" style="max-height: 400px; padding: 15px;">
+             <p style="color: var(--text-muted); font-size: 0.85rem;">読み込み中...</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="user-modal" class="modal">
+    <div class="modal-content">
+      <button class="close-icon-btn" onclick="closeModal('user-modal')">×</button>
+      <h3 id="edit-user-title">ユーザー編集</h3>
+      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px; font-family: var(--font-code);">UID: <span id="edit-uid"></span></p>
+      
+      <div class="input-group">
+        <label>ユーザー名の強制変更</label>
+        <div class="flex-row">
+          <input type="text" id="edit-username">
+          <button class="btn-auth" onclick="updateUsername()">変更</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>アイテム強制付与 / 没収 (マイナスで没収)</label>
+        <div class="flex-row">
+          <select id="edit-item-select" style="flex: 1;"></select>
+          <input type="number" id="edit-item-amount" value="1" style="width: 70px;">
+          <button class="btn-auth btn-auth-primary" onclick="giveItem()">実行</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>称号の強制付与</label>
+        <div class="flex-row">
+          <select id="edit-title-select" style="flex: 1;"></select>
+          <button class="btn-auth btn-auth-primary" onclick="giveTitle()">付与</button>
+        </div>
+      </div>
+
+      <hr style="border:0; border-top:1px dashed var(--border-color); margin: 25px 0;">
+
+      <div style="margin-bottom: 15px;">
+         <button class="btn-auth" style="width: 100%; font-size: 0.85rem;" onclick="showRawUserData()">詳しい詳細 (すべてのデータベース情報) を表示</button>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button id="btn-ban" class="btn-auth btn-danger" style="flex: 1; padding: 12px;" onclick="toggleBan('banned')"></button>
+        <button id="btn-secret-ban" class="btn-auth" style="flex: 1; padding: 12px; background-color: #9c27b0; border-color: #9c27b0; color: #fff;" onclick="toggleBan('secretBanned')"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="raw-data-modal" class="modal" style="z-index: 3600;">
+    <div class="modal-content" style="max-width: 600px; width: 95%;">
+      <button class="close-icon-btn" onclick="closeModal('raw-data-modal')">×</button>
+      <h3 style="margin-bottom: 10px;">データベース詳細</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Firestoreに保存されている対象ユーザーの全データです。</p>
+      <pre id="raw-data-display" style="background: var(--hover-bg); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); font-family: var(--font-code); font-size: 0.8rem; text-align: left; max-height: 50vh; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+      <button class="btn-auth btn-auth-primary" style="width: 100%; padding: 12px; margin-top: 15px;" onclick="closeModal('raw-data-modal')">閉じる</button>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <button class="close-icon-btn" onclick="closeModal('settings-modal')">×</button>
+      <h3>管理者設定</h3>
+
+      <div class="input-group" style="margin-top: 20px;">
+        <label>システムロック (メンテナンスモード)</label>
+        <div class="flex-row" style="justify-content: space-between;">
+          <span id="lock-status-text" style="font-weight:bold; color:#2ca02c;">通常稼働中</span>
+          <button id="btn-toggle-lock" class="btn-auth btn-danger" onclick="toggleMaintenance()">ロックする</button>
+        </div>
+      </div>
+
+      <hr style="border:0; border-top:1px dashed var(--border-color); margin: 25px 0;">
+
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">システムのログインパスワードを変更します。</p>
+      <div class="input-group">
+        <label>新しいパスワード</label>
+        <input type="text" id="new-admin-pass" placeholder="半角英数字で入力">
+      </div>
+      <button class="btn-auth btn-danger" style="width: 100%; padding: 12px;" onclick="updateAdminPass()">パスワードを変更</button>
+    </div>
+  </div>
+
+  <div id="toast">通知</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, getDoc, doc, updateDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.net",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allUsers = [];
+    let currentEditUid = null;
+    let currentEditData = null;
+    let usersUnsub = null;
+
+    let systemSettings = null;
+    let sysUnsub = null;
+    
+    let globalAnnouncements = [];
+    let annUnsub = null;
+
+    // JSONデータ保持用
+    let jsonTitles = [];
+    let jsonItems = new Set(["時間短縮カード", "100連専用チケット", "誕生日ケーキ"]);
+
+    // ヘルパー関数
+    window.calcTotalItems = function(inv) {
+      if(!inv) return 0;
+      return Object.values(inv).reduce((a, b) => a + b, 0);
+    };
+
+    window.showToast = (msg) => {
+      const t = document.getElementById('toast'); t.textContent = msg; 
+      t.classList.add('show');
+      setTimeout(() => { t.classList.remove('show'); }, 3000);
+    };
+    
+    window.openModal = (id) => {
+      document.getElementById(id).classList.add('active');
+      document.body.classList.add('modal-open');
+    };
+    
+    window.closeModal = (id) => {
+      document.getElementById(id).classList.remove('active');
+      document.body.classList.remove('modal-open');
+    };
+    
+    window.switchTab = (tabId) => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    };
+
+    // 入力フォームのトグル切り替え
+    window.toggleDistRewardInput = () => {
+      const type = document.getElementById('dist-reward-type').value;
+      document.getElementById('dist-reward-title-group').style.display = type === 'title' ? 'block' : 'none';
+      document.getElementById('dist-reward-item-group').style.display = type === 'item' ? 'block' : 'none';
+    };
+
+    // JSON読み込みとプルダウン生成 (全JSONからアイテム名を抽出)
+    document.addEventListener('DOMContentLoaded', () => {
+      Promise.all([
+        fetch('gacha.json').then(r=>r.json()).catch(()=>[]), 
+        fetch('titles.json').then(r=>r.json()).catch(()=>[]),
+        fetch('items.json').then(r=>r.json()).catch(()=>({})),
+        fetch('loginbonus.json').then(r=>r.json()).catch(()=>[]),
+        fetch('code.json').then(r=>r.json()).catch(()=>({})),
+        fetch('shop.json').then(r=>r.json()).catch(()=>[])
+      ]).then(([gData, tData, iData, lbData, cData, sData]) => {
+        if(tData && Array.isArray(tData)) {
+          jsonTitles = tData;
+        }
+        
+        if (iData && typeof iData === 'object') {
+          Object.keys(iData).forEach(k => jsonItems.add(k));
+        }
+        if(gData && Array.isArray(gData)) {
+          gData.forEach(g => {
+            if(g.items) g.items.forEach(i => jsonItems.add(i.name));
+          });
+        }
+        if (sData && Array.isArray(sData)) {
+          sData.forEach(s => { if(s.name) jsonItems.add(s.name); });
+        }
+        if (lbData && Array.isArray(lbData)) {
+          lbData.forEach(lb => { if(lb.type === 'item' && lb.name) jsonItems.add(lb.name); });
+        }
+        if (cData && typeof cData === 'object') {
+          Object.values(cData).forEach(c => { if(c.type === 'item' && c.name) jsonItems.add(c.name); });
+        }
+
+        generateSelectBoxes();
+      });
+    });
+
+    function generateSelectBoxes() {
+      const titleOptions = '<option value="">-- JSONから選択 --</option>' + 
+        jsonTitles.map(t => `<option value="${t.id}">${t.name} (ID: ${t.id})</option>`).join('');
+      
+      document.getElementById('edit-title-select').innerHTML = titleOptions;
+      document.getElementById('dist-reward-title').innerHTML = titleOptions;
+
+      const itemOptions = '<option value="">-- JSONから選択 --</option>' + 
+        [...jsonItems].sort().map(item => `<option value="${item}">${item}</option>`).join('');
+      
+      document.getElementById('edit-item-select').innerHTML = itemOptions;
+      document.getElementById('dist-reward-item').innerHTML = itemOptions;
+    }
+
+    // --- Admin ロック(メンテナンス)の監視 ---
+    function listenSystemSettings() {
+      if(sysUnsub) sysUnsub();
+      sysUnsub = onSnapshot(doc(db, "system", "settings"), (snap) => {
+        if(snap.exists()) {
+          systemSettings = snap.data();
+          updateLockUI();
+        } else {
+          setDoc(doc(db, "system", "settings"), { isMaintenance: false });
+        }
+      });
+    }
+
+    function updateLockUI() {
+      const statusEl = document.getElementById('lock-status-text');
+      const btnEl = document.getElementById('btn-toggle-lock');
+      if(!systemSettings) return;
+
+      if(systemSettings.isMaintenance) {
+        statusEl.textContent = "メンテナンス中 (ロック中)";
+        statusEl.style.color = "var(--error-color)";
+        btnEl.textContent = "ロック解除";
+        btnEl.className = "btn-auth btn-success";
+      } else {
+        statusEl.textContent = "通常稼働中";
+        statusEl.style.color = "#2ca02c";
+        btnEl.textContent = "ロックする";
+        btnEl.className = "btn-auth btn-danger";
+      }
+    }
+
+    window.toggleMaintenance = async () => {
+      if(!systemSettings) return;
+      const newState = !systemSettings.isMaintenance;
+      if(confirm(newState ? "システムをロックし、メンテナンス画面を表示しますか？" : "ロックを解除して一般公開しますか？")) {
+        await updateDoc(doc(db, "system", "settings"), { isMaintenance: newState });
+        window.showToast(newState ? "システムをロックしました" : "ロックを解除しました");
+      }
+    };
+
+
+    // --- 全体お知らせの監視と描画 ---
+    function listenAnnouncements() {
+      if(annUnsub) annUnsub();
+      annUnsub = onSnapshot(doc(db, "system", "announcements"), (snap) => {
+        if(snap.exists()) {
+          globalAnnouncements = snap.data().messages || [];
+        } else {
+          globalAnnouncements = [];
+        }
+        renderAdminAnnouncements();
+      });
+    }
+
+    window.renderAdminAnnouncements = () => {
+      const container = document.getElementById('admin-announce-list');
+      if(!container) return;
+      
+      if(globalAnnouncements.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding: 20px;">送信済みのお知らせはありません。</p>';
+        return;
+      }
+
+      let html = '';
+      globalAnnouncements.forEach(m => {
+        html += `
+          <div style="border-bottom: 1px dashed var(--border-color); padding: 15px 0; display:flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex-grow: 1; padding-right: 15px;">
+              <div style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-code); margin-bottom:5px;">${m.date}</div>
+              <div style="font-weight:bold; font-size:0.95rem; color:var(--text-main); margin-bottom:5px;">${m.title}</div>
+              <div style="font-size:0.85rem; color:var(--text-muted); white-space:pre-wrap;">${m.message}</div>
+            </div>
+            <button class="btn-auth btn-danger" style="padding:6px 12px; font-size:0.8rem; flex-shrink:0;" onclick="deleteGlobalAnnouncement(${m.id})">削除</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    };
+
+    window.deleteGlobalAnnouncement = async (id) => {
+      if(!confirm("この全体お知らせを削除しますか？\n(ユーザー側の画面からも即座に消えます)")) return;
+      try {
+        const newMsgs = globalAnnouncements.filter(m => m.id !== id);
+        await updateDoc(doc(db, "system", "announcements"), { messages: newMsgs });
+        window.showToast("お知らせを削除しました");
+      } catch(e) {
+        window.showToast("削除に失敗しました");
+        console.error(e);
+      }
+    };
+
+
+    // Admin Auth
+    window.handleLogin = async () => {
+      const input = document.getElementById('admin-pass-input').value;
+      if(!input) return;
+
+      try {
+        const docRef = doc(db, "system", "admin");
+        const snap = await getDoc(docRef);
+        let correctPass = "keke-admin";
+        if(snap.exists()) {
+          correctPass = snap.data().password;
+        } else {
+          await setDoc(docRef, { password: correctPass });
+        }
+
+        if(input === correctPass) {
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('dashboard').style.display = 'block';
+          loadUsers(); // リアルタイム監視スタート
+          listenSystemSettings(); // ロックの監視スタート
+          listenAnnouncements(); // お知らせの監視スタート
+        } else {
+          alert("パスワードが違います");
+        }
+      } catch(e) {
+        alert("データベース接続エラーです。Firebaseのルールの設定等を確認してください。");
+      }
+    };
+
+    window.updateAdminPass = async () => {
+      const newPass = document.getElementById('new-admin-pass').value.trim();
+      if(!newPass) return;
+      if(confirm("パスワードを変更しますか？次回からこのパスワードが必要になります。")) {
+        await updateDoc(doc(db, "system", "admin"), { password: newPass });
+        window.showToast("パスワードを変更しました");
+        closeModal('settings-modal');
+        document.getElementById('new-admin-pass').value = '';
+      }
+    };
+
+    // Load Users (Realtime onSnapshot)
+    window.loadUsers = () => {
+      const tbody = document.getElementById('user-tbody');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">読み込み中...</td></tr>';
+      
+      if(usersUnsub) usersUnsub();
+      
+      usersUnsub = onSnapshot(collection(db, "users"), (snap) => {
+        allUsers = [];
+        snap.forEach(doc => {
+          allUsers.push({ uid: doc.id, ...doc.data() });
+        });
+
+        allUsers.sort((a, b) => (a.userNo || 9999) - (b.userNo || 9999));
+
+        tbody.innerHTML = '';
+        allUsers.forEach(u => {
+          let banStatusText = '正常';
+          let rowClass = '';
+          if (u.banned) {
+            banStatusText = '<span style="color:var(--error-color); font-weight:bold;">通常BAN</span>';
+            rowClass = 'class="banned-row"';
+          } else if (u.secretBanned) {
+            banStatusText = '<span style="color:#9c27b0; font-weight:bold;">シークレットBAN</span>';
+            rowClass = 'class="banned-row"';
+          }
+
+          tbody.innerHTML += `
+            <tr ${rowClass}>
+              <td>${u.userNo || '-'}</td>
+              <td style="font-weight:bold;">${u.displayName || u.username}</td>
+              <td style="font-family:var(--font-code); font-size:0.8rem; color:var(--text-muted);">${u.loginId}</td>
+              <td>${u.loginDays || 0}日</td>
+              <td>${banStatusText}</td>
+              <td><button class="btn-auth" style="padding:4px 10px; font-size:0.8rem;" onclick="openUserModal('${u.uid}')">編集</button></td>
+            </tr>
+          `;
+        });
+
+        // お知らせ用のチェックボックスリストも更新
+        updateAnnounceUserList();
+        
+        // もし現在モーダルで編集中のユーザーがいたら、バックグラウンドのデータも最新化する
+        if (currentEditUid) {
+          currentEditData = allUsers.find(u => u.uid === currentEditUid);
+          updateModalBanButtons(); // モーダル内のボタンの表示も更新
+        }
+      }, (error) => {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">データ取得エラー。ルール設定を確認してください。</td></tr>';
+      });
+    };
+
+    // --- モーダル内のBANボタン表示の更新用 ---
+    function updateModalBanButtons() {
+      if(!currentEditData) return;
+      const banBtn = document.getElementById('btn-ban');
+      if(currentEditData.banned) {
+        banBtn.textContent = "通常BANを解除";
+        banBtn.style.backgroundColor = "#2ca02c";
+        banBtn.style.borderColor = "#2ca02c";
+      } else {
+        banBtn.textContent = "通常BANを実行";
+        banBtn.style.backgroundColor = "var(--error-color)";
+        banBtn.style.borderColor = "var(--error-color)";
+      }
+
+      const secBanBtn = document.getElementById('btn-secret-ban');
+      if(currentEditData.secretBanned) {
+        secBanBtn.textContent = "シークレットBANを解除";
+        secBanBtn.style.backgroundColor = "#2ca02c";
+        secBanBtn.style.borderColor = "#2ca02c";
+      } else {
+        secBanBtn.textContent = "シークレットBANを実行";
+        secBanBtn.style.backgroundColor = "#9c27b0";
+        secBanBtn.style.borderColor = "#9c27b0";
+      }
+    }
+
+    // --- お知らせ用ユーザーリスト更新 ---
+    function updateAnnounceUserList() {
+      const container = document.getElementById('announce-user-list');
+      if(!container) return;
+      container.innerHTML = '';
+      if(allUsers.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">ユーザーがいません</p>';
+        return;
+      }
+      
+      // BANされていないユーザーのみ選択可能にするのが親切
+      const validUsers = allUsers.filter(u => !u.banned && !u.secretBanned);
+      
+      validUsers.forEach(u => {
+        container.innerHTML += `
+          <div class="user-item">
+            <input type="checkbox" id="cb_${u.uid}" class="announce-user-cb" value="${u.uid}">
+            <label for="cb_${u.uid}">
+              <span>${u.displayName || u.username}</span>
+              <span style="font-size:0.8rem; color:gray;">(ID: ${u.loginId})</span>
+            </label>
+          </div>
+        `;
+      });
+    }
+
+    // --- お知らせ送信関連 ---
+    window.toggleUserList = () => {
+      const isPersonal = document.querySelector('input[name="target-type"]:checked').value === 'personal';
+      document.getElementById('personal-target-section').style.display = isPersonal ? 'block' : 'none';
+    };
+
+    window.selectAllUsers = (state) => {
+      document.querySelectorAll('.announce-user-cb').forEach(cb => cb.checked = state);
+    };
+
+    window.sendAnnouncement = async () => {
+      const title = document.getElementById('announce-title').value.trim();
+      const body = document.getElementById('announce-body').value.trim();
+      const targetType = document.querySelector('input[name="target-type"]:checked').value;
+
+      if(!title || !body) { window.showToast("タイトルと内容を入力してください"); return; }
+
+      const timestamp = Date.now();
+      const dateStr = new Date().toLocaleString('ja-JP');
+      const annData = { 
+        id: timestamp, 
+        title: title, 
+        message: body, 
+        date: dateStr, 
+        read: false 
+      };
+
+      if(targetType === 'all') {
+        if(!confirm("全員にお知らせを送信しますか？")) return;
+        
+        try {
+          const annRef = doc(db, "system", "announcements");
+          const snap = await getDoc(annRef);
+          let msgs = [];
+          if(snap.exists() && snap.data().messages) {
+            msgs = snap.data().messages;
+          }
+          // 配列の先頭に追加（新しいものが上に来るように）
+          msgs.unshift(annData);
+          await setDoc(annRef, { messages: msgs }, { merge: true });
+          
+          window.showToast("全員にお知らせを送信しました");
+          document.getElementById('announce-title').value = '';
+          document.getElementById('announce-body').value = '';
+        } catch(e) { window.showToast("送信失敗"); console.error(e); }
+
+      } else {
+        // 個別送信
+        const cbs = document.querySelectorAll('.announce-user-cb:checked');
+        if(cbs.length === 0) { window.showToast("送信先を選択してください"); return; }
+        if(!confirm(`選択した ${cbs.length} 名にお知らせを送信しますか？`)) return;
+
+        try {
+          for(let cb of cbs) {
+            const uRef = doc(db, "users", cb.value);
+            const uSnap = await getDoc(uRef);
+            if(uSnap.exists()) {
+              let d = uSnap.data();
+              let inbox = d.inbox || [];
+              inbox.unshift(annData);
+              await updateDoc(uRef, { inbox: inbox });
+            }
+          }
+          window.showToast(`${cbs.length}名に送信しました`);
+          document.getElementById('announce-title').value = '';
+          document.getElementById('announce-body').value = '';
+        } catch(e) { window.showToast("一部の送信に失敗しました"); console.error(e); }
+      }
+    };
+
+    // User Edit Modal
+    window.openUserModal = (uid) => {
+      currentEditUid = uid;
+      currentEditData = allUsers.find(u => u.uid === uid);
+      if(!currentEditData) return;
+
+      document.getElementById('edit-user-title').textContent = currentEditData.displayName || currentEditData.username;
+      document.getElementById('edit-uid').textContent = uid;
+      document.getElementById('edit-username').value = currentEditData.displayName || currentEditData.username;
+      
+      updateModalBanButtons();
+      openModal('user-modal');
+    };
+
+    window.updateUsername = async () => {
+      const newName = document.getElementById('edit-username').value.trim();
+      if(!newName) return;
+      if(confirm(`名前を「${newName}」に強制変更しますか？`)) {
+        await updateDoc(doc(db, "users", currentEditUid), { displayName: newName });
+        window.showToast("名前を変更しました");
+      }
+    };
+
+    window.giveItem = async () => {
+      const itemName = document.getElementById('edit-item-select').value;
+      const amount = parseInt(document.getElementById('edit-item-amount').value);
+      
+      if(!itemName) { window.showToast("アイテムを選択してください"); return; }
+      if(isNaN(amount)) { window.showToast("個数を入力してください"); return; }
+      
+      let inv = currentEditData.inventory || {};
+      inv[itemName] = (inv[itemName] || 0) + amount;
+      
+      if (inv[itemName] <= 0) {
+        delete inv[itemName];
+      }
+
+      const action = amount >= 0 ? '付与' : '没収';
+      if(confirm(`【${itemName}】を ${Math.abs(amount)} 個 ${action}しますか？`)) {
+        await updateDoc(doc(db, "users", currentEditUid), { inventory: inv, totalItemCount: calcTotalItems(inv) });
+        window.showToast(`アイテムを${action}しました`);
+      }
+    };
+
+    window.giveTitle = async () => {
+      const titleId = document.getElementById('edit-title-select').value;
+      if(!titleId) { window.showToast("称号を選択してください"); return; }
+      
+      let titles = currentEditData.unlockedTitles || [];
+      if(titles.includes(titleId)) {
+        window.showToast("このユーザーはすでにこの称号を所持しています"); return;
+      }
+      titles.push(titleId);
+
+      const titleName = jsonTitles.find(t => t.id === titleId)?.name || titleId;
+
+      if(confirm(`称号【${titleName}】を強制付与しますか？`)) {
+        await updateDoc(doc(db, "users", currentEditUid), { unlockedTitles: titles, titleCount: titles.length });
+        window.showToast("称号を付与しました");
+      }
+    };
+
+    // BAN切替機能 (通常BAN / シークレットBAN 両対応)
+    window.toggleBan = async (type) => {
+      const isCurrentlyBanned = currentEditData[type] || false;
+      const newState = !isCurrentlyBanned;
+      
+      const typeName = type === 'banned' ? '通常BAN' : 'シークレットBAN';
+      const msg = newState 
+        ? `本当に ${typeName} を実行しますか？対象者は二度とログイン・新規登録ができなくなります。` 
+        : `${typeName} を解除しますか？`;
+      
+      if(confirm(msg)) {
+        await updateDoc(doc(db, "users", currentEditUid), { [type]: newState });
+        window.showToast(newState ? `${typeName} を実行しました` : `${typeName} を解除しました`);
+      }
+    };
+    
+    // --- 生データ表示機能 (Admin用) ---
+    window.showRawUserData = () => {
+      if (!currentEditData) {
+        window.showToast("データが見つかりません");
+        return;
+      }
+      const display = document.getElementById('raw-data-display');
+      display.textContent = JSON.stringify(currentEditData, null, 2);
+      openModal('raw-data-modal');
+    };
+
+    // 全体配布システム
+    window.distributeToAll = async () => {
+      const sender = document.getElementById('dist-sender').value.trim() || "運営チーム";
+      const rewardType = document.getElementById('dist-reward-type').value;
+      let rewardId = "", rewardAmount = 1, rewardName = "";
+
+      if (rewardType === 'title') {
+        rewardId = document.getElementById('dist-reward-title').value;
+        if(!rewardId) return window.showToast("称号を選択してください");
+        rewardName = jsonTitles.find(t => t.id === rewardId)?.name || rewardId;
+      } else {
+        rewardId = document.getElementById('dist-reward-item').value;
+        rewardAmount = parseInt(document.getElementById('dist-reward-amount').value) || 1;
+        if(!rewardId) return window.showToast("アイテムを選択してください");
+        rewardName = rewardId;
+      }
+
+      const rewardDetailText = rewardType === 'title' ? `称号「${rewardName}」` : `アイテム「${rewardName}」×${rewardAmount}`;
+
+      if(!confirm(`【全体一斉配布】\n送り主: ${sender}\n報酬: ${rewardDetailText}\n\nBANされていない全ユーザーに配布します。よろしいですか？`)) return;
+
+      // 最新のユーザーリストは allUsers に入っている
+      let eligibleUsers = allUsers.filter(u => !u.banned && !u.secretBanned);
+      let count = 0;
+
+      for (let u of eligibleUsers) {
+        let updates = {};
+        
+        if (rewardType === 'title') {
+          let titles = u.unlockedTitles || [];
+          if(!titles.includes(rewardId)) {
+            titles.push(rewardId);
+            updates.unlockedTitles = titles;
+            updates.titleCount = titles.length;
+          }
+        } else {
+          let inv = u.inventory || {};
+          inv[rewardId] = (inv[rewardId] || 0) + rewardAmount;
+          updates.inventory = inv;
+          updates.totalItemCount = calcTotalItems(inv);
+        }
+        
+        let gifts = u.gifts || [];
+        gifts.push({
+          from: sender,
+          name: rewardType === 'title' ? `称号『${rewardName}』` : rewardName,
+          amount: rewardType === 'title' ? 1 : rewardAmount
+        });
+        updates.gifts = gifts;
+
+        if(Object.keys(updates).length > 0) {
+          await updateDoc(doc(db, "users", u.uid), updates);
+          count++;
+        }
+      }
+
+      alert(`一斉配布完了！\n${count}人のユーザーにプレゼントを送信しました！`);
+    };
+
+  </script>
+</body>
+</html>

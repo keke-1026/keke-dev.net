@@ -1,0 +1,63 @@
+{
+  "誕生日ケーキ": {
+    "name": "誕生日ケーキ",
+    "type": "collection",
+    "image": "cake.png",
+    "description": "記念のケーキ。特に効果はない。"
+  },
+  "iphone17promax": {
+    "name": "iphone17promax",
+    "type": "collection",
+    "image": "iphone17promax.png",
+    "description": "最新のスマートフォン。特に効果はない。"
+  },
+  "ドナルド": {
+    "name": "ドナルド",
+    "type": "collection",
+    "image": "donald.jpg",
+    "description": "ドナルド。特に効果はない。"
+  },
+  "GalaxyS26ultra": {
+    "name": "GalaxyS26ultra",
+    "type": "collection",
+    "image": "galaxys26ultra.jpg",
+    "description": "最新のAndroidスマートフォン。"
+  },
+  "アイスティー": {
+    "name": "アイスティー",
+    "type": "usable",
+    "image": "iced_tea.png",
+    "description": "飲むと50%の確率で時間短縮カード100枚獲得、50%の確率で1時間眠ってしまう。",
+    "events": [
+      {
+        "type": "probability",
+        "chance": 50,
+        "onSuccess": [
+          {
+            "action": "give_item",
+            "itemName": "時間短縮カード",
+            "amount": 100
+          },
+          {
+            "action": "show_message",
+            "title": "大成功！",
+            "message": "最高のアイスティーだった！時間短縮カードを100枚獲得した！"
+          }
+        ],
+        "onFailure": [
+          {
+            "action": "add_status",
+            "statusType": "sleep",
+            "durationMinutes": 60
+          },
+          {
+            "action": "show_message",
+            "title": "睡眠状態",
+            "message": "睡眠薬入りだったようだ...。1時間眠ってしまった。",
+            "isError": true
+          }
+        ]
+      }
+    ]
+  }
+}

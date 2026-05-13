@@ -1,0 +1,78 @@
+[
+  {
+    "id": "novice",
+    "name": "見習い開発者",
+    "desc": "アカウントを作成した証",
+    "rarity": "N"
+  },
+  {
+    "id": "miku_fan",
+    "name": "ミクファン",
+    "desc": "ミクのファンであることを示す称号",
+    "rarity": "SR"
+  },
+  {
+    "id": "raden_odengame_master",
+    "name": "らでんおでんゲームマスター(?)",
+    "desc": "なんでもガチャから奇跡的に引き当てる",
+    "rarity": "UR",
+    "secret": true
+  },
+  {
+    "id": "gacha_master",
+    "name": "ガチャマスター(2%)",
+    "desc": "なんでもガチャから奇跡的に引き当てる",
+    "rarity": "UR",
+    "secret": true
+  },
+  {
+    "id": "kinoko_ha",
+    "name": "きのこ派",
+    "desc": "おやつガチャできのこの山を引く",
+    "rarity": "SSR",
+    "secret": true
+  },
+  {
+    "id": "takenoko_ha",
+    "name": "たけのこ派",
+    "desc": "おやつガチャでたけのこの里を引く",
+    "rarity": "SSR",
+    "secret": true
+  },
+  {
+    "id": "login_3days",
+    "name": "三日坊主回避",
+    "desc": "累計3日ログインする",
+    "conditionType": "loginDays",
+    "conditionValue": 3,
+    "rarity": "R",
+    "secret": false
+  },
+  {
+    "id": "gacha_addict",
+    "name": "ガチャ依存症",
+    "desc": "ガチャを合計10回まわす",
+    "conditionType": "gachaCount",
+    "conditionValue": 10,
+    "rarity": "SR",
+    "secret": true
+  },
+  {
+    "id": "gacha_addict_advanced",
+    "name": "ガチャ廃人",
+    "desc": "ガチャを合計100回まわす",
+    "conditionType": "gachaCount",
+    "conditionValue": 100,
+    "rarity": "SR",
+    "secret": true
+  },
+  {
+    "id": "gacha_addict",
+    "name": "ガチャにしか目がない人",
+    "desc": "ガチャを合計10000回まわす",
+    "conditionType": "gachaCount",
+    "conditionValue": 10000,
+    "rarity": "UR",
+    "secret": true
+  }
+]

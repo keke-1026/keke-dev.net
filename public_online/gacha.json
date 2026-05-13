@@ -1,0 +1,68 @@
+[
+  {
+    "id": "nandemo-gacha",
+    "title": "なんでもガチャ",
+    "description": "なんでもはいってるよ!!いろんなものや称号をゲットしよう。（1時間に1回プレイ可能）",
+    "config": {
+      "cooldownHours": 1
+    },
+    "rarities": {
+      "N":  { "name": "ノーマル", "color": "#888888", "weight": 40 },
+      "R":  { "name": "レア", "color": "#2ca02c", "weight": 30 },
+      "SR": { "name": "Sレア", "color": "#1f77b4", "weight": 20 },
+      "UR": { "name": "Uレア", "color": "#ff7f0e", "weight": 10 }
+    },
+    "items": [
+      { "name": "謎のドナルド", "rarity": "N", "type": "item", "image": "donald.jpg" },
+      { "name": "おいしそうなチョコ", "rarity": "N", "type": "item", "image": "choco.jpg" },
+      { "name": "将棋のこま", "rarity": "R", "type": "item", "image": "syougi.png" },
+      { "name": "iPhone1", "rarity": "R", "type": "item", "image": "original-iphone.png" },
+      { "name": "ぐーぐるぴくるす!!", "rarity": "SR", "type": "item", "image": "pixel.png" },
+      { "name": "ミク", "rarity": "SR", "type": "item", "image": "mikutop.jpg" },
+      { "name": "称号『ミクのファン』", "rarity": "SR", "type": "title", "titleId": "miku_fan", "image": "mikutop.jpg" },
+      { "name": "称号『らでんおでんゲームマスター(?)』", "rarity": "UR", "type": "title", "titleId": "raden_odengame_master", "image": "radenoden.jpg" },
+      { "name": "称号『ガチャマスター(10%)』", "rarity": "UR", "type": "title", "titleId": "gacha_master", "image": "gacha.jpg" }
+    ]
+  },
+  {
+    "id": "snack_gacha",
+    "title": "おやつガチャ",
+    "description": "おやつ!!（3時間に1回プレイ可能）",
+    "config": {
+      "cooldownHours": 3
+    },
+    "rarities": {
+      "N":   { "name": "ノーマル", "color": "#888888", "weight": 65 },
+      "R":   { "name": "レア", "color": "#2ca02c", "weight": 25 },
+      "SSR": { "name": "SSレア", "color": "#d62728", "weight": 10 }
+    },
+    "items": [
+      { "name": "ブラックコーヒー", "rarity": "N", "type": "item", "image": "" },
+      { "name": "板チョコ", "rarity": "N", "type": "item", "image": "" },
+      { "name": "エナジードリンク", "rarity": "R", "type": "item", "image": "" },
+      { "name": "きのこの山", "rarity": "SSR", "type": "item", "image": "" },
+      { "name": "たけのこの里", "rarity": "SSR", "type": "item", "image": "" },
+      { "name": "称号『きのこ派』", "rarity": "SSR", "type": "title", "titleId": "kinoko_ha", "image": "" },
+      { "name": "称号『たけのこ派』", "rarity": "SSR", "type": "title", "titleId": "takenoko_ha", "image": "" }
+    ]
+  },
+  {
+    "id": "gachatime_gacha",
+    "title": "にぶいち時間短縮ガチャ",
+    "description": "時間短縮カードを獲得できるガチャ（1日1回プレイ可能）(短縮,10連100連なし)",
+    "config": {
+      "cooldownHours": 24,
+      "allow10": false,
+      "allow100": false,
+      "allowSkip": false
+    },
+    "rarities": {
+      "N":   { "name": "ノーマル", "color": "#888888", "weight": 50 },
+      "SECRET": { "name": "SECRETレア", "color": "#9467bd", "weight": 50 }
+    },
+    "items": [
+      { "name": "時間短縮カード", "rarity": "N", "type": "item", "image": "" },
+      { "name": "100連専用チケット", "rarity": "SECRET", "type": "item", "image": "" }
+    ]
+  }
+]
