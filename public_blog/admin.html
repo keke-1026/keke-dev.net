@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kekelog 管理画面</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #f7f9f9;
+            margin: 0;
+            padding: 30px 20px;
+            color: #333333;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .panel {
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+        h1, h2 { text-align: center; margin-top: 0; color: #111111; }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #444444;
+            font-size: 14px;
+        }
+        .draft-badge {
+            font-size: 11px;
+            background: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 10px;
+            color: #4a5568;
+            display: none;
+        }
+        input[type="text"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 15px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-family: inherit;
+            color: #333333;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #cbd5e1;
+            background: #ffffff;
+        }
+        textarea { height: 350px; resize: vertical; line-height: 1.6; }
+        
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            background: #f0f2f5;
+            padding: 10px;
+            border-radius: 12px;
+        }
+        .tool-btn {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #4a5568;
+            transition: background 0.2s;
+        }
+        .tool-btn:hover { background: #e2e8f0; }
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0 8px;
+        }
+        input[type="color"] {
+            border: none;
+            background: transparent;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        button.submit-btn, button.cancel-btn {
+            flex: 1;
+            padding: 16px;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.2s;
+        }
+        button.submit-btn { background: #333333; }
+        button.submit-btn:hover { background: #111111; }
+        button.cancel-btn { background: #a0aec0; display: none; }
+        button.cancel-btn:hover { background: #718096; }
+        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+        
+        .hidden { display: none !important; }
+        #status-message {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        #login-section {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .split-layout {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+        }
+        .split-left {
+            flex: 1;
+            min-width: 0;
+        }
+        .split-right {
+            width: 350px;
+            flex-shrink: 0;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .split-right::-webkit-scrollbar { width: 6px; }
+        .split-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .list-item {
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .list-item-info { margin-bottom: 10px; }
+        .list-item-info strong {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 5px;
+            color: #222222;
+        }
+        .list-item-info span {
+            font-size: 12px;
+            color: #888888;
+        }
+        .status-badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-left: 5px;
+        }
+        .status-draft { background: #fed7d7; color: #c53030; }
+        .status-published { background: #c6f6d5; color: #2f855a; }
+        .status-locked { background: #fefcbf; color: #975a16; }
+        
+        .list-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 6px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            transition: 0.2s;
+        }
+        .edit-btn { background: #4a5568; }
+        .edit-btn:hover { background: #2d3748; }
+        .delete-btn { background: #e53e3e; }
+        .delete-btn:hover { background: #c53030; }
+
+        @media (max-width: 900px) {
+            .split-layout { flex-direction: column; }
+            .split-right {
+                width: 100%;
+                max-height: none;
+                overflow-y: visible;
+                border-top: 1px solid #eef0f2;
+                padding-top: 30px;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container panel">
+        <h1>kekelog 管理画面</h1>
+
+        <div id="login-section">
+            <div class="form-group">
+                <label for="password">管理者パスワード</label>
+                <input type="password" id="password" required>
+            </div>
+            <button id="login-btn" class="submit-btn">ログイン</button>
+        </div>
+
+        <div id="admin-section" class="hidden split-layout">
+            <div class="split-left">
+                <h2 id="form-title">新規記事投稿</h2>
+                
+                <div class="form-group">
+                    <label for="post-status">公開設定</label>
+                    <select id="post-status">
+                        <option value="published">公開</option>
+                        <option value="draft">非公開（下書きとして保存）</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="post-password">閲覧パスワード (鍵付き記事にする場合のみ入力)</label>
+                    <input type="text" id="post-password" placeholder="例: secret123">
+                </div>
+
+                <div class="form-group">
+                    <label for="post-title">
+                        <span>タイトル</span>
+                        <span id="draft-badge" class="draft-badge">ブラウザに自動保存済み</span>
+                    </label>
+                    <input type="text" id="post-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="post-slug">アクセス用URLパス (空白で自動生成)</label>
+                    <input type="text" id="post-slug" placeholder="例: my-diary">
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-tags">タグ (カンマ区切り)</label>
+                    <input type="text" id="post-tags" placeholder="例: 日記, ガジェット">
+                </div>
+
+                <div class="form-group">
+                    <label for="post-content">本文</label>
+                    
+                    <div class="toolbar">
+                        <button type="button" class="tool-btn" onclick="insertTag('<h2>', '</h2>')" title="大見出し">H2</button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<h3>', '</h3>')" title="中見出し">H3</button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<b>', '</b>')" title="太字"><b>B</b></button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<i>', '</i>')" title="斜体"><i>I</i></button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<u>', '</u>')" title="下線"><u>U</u></button>
+                        
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="text-color" value="#e53e3e">
+                            <button type="button" class="tool-btn" onclick="insertColor()" style="border:none; padding:4px;">色</button>
+                        </div>
+                        
+                        <button type="button" class="tool-btn" onclick="insertTag('<ruby>漢字<rt>かんじ</rt></ruby>', '')">ルビ</button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<a href=&quot;URL&quot; target=&quot;_blank&quot;>', '</a>')">リンク</button>
+                        <button type="button" class="tool-btn" onclick="insertTag('<img src=&quot;画像のURL&quot; alt=&quot;画像&quot;>', '')">画像</button>
+                        
+                        <button type="button" class="tool-btn" onclick="insertEmbed('youtube')">YouTube</button>
+                        <button type="button" class="tool-btn" onclick="insertEmbed('niconico')">ニコニコ動画</button>
+                        <button type="button" class="tool-btn" onclick="insertEmbed('x')">X (Twitter)</button>
+                    </div>
+                    
+                    <textarea id="post-content" required placeholder="ここにテキストを入力。エンターキーでそのまま改行されます。"></textarea>
+                </div>
+                
+                <div class="btn-group">
+                    <button id="submit-btn" class="submit-btn">保存する</button>
+                    <button id="cancel-edit-btn" class="cancel-btn">編集をキャンセル</button>
+                </div>
+                <div id="status-message"></div>
+            </div>
+
+            <div class="split-right">
+                <h2>記事の管理</h2>
+                <div id="admin-post-container">読み込み中...</div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function insertTag(startTag, endTag) {
+            const textarea = document.getElementById("post-content");
+            const startPos = textarea.selectionStart;
+            const endPos = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.substring(0, startPos) + startTag + text.substring(startPos, endPos) + endTag + text.substring(endPos);
+            textarea.selectionStart = textarea.selectionEnd = startPos + startTag.length + (endPos - startPos);
+            textarea.focus();
+            textarea.dispatchEvent(new Event('input')); 
+        }
+
+        function insertColor() {
+            const color = document.getElementById("text-color").value;
+            insertTag(`<span style="color: ${color};">`, '</span>');
+        }
+
+        function insertEmbed(type) {
+            if (type === 'youtube') {
+                insertTag('<iframe width="560" height="315" src="https://www.youtube.com/embed/動画ID" frameborder="0" allowfullscreen></iframe>\n', '');
+            } else if (type === 'niconico') {
+                insertTag('<iframe width="640" height="360" src="https://embed.nicovideo.jp/watch/smXXXXXXX" frameborder="0" allowfullscreen></iframe>\n', '');
+            } else if (type === 'x') {
+                insertTag('<blockquote class="twitter-tweet"><a href="ツイートのURL"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>\n', '');
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "keke-dev.firebaseapp.com",
+            databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const ADMIN_DUMMY_EMAIL = "admin@blog.keke-dev.net";
+
+        const loginSection = document.getElementById("login-section");
+        const adminSection = document.getElementById("admin-section");
+        const statusMessage = document.getElementById("status-message");
+        const adminPostContainer = document.getElementById("admin-post-container");
+        
+        const inputStatus = document.getElementById("post-status");
+        const inputPostPassword = document.getElementById("post-password");
+        const inputTitle = document.getElementById("post-title");
+        const inputSlug = document.getElementById("post-slug");
+        const inputTags = document.getElementById("post-tags");
+        const inputContent = document.getElementById("post-content");
+        
+        const submitBtn = document.getElementById("submit-btn");
+        const cancelBtn = document.getElementById("cancel-edit-btn");
+        const formTitle = document.getElementById("form-title");
+        const draftBadge = document.getElementById("draft-badge");
+
+        let editingDocId = null;
+        const DRAFT_KEY = "blog_draft_data";
+
+        function saveDraft() {
+            const draftData = {
+                status: inputStatus.value,
+                postPassword: inputPostPassword.value,
+                title: inputTitle.value,
+                slug: inputSlug.value,
+                tags: inputTags.value,
+                content: inputContent.value,
+                editingId: editingDocId
+            };
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+        }
+
+        function loadDraft() {
+            const draftStr = localStorage.getItem(DRAFT_KEY);
+            if (draftStr) {
+                const data = JSON.parse(draftStr);
+                if (data.title || data.content) {
+                    if (data.status) inputStatus.value = data.status;
+                    inputPostPassword.value = data.postPassword || "";
+                    inputTitle.value = data.title || "";
+                    inputSlug.value = data.slug || "";
+                    inputTags.value = data.tags || "";
+                    inputContent.value = data.content || "";
+                    draftBadge.style.display = "inline-block";
+                    
+                    if (data.editingId) {
+                        setEditMode(data.editingId);
+                    }
+                }
+            }
+        }
+
+        function clearDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+            draftBadge.style.display = "none";
+        }
+
+        [inputStatus, inputPostPassword, inputTitle, inputSlug, inputTags, inputContent].forEach(el => {
+            el.addEventListener("input", () => {
+                saveDraft();
+                draftBadge.style.display = "none";
+            });
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginSection.classList.add("hidden");
+                adminSection.classList.remove("hidden");
+                loadDraft();
+                fetchAdminPosts();
+            } else {
+                loginSection.classList.remove("hidden");
+                adminSection.classList.add("hidden");
+            }
+        });
+
+        document.getElementById("login-btn").addEventListener("click", async () => {
+            const password = document.getElementById("password").value;
+            try {
+                await signInWithEmailAndPassword(auth, ADMIN_DUMMY_EMAIL, password);
+            } catch (error) {
+                statusMessage.textContent = "ログイン失敗: パスワードが違います。";
+                statusMessage.style.color = "red";
+            }
+        });
+
+        async function fetchAdminPosts() {
+            try {
+                const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+                const snapshot = await getDocs(q);
+                adminPostContainer.innerHTML = "";
+
+                if (snapshot.empty) {
+                    adminPostContainer.innerHTML = "<p>保存された記事はありません。</p>";
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const id = docSnap.id;
+                    
+                    const isDraft = data.status === "draft";
+                    const isLocked = !!data.postPassword;
+                    
+                    let statusHtml = '';
+                    if (isDraft) {
+                        statusHtml = `<span class="status-badge status-draft">非公開</span>`;
+                    } else if (isLocked) {
+                        statusHtml = `<span class="status-badge status-locked">鍵付き</span>`;
+                    } else {
+                        statusHtml = `<span class="status-badge status-published">公開</span>`;
+                    }
+
+                    const item = document.createElement("div");
+                    item.className = "list-item";
+                    item.innerHTML = `
+                        <div class="list-item-info">
+                            <strong>${data.title} ${statusHtml}</strong>
+                            <span>パス: /${data.urlPath || id}</span>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="action-btn edit-btn" data-id="${id}">編集</button>
+                            <button class="action-btn delete-btn" data-id="${id}">削除</button>
+                        </div>
+                    `;
+                    adminPostContainer.appendChild(item);
+
+                    item.querySelector(".edit-btn").addEventListener("click", () => {
+                        inputStatus.value = data.status || "published";
+                        inputPostPassword.value = data.postPassword || "";
+                        inputTitle.value = data.title || "";
+                        inputSlug.value = data.urlPath || "";
+                        inputTags.value = (data.tags || []).join(", ");
+                        inputContent.value = data.content || "";
+                        setEditMode(id);
+                        saveDraft();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
+
+                    item.querySelector(".delete-btn").addEventListener("click", async () => {
+                        if (confirm(`「${data.title}」を本当に削除しますか？`)) {
+                            await deleteDoc(doc(db, "posts", id));
+                            alert("削除しました");
+                            if (editingDocId === id) resetForm();
+                            fetchAdminPosts();
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error(error);
+                adminPostContainer.innerHTML = "<p>取得エラーが発生しました</p>";
+            }
+        }
+
+        function setEditMode(id) {
+            editingDocId = id;
+            formTitle.textContent = "記事の編集";
+            cancelBtn.style.display = "block";
+            inputSlug.disabled = true;
+        }
+
+        function resetForm() {
+            editingDocId = null;
+            formTitle.textContent = "新規記事投稿";
+            cancelBtn.style.display = "none";
+            inputSlug.disabled = false;
+            
+            inputStatus.value = "published";
+            inputPostPassword.value = "";
+            inputTitle.value = "";
+            inputSlug.value = "";
+            inputTags.value = "";
+            inputContent.value = "";
+            clearDraft();
+        }
+
+        cancelBtn.addEventListener("click", resetForm);
+
+        submitBtn.addEventListener("click", async () => {
+            const status = inputStatus.value;
+            const postPassword = inputPostPassword.value.trim();
+            const title = inputTitle.value.trim();
+            let slug = inputSlug.value.trim();
+            const tagsInput = inputTags.value;
+            const content = inputContent.value; 
+            
+            if (!title || !content.trim()) {
+                alert("タイトルと本文は必須です。");
+                return;
+            }
+
+            const tagsArray = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t !== "") : [];
+            submitBtn.disabled = true;
+            statusMessage.textContent = "保存中...";
+            statusMessage.style.color = "#333333";
+
+            try {
+                if (editingDocId) {
+                    await updateDoc(doc(db, "posts", editingDocId), {
+                        status: status,
+                        postPassword: postPassword,
+                        title: title,
+                        tags: tagsArray,
+                        content: content
+                    });
+                    statusMessage.textContent = "更新が完了しました。";
+                } else {
+                    const postData = {
+                        status: status,
+                        postPassword: postPassword,
+                        title: title,
+                        tags: tagsArray,
+                        content: content,
+                        createdAt: serverTimestamp()
+                    };
+
+                    if (slug) {
+                        postData.urlPath = slug;
+                        await setDoc(doc(db, "posts", slug), postData);
+                    } else {
+                        const docRef = await addDoc(collection(db, "posts"), postData);
+                        await updateDoc(docRef, { urlPath: docRef.id });
+                    }
+                    statusMessage.textContent = "保存が完了しました。";
+                }
+                
+                resetForm();
+                fetchAdminPosts();
+
+                setTimeout(() => { statusMessage.textContent = ""; }, 3000);
+
+            } catch (error) {
+                statusMessage.textContent = "エラーが発生しました。";
+                statusMessage.style.color = "red";
+                console.error(error);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

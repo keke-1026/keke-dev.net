@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記事読み込み中... - kekelog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #f7f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+            min-height: 100vh;
+        }
+        .panel {
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+        header {
+            padding: 25px 20px;
+            text-align: center;
+            margin-bottom: 40px;
+            border-radius: 0 0 30px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #eef0f2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+        header a {
+            text-decoration: none;
+            color: #111111;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        
+        main {
+            max-width: 800px;
+            margin: 0 auto 50px auto;
+            padding: 0 20px;
+        }
+        
+        .article-container {
+            padding: 40px;
+        }
+        
+        .post-title {
+            font-size: 28px;
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            line-height: 1.4;
+            color: #222222;
+        }
+        
+        .post-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f2f5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .post-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background: #f0f2f5;
+            border: 1px solid #e1e4e8;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #555555;
+        }
+        
+        .post-date {
+            font-size: 13px;
+            color: #888888;
+        }
+
+        .post-content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #333333;
+            white-space: pre-wrap; 
+            word-wrap: break-word;
+        }
+        .post-content p {
+            margin-bottom: 1.5em;
+        }
+        .post-content img, .post-content iframe {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: block;
+        }
+        .post-content h2 {
+            border-bottom: 2px solid #eef0f2;
+            padding-bottom: 8px;
+            margin-top: 40px;
+        }
+        .post-content a {
+            color: #3182ce;
+            text-decoration: underline;
+        }
+        .post-content a:hover {
+            color: #2b6cb0;
+        }
+        ruby { font-size: 1em; }
+        rt { font-size: 0.6em; color: #888888; }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 12px 24px;
+            color: #555555;
+            text-decoration: none;
+            font-weight: 700;
+            transition: background 0.2s;
+            border-radius: 12px;
+        }
+        .back-link:hover {
+            background: #f0f2f5;
+        }
+        
+        #loading-message, #error-message {
+            text-align: center;
+            padding: 50px;
+            font-size: 16px;
+            color: #888888;
+        }
+        #error-message {
+            color: #e53e3e;
+            display: none;
+        }
+
+        #password-section {
+            text-align: center;
+            padding: 60px 40px;
+        }
+        #password-section h2 {
+            margin-top: 0;
+            color: #222222;
+        }
+        #password-section p {
+            color: #555555;
+            margin-bottom: 25px;
+        }
+        .password-input-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .password-input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            font-family: inherit;
+        }
+        .password-input-group button {
+            background: #333333;
+            color: #ffffff;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .password-input-group button:hover {
+            background: #111111;
+        }
+        #password-error {
+            color: #e53e3e;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html">
+            <h1>kekelog</h1>
+        </a>
+    </header>
+
+    <main>
+        <div id="loading-message" class="panel">記事を読み込んでいます...</div>
+        <div id="error-message" class="panel">記事が見つかりませんでした。</div>
+
+        <div id="password-section" class="panel" style="display: none;">
+            <h2>この記事は保護されています</h2>
+            <p>閲覧するにはパスワードを入力してください。</p>
+            <div class="password-input-group">
+                <input type="password" id="article-password" placeholder="パスワード">
+                <button id="unlock-btn">閲覧する</button>
+            </div>
+            <div id="password-error">パスワードが間違っています。</div>
+        </div>
+
+        <article id="article-container" class="article-container panel" style="display: none;">
+            <h1 id="post-title" class="post-title"></h1>
+            <div class="post-meta">
+                <div id="post-tags" class="post-tags"></div>
+                <div id="post-date" class="post-date"></div>
+            </div>
+            <div id="post-content" class="post-content"></div>
+        </article>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="back-link panel">一覧に戻る</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "keke-dev.firebaseapp.com",
+            databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('id');
+
+        const loadingMsg = document.getElementById("loading-message");
+        const errorMsg = document.getElementById("error-message");
+        const articleContainer = document.getElementById("article-container");
+        const passwordSection = document.getElementById("password-section");
+        const unlockBtn = document.getElementById("unlock-btn");
+        const passwordInput = document.getElementById("article-password");
+        const passwordError = document.getElementById("password-error");
+
+        let currentPostData = null;
+
+        async function fetchPost() {
+            if (!postId) {
+                showError("記事のIDが指定されていません。");
+                return;
+            }
+
+            try {
+                const docRef = doc(db, "posts", postId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    currentPostData = docSnap.data();
+                    
+                    if (currentPostData.status === "draft") {
+                        showError("この記事は非公開です。");
+                        return;
+                    }
+
+                    loadingMsg.style.display = "none";
+
+                    if (currentPostData.postPassword) {
+                        passwordSection.style.display = "block";
+                    } else {
+                        renderPostContent(currentPostData);
+                    }
+                } else {
+                    showError("指定された記事は存在しないか、削除されました。");
+                }
+            } catch (error) {
+                console.error("データの取得に失敗しました:", error);
+                showError("記事の読み込みに失敗しました。通信環境をご確認ください。");
+            }
+        }
+
+        unlockBtn.addEventListener("click", () => {
+            if (passwordInput.value === currentPostData.postPassword) {
+                passwordSection.style.display = "none";
+                renderPostContent(currentPostData);
+            } else {
+                passwordError.style.display = "block";
+            }
+        });
+
+        function renderPostContent(data) {
+            articleContainer.style.display = "block";
+
+            const title = data.title || "タイトルなし";
+            document.title = `${title} - kekelog`;
+
+            document.getElementById("post-title").textContent = title;
+            document.getElementById("post-content").innerHTML = data.content || "";
+
+            if (data.createdAt) {
+                const date = data.createdAt.toDate();
+                document.getElementById("post-date").textContent = date.toLocaleDateString("ja-JP", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            }
+
+            const tags = data.tags || [];
+            const tagsContainer = document.getElementById("post-tags");
+            if (tags.length > 0) {
+                tagsContainer.innerHTML = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            }
+        }
+
+        function showError(message) {
+            loadingMsg.style.display = "none";
+            errorMsg.textContent = message;
+            errorMsg.style.display = "block";
+        }
+
+        fetchPost();
+    </script>
+</body>
+</html>

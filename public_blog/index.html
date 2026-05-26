@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kekelog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #f7f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+            min-height: 100vh;
+        }
+        .panel {
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+        }
+        header {
+            padding: 25px 20px;
+            text-align: center;
+            margin-bottom: 40px;
+            border-radius: 0 0 30px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #eef0f2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #111111;
+        }
+        
+        .layout-wrapper {
+            max-width: 1000px;
+            margin: 0 auto 50px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .post-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .post-card {
+            padding: 25px 30px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+        .post-title {
+            font-size: 20px;
+            margin: 0 0 12px 0;
+            font-weight: 700;
+            line-height: 1.4;
+            color: #222222;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lock-badge {
+            background: #fdf6e3;
+            color: #b58900;
+            border: 1px solid #eee8d5;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .post-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background: #f0f2f5;
+            border: 1px solid #e1e4e8;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: #555555;
+        }
+        .post-date {
+            font-size: 12px;
+            color: #888888;
+            text-align: right;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 12px;
+            margin-top: 15px;
+        }
+        
+        .load-more-btn {
+            margin-top: 30px;
+            padding: 15px;
+            background: #ffffff;
+            border: 1px solid #eef0f2;
+            border-radius: 12px;
+            color: #555555;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            transition: 0.2s;
+            text-align: center;
+        }
+        .load-more-btn:hover {
+            background: #f8fafc;
+        }
+        .hidden { display: none !important; }
+        
+        .loading {
+            text-align: center;
+            color: #888888;
+            padding: 40px;
+        }
+
+        .sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .search-container {
+            padding: 5px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 15px;
+            border: none;
+            outline: none;
+            color: #333333;
+            box-sizing: border-box;
+            font-family: inherit;
+            background: transparent;
+        }
+        .search-input::placeholder {
+            color: #bbbbbb;
+        }
+        .about-container {
+            padding: 25px;
+        }
+        .about-container h2 {
+            font-size: 18px;
+            margin: 0 0 15px 0;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+            color: #222222;
+        }
+        .about-container p {
+            font-size: 14px;
+            line-height: 1.7;
+            margin: 0;
+            color: #555555;
+        }
+
+        @media (max-width: 800px) {
+            .layout-wrapper {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>kekelog</h1>
+    </header>
+
+    <div class="layout-wrapper">
+        <main class="main-content">
+            <div id="post-list" class="post-list">
+                <div class="loading">記事を読み込んでいます...</div>
+            </div>
+            <button id="load-more-btn" class="load-more-btn hidden">もっと見る</button>
+        </main>
+
+        <aside class="sidebar">
+            <div class="search-container panel">
+                <input type="text" id="search-input" class="search-input" placeholder="記事やタグを検索...">
+            </div>
+            
+            <div class="about-container panel">
+                <h2>About</h2>
+                <p>ここはブログの自己紹介スペースです。<br>テキスト主体のシンプルなブログを目指しています。</p>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "keke-dev.firebaseapp.com",
+            databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const postListContainer = document.getElementById("post-list");
+        const searchInput = document.getElementById("search-input");
+        const loadMoreBtn = document.getElementById("load-more-btn");
+        
+        let allPosts = [];
+        let filteredPosts = [];
+        let currentDisplayCount = 0;
+        const POSTS_PER_PAGE = 10;
+
+        function renderPosts(isAppend = false) {
+            if (!isAppend) {
+                postListContainer.innerHTML = "";
+                currentDisplayCount = 0;
+            }
+
+            if (filteredPosts.length === 0) {
+                postListContainer.innerHTML = '<div class="loading">該当する記事がありません。</div>';
+                loadMoreBtn.classList.add("hidden");
+                return;
+            }
+
+            const nextPosts = filteredPosts.slice(currentDisplayCount, currentDisplayCount + POSTS_PER_PAGE);
+
+            nextPosts.forEach(data => {
+                const title = data.title || "タイトルなし";
+                const tags = data.tags || [];
+                const urlPath = data.urlPath || data.id;
+                
+                const isLocked = !!data.postPassword;
+                const lockHtml = isLocked ? `<span class="lock-badge">[鍵付き]</span>` : '';
+
+                let dateString = "";
+                if (data.createdAt) {
+                    const date = data.createdAt.toDate();
+                    dateString = date.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
+                }
+
+                const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+
+                const postCard = document.createElement("a");
+                postCard.href = `post.html?id=${urlPath}`;
+                postCard.className = "post-card panel";
+                
+                postCard.innerHTML = `
+                    <h2 class="post-title">${lockHtml} ${title}</h2>
+                    ${tagsHtml ? `<div class="post-tags">${tagsHtml}</div>` : ''}
+                    <div class="post-date">${dateString}</div>
+                `;
+
+                postListContainer.appendChild(postCard);
+            });
+
+            currentDisplayCount += nextPosts.length;
+
+            if (currentDisplayCount < filteredPosts.length) {
+                loadMoreBtn.classList.remove("hidden");
+            } else {
+                loadMoreBtn.classList.add("hidden");
+            }
+        }
+
+        function applyFilter() {
+            const queryText = searchInput.value.toLowerCase();
+            filteredPosts = allPosts.filter(post => {
+                const titleMatch = (post.title || "").toLowerCase().includes(queryText);
+                const tagMatch = (post.tags || []).some(tag => tag.toLowerCase().includes(queryText));
+                return titleMatch || tagMatch;
+            });
+            renderPosts(false);
+        }
+
+        async function fetchPosts() {
+            try {
+                const postsRef = collection(db, "posts");
+                const q = query(postsRef, orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                allPosts = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    if (data.status !== "draft") {
+                        allPosts.push(data);
+                    }
+                });
+
+                filteredPosts = [...allPosts];
+                renderPosts(false);
+
+            } catch (error) {
+                console.error("データの取得に失敗しました:", error);
+                postListContainer.innerHTML = '<div class="loading">記事の読み込みに失敗しました。</div>';
+            }
+        }
+
+        searchInput.addEventListener("input", applyFilter);
+        loadMoreBtn.addEventListener("click", () => renderPosts(true));
+        
+        fetchPosts();
+    </script>
+</body>
+</html>
