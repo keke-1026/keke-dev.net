@@ -29,205 +29,80 @@
             padding: 40px 30px;
         }
         h1, h2 { text-align: center; margin-top: 0; color: #111111; }
-        .form-group {
-            margin-bottom: 25px;
+        .form-group { margin-bottom: 25px; }
+        label { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; font-weight: 700; color: #444444; font-size: 14px; }
+        .draft-badge { font-size: 11px; background: #e2e8f0; padding: 3px 8px; border-radius: 10px; color: #4a5568; display: none; }
+        input[type="text"], input[type="password"], select, textarea {
+            width: 100%; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; color: #333333; font-size: 15px; outline: none; transition: border-color 0.3s ease;
         }
-        label {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 10px;
-            font-weight: 700;
-            color: #444444;
-            font-size: 14px;
-        }
-        .draft-badge {
-            font-size: 11px;
-            background: #e2e8f0;
-            padding: 3px 8px;
-            border-radius: 10px;
-            color: #4a5568;
-            display: none;
-        }
-        input[type="text"],
-        input[type="password"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 15px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-sizing: border-box;
-            font-family: inherit;
-            color: #333333;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-        input:focus, textarea:focus, select:focus {
-            border-color: #cbd5e1;
-            background: #ffffff;
-        }
+        input:focus, textarea:focus, select:focus { border-color: #cbd5e1; background: #ffffff; }
         textarea { height: 350px; resize: vertical; line-height: 1.6; }
         
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 10px;
-            background: #f0f2f5;
-            padding: 10px;
-            border-radius: 12px;
-        }
-        .tool-btn {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 6px 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            color: #4a5568;
-            transition: background 0.2s;
-        }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; background: #f0f2f5; padding: 10px; border-radius: 12px; }
+        .tool-btn { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #4a5568; transition: background 0.2s; }
         .tool-btn:hover { background: #e2e8f0; }
-        .color-picker-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 0 8px;
-        }
-        input[type="color"] {
-            border: none;
-            background: transparent;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            padding: 0;
-        }
+        .color-picker-wrapper { display: flex; align-items: center; gap: 5px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 8px; }
+        input[type="color"] { border: none; background: transparent; width: 24px; height: 24px; cursor: pointer; padding: 0; }
 
-        .btn-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        button.submit-btn, button.cancel-btn {
-            flex: 1;
-            padding: 16px;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: background 0.2s;
-        }
+        .btn-group { display: flex; gap: 15px; margin-top: 20px; }
+        button.submit-btn, button.cancel-btn { flex: 1; padding: 16px; color: white; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; font-weight: 700; transition: background 0.2s; }
         button.submit-btn { background: #333333; }
         button.submit-btn:hover { background: #111111; }
         button.cancel-btn { background: #a0aec0; display: none; }
         button.cancel-btn:hover { background: #718096; }
         button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         
-        .hidden { display: none !important; }
-        #status-message {
-            margin-top: 20px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 14px;
-        }
+        #status-message { margin-top: 20px; text-align: center; font-weight: 700; font-size: 14px; }
 
-        #login-section {
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .split-layout {
-            display: flex;
-            gap: 40px;
-            align-items: flex-start;
-        }
-        .split-left {
-            flex: 1;
-            min-width: 0;
-        }
-        .split-right {
-            width: 350px;
-            flex-shrink: 0;
-            max-height: calc(100vh - 150px);
-            overflow-y: auto;
-            padding-right: 10px;
-        }
+        .split-layout { display: flex; gap: 40px; align-items: flex-start; }
+        .split-left { flex: 1; min-width: 0; }
+        .split-right { width: 350px; flex-shrink: 0; max-height: calc(100vh - 150px); overflow-y: auto; padding-right: 10px; }
         .split-right::-webkit-scrollbar { width: 6px; }
         .split-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        .list-item {
-            background: #ffffff;
-            border: 1px solid #eef0f2;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
+        .list-item { background: #ffffff; border: 1px solid #eef0f2; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .list-item-info { margin-bottom: 10px; }
-        .list-item-info strong {
-            display: block;
-            font-size: 15px;
-            margin-bottom: 5px;
-            color: #222222;
-        }
-        .list-item-info span {
-            font-size: 12px;
-            color: #888888;
-        }
-        .status-badge {
-            display: inline-block;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 6px;
-            margin-left: 5px;
-        }
+        .list-item-info strong { display: block; font-size: 15px; margin-bottom: 5px; color: #222222; }
+        .list-item-info span { font-size: 12px; color: #888888; }
+        .status-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 6px; margin-left: 5px; }
         .status-draft { background: #fed7d7; color: #c53030; }
         .status-published { background: #c6f6d5; color: #2f855a; }
         .status-locked { background: #fefcbf; color: #975a16; }
         
-        .list-item-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .action-btn {
-            flex: 1;
-            padding: 6px 0;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            transition: 0.2s;
-        }
+        .list-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-btn { flex: 1; min-width: 60px; padding: 6px 0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: white; transition: 0.2s; }
         .edit-btn { background: #4a5568; }
         .edit-btn:hover { background: #2d3748; }
         .delete-btn { background: #e53e3e; }
         .delete-btn:hover { background: #c53030; }
+        .comment-manage-btn { background: #3182ce; }
+        .comment-manage-btn:hover { background: #2b6cb0; }
 
         @media (max-width: 900px) {
             .split-layout { flex-direction: column; }
-            .split-right {
-                width: 100%;
-                max-height: none;
-                overflow-y: visible;
-                border-top: 1px solid #eef0f2;
-                padding-top: 30px;
-                margin-top: 10px;
-            }
+            .split-right { width: 100%; max-height: none; overflow-y: visible; border-top: 1px solid #eef0f2; padding-top: 30px; margin-top: 10px; }
         }
+
+        /* コメント管理モーダル */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.hidden { display: none !important; }
+        .modal-panel {
+            width: 90%; max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;
+            padding: 30px; box-sizing: border-box; background: #ffffff;
+            border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eef0f2; padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; font-size: 18px; color: #222; }
+        .modal-close-btn { background: #f0f2f5; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; color: #555; }
+        .modal-close-btn:hover { background: #e2e8f0; }
+        .modal-body { overflow-y: auto; padding-right: 10px; flex: 1; }
+        .admin-comment-item { border-bottom: 1px dashed #eef0f2; padding: 15px 0; }
+        .admin-comment-item:last-child { border-bottom: none; }
+        .admin-comment-actions { margin-top: 10px; display: flex; gap: 10px; }
     </style>
 </head>
 <body>
@@ -235,15 +110,7 @@
     <div class="container panel">
         <h1>kekelog 管理画面</h1>
 
-        <div id="login-section">
-            <div class="form-group">
-                <label for="password">管理者パスワード</label>
-                <input type="password" id="password" required>
-            </div>
-            <button id="login-btn" class="submit-btn">ログイン</button>
-        </div>
-
-        <div id="admin-section" class="hidden split-layout">
+        <div id="admin-section" class="split-layout">
             <div class="split-left">
                 <h2 id="form-title">新規記事投稿</h2>
                 
@@ -294,9 +161,8 @@
                         </div>
                         
                         <button type="button" class="tool-btn" onclick="insertTag('<ruby>漢字<rt>かんじ</rt></ruby>', '')">ルビ</button>
-                        <button type="button" class="tool-btn" onclick="insertTag('<a href=&quot;URL&quot; target=&quot;_blank&quot;>', '</a>')">リンク</button>
-                        <button type="button" class="tool-btn" onclick="insertTag('<img src=&quot;画像のURL&quot; alt=&quot;画像&quot;>', '')">画像</button>
-                        
+                        <button type="button" class="tool-btn" onclick="insertLink()">リンク</button>
+                        <button type="button" class="tool-btn" onclick="insertImage()">画像</button>
                         <button type="button" class="tool-btn" onclick="insertEmbed('youtube')">YouTube</button>
                         <button type="button" class="tool-btn" onclick="insertEmbed('niconico')">ニコニコ動画</button>
                         <button type="button" class="tool-btn" onclick="insertEmbed('x')">X (Twitter)</button>
@@ -320,6 +186,16 @@
         </div>
     </div>
 
+    <div id="comment-modal" class="modal-overlay hidden">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2 id="modal-post-title">コメント管理</h2>
+                <button id="modal-close-btn" class="modal-close-btn">閉じる</button>
+            </div>
+            <div id="modal-comments-list" class="modal-body"></div>
+        </div>
+    </div>
+
     <script>
         function insertTag(startTag, endTag) {
             const textarea = document.getElementById("post-content");
@@ -337,20 +213,40 @@
             insertTag(`<span style="color: ${color};">`, '</span>');
         }
 
+        function insertLink() {
+            const url = prompt("リンク先のURLを入力してください（例: https://google.com）");
+            if (url) {
+                const finalUrl = url.startsWith('http') ? url : 'https://' + url;
+                insertTag(`<a href="${finalUrl}" target="_blank">`, '</a>');
+            }
+        }
+
+        function insertImage() {
+            const url = prompt("画像のURLを入力してください");
+            if (url) {
+                insertTag(`<img src="${url}" alt="画像">`, '');
+            }
+        }
+
         function insertEmbed(type) {
             if (type === 'youtube') {
-                insertTag('<iframe width="560" height="315" src="https://www.youtube.com/embed/動画ID" frameborder="0" allowfullscreen></iframe>\n', '');
+                const videoId = prompt("YouTubeの動画ID（v=の後の英数字）を入力してください\n例: dQw4w9WgXcQ");
+                if (videoId) {
+                    insertTag(`<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>\n`, '');
+                }
             } else if (type === 'niconico') {
-                insertTag('<iframe width="640" height="360" src="https://embed.nicovideo.jp/watch/smXXXXXXX" frameborder="0" allowfullscreen></iframe>\n', '');
+                const smId = prompt("ニコニコ動画のID（sm〜）を入力してください\n例: sm9");
+                if (smId) {
+                    insertTag(`<iframe width="640" height="360" src="https://embed.nicovideo.jp/watch/${smId}" frameborder="0" allowfullscreen></iframe>\n`, '');
+                }
             } else if (type === 'x') {
-                insertTag('<blockquote class="twitter-tweet"><a href="ツイートのURL"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>\n', '');
+                insertTag('<blockquote class="twitter-tweet"><a href="ツイートのURLをここに入力"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\/script>\n', '');
             }
         }
     </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -365,13 +261,8 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        const ADMIN_DUMMY_EMAIL = "admin@blog.keke-dev.net";
-
-        const loginSection = document.getElementById("login-section");
-        const adminSection = document.getElementById("admin-section");
         const statusMessage = document.getElementById("status-message");
         const adminPostContainer = document.getElementById("admin-post-container");
         
@@ -386,6 +277,13 @@
         const cancelBtn = document.getElementById("cancel-edit-btn");
         const formTitle = document.getElementById("form-title");
         const draftBadge = document.getElementById("draft-badge");
+
+        // コメントモーダル用要素
+        const commentModal = document.getElementById("comment-modal");
+        const modalCloseBtn = document.getElementById("modal-close-btn");
+        const modalCommentsList = document.getElementById("modal-comments-list");
+        const modalPostTitle = document.getElementById("modal-post-title");
+        let currentManagePostId = null;
 
         let editingDocId = null;
         const DRAFT_KEY = "blog_draft_data";
@@ -415,10 +313,7 @@
                     inputTags.value = data.tags || "";
                     inputContent.value = data.content || "";
                     draftBadge.style.display = "inline-block";
-                    
-                    if (data.editingId) {
-                        setEditMode(data.editingId);
-                    }
+                    if (data.editingId) setEditMode(data.editingId);
                 }
             }
         }
@@ -435,27 +330,75 @@
             });
         });
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                loginSection.classList.add("hidden");
-                adminSection.classList.remove("hidden");
-                loadDraft();
-                fetchAdminPosts();
-            } else {
-                loginSection.classList.remove("hidden");
-                adminSection.classList.add("hidden");
-            }
+        // コメント管理関連の処理
+        modalCloseBtn.addEventListener("click", () => {
+            commentModal.classList.add("hidden");
+            currentManagePostId = null;
         });
 
-        document.getElementById("login-btn").addEventListener("click", async () => {
-            const password = document.getElementById("password").value;
+        async function openCommentManager(postId, postTitle) {
+            currentManagePostId = postId;
+            modalPostTitle.textContent = `「${postTitle}」のコメント管理`;
+            commentModal.classList.remove("hidden");
+            await fetchManageComments();
+        }
+
+        async function fetchManageComments() {
+            modalCommentsList.innerHTML = '<div style="text-align: center; color: #888;">読み込み中...</div>';
             try {
-                await signInWithEmailAndPassword(auth, ADMIN_DUMMY_EMAIL, password);
-            } catch (error) {
-                statusMessage.textContent = "ログイン失敗: パスワードが違います。";
-                statusMessage.style.color = "red";
+                const commentsRef = collection(db, "posts", currentManagePostId, "comments");
+                const q = query(commentsRef, orderBy("createdAt", "asc"));
+                const snap = await getDocs(q);
+
+                modalCommentsList.innerHTML = "";
+                if(snap.empty) {
+                    modalCommentsList.innerHTML = "<p style='color:#555;'>コメントはありません。</p>";
+                    return;
+                }
+
+                let index = 1;
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const id = docSnap.id;
+                    const name = data.name || "匿名";
+                    const text = data.text || "";
+
+                    const item = document.createElement("div");
+                    item.className = "admin-comment-item";
+                    item.innerHTML = `
+                        <div style="font-size: 13px; color: #3182ce; font-weight: bold; margin-bottom: 5px;">${index}. ${name}</div>
+                        <div style="font-size: 14px; margin-bottom: 10px; white-space: pre-wrap; color: #333;">${text}</div>
+                        <div class="admin-comment-actions">
+                            <button class="action-btn edit-btn" style="padding: 6px 12px; font-size: 12px; background: #4a5568;" data-id="${id}">編集</button>
+                            <button class="action-btn delete-btn" style="padding: 6px 12px; font-size: 12px; background: #e53e3e;" data-id="${id}">削除</button>
+                        </div>
+                    `;
+                    modalCommentsList.appendChild(item);
+
+                    // 編集ボタン
+                    item.querySelector(".edit-btn").addEventListener("click", async () => {
+                        const newText = prompt("コメント内容を編集してください:", text);
+                        if(newText !== null && newText.trim() !== "") {
+                            await updateDoc(doc(db, "posts", currentManagePostId, "comments", id), { text: newText.trim() });
+                            fetchManageComments(); // 再読み込み
+                        }
+                    });
+
+                    // 削除ボタン
+                    item.querySelector(".delete-btn").addEventListener("click", async () => {
+                        if(confirm("このコメントを完全に削除しますか？")) {
+                            await deleteDoc(doc(db, "posts", currentManagePostId, "comments", id));
+                            fetchManageComments(); // 再読み込み
+                        }
+                    });
+
+                    index++;
+                });
+            } catch(e) {
+                console.error(e);
+                modalCommentsList.innerHTML = "<p style='color:#e53e3e;'>エラーが発生しました。</p>";
             }
-        });
+        }
 
         async function fetchAdminPosts() {
             try {
@@ -492,12 +435,19 @@
                             <span>パス: /${data.urlPath || id}</span>
                         </div>
                         <div class="list-item-actions">
+                            <button class="action-btn comment-manage-btn" data-id="${id}">コメント</button>
                             <button class="action-btn edit-btn" data-id="${id}">編集</button>
                             <button class="action-btn delete-btn" data-id="${id}">削除</button>
                         </div>
                     `;
                     adminPostContainer.appendChild(item);
 
+                    // コメント管理ボタン
+                    item.querySelector(".comment-manage-btn").addEventListener("click", () => {
+                        openCommentManager(id, data.title);
+                    });
+
+                    // 編集ボタン
                     item.querySelector(".edit-btn").addEventListener("click", () => {
                         inputStatus.value = data.status || "published";
                         inputPostPassword.value = data.postPassword || "";
@@ -510,6 +460,7 @@
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     });
 
+                    // 削除ボタン
                     item.querySelector(".delete-btn").addEventListener("click", async () => {
                         if (confirm(`「${data.title}」を本当に削除しますか？`)) {
                             await deleteDoc(doc(db, "posts", id));
@@ -574,7 +525,8 @@
                         postPassword: postPassword,
                         title: title,
                         tags: tagsArray,
-                        content: content
+                        content: content,
+                        updatedAt: serverTimestamp() 
                     });
                     statusMessage.textContent = "更新が完了しました。";
                 } else {
@@ -584,7 +536,10 @@
                         title: title,
                         tags: tagsArray,
                         content: content,
-                        createdAt: serverTimestamp()
+                        views: 0, 
+                        likes: 0,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
                     };
 
                     if (slug) {
@@ -610,6 +565,10 @@
                 submitBtn.disabled = false;
             }
         });
+
+        loadDraft();
+        fetchAdminPosts();
+
     </script>
 </body>
 </html>

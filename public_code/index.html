@@ -77,8 +77,8 @@
                 <!-- コード認証（閲覧）エリア -->
                 <div class="space-y-8 fade-in max-w-xl mx-auto">
                     <div class="text-center space-y-2 mb-8">
-                        <h2 class="text-2xl font-bold text-slate-700">秘密のテキストを解錠</h2>
-                        <p class="text-sm text-slate-500 font-bold">発行されたコードを入力して、隠されたメッセージを確認します。</p>
+                        <h2 class="text-2xl font-bold text-slate-700">コードで解錠</h2>
+                        <p class="text-sm text-slate-500 font-bold">発行されたコードを入力して、テキストを確認します。</p>
                     </div>
 
                     <div class="space-y-4">
@@ -107,7 +107,7 @@
                     >
                         <div id="verify-btn-content" class="flex items-center gap-3">
                             <i data-lucide="unlock" class="w-[22px] h-[22px]"></i>
-                            認証して開く
+                            認証する
                         </div>
                         <div id="verify-btn-loading" class="hidden loader"></div>
                     </button>
@@ -321,7 +321,7 @@
                 }
             } catch (error) {
                 console.error("Error fetching document:", error);
-                showVerifyError('通信エラー、またはアクセス権限がありません。Firestoreのルール設定を確認してください。');
+                showVerifyError('通信エラーが発生しました。もう一度試してください。');
             } finally {
                 setVerifyLoading(false);
             }
@@ -408,7 +408,7 @@
                 newSecretTextInput.value = '';
             } catch (error) {
                 console.error("Error writing document:", error);
-                showCreateError('保存に失敗しました。Firestoreのルール設定で書き込みが許可されているか確認してください。');
+                showCreateError('保存に失敗しました。');
             } finally {
                 setCreateLoading(false);
             }

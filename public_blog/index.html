@@ -54,6 +54,28 @@
             display: flex;
             flex-direction: column;
         }
+
+        /* 絞り込み・並び替えコントロール */
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .sort-select {
+            padding: 10px 15px;
+            border: 1px solid #eef0f2;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #333333;
+            outline: none;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
         .post-list {
             display: flex;
             flex-direction: column;
@@ -103,14 +125,32 @@
             font-size: 11px;
             color: #555555;
         }
+
+        /* メタ情報と統計 (閲覧数・いいね) */
+        .post-meta-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 15px;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 12px;
+        }
         .post-date {
             font-size: 12px;
             color: #888888;
-            text-align: right;
-            border-top: 1px solid #f0f2f5;
-            padding-top: 12px;
-            margin-top: 15px;
         }
+        .post-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 13px;
+            color: #888888;
+        }
+        .post-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .post-stats svg { width: 14px; height: 14px; fill: #bbbbbb; }
         
         .load-more-btn {
             margin-top: 30px;
@@ -126,9 +166,7 @@
             transition: 0.2s;
             text-align: center;
         }
-        .load-more-btn:hover {
-            background: #f8fafc;
-        }
+        .load-more-btn:hover { background: #f8fafc; }
         .hidden { display: none !important; }
         
         .loading {
@@ -158,33 +196,42 @@
             font-family: inherit;
             background: transparent;
         }
-        .search-input::placeholder {
-            color: #bbbbbb;
-        }
-        .about-container {
-            padding: 25px;
-        }
-        .about-container h2 {
+        .search-input::placeholder { color: #bbbbbb; }
+
+        /* ランキング */
+        .ranking-container { padding: 25px; }
+        .ranking-container h2 {
             font-size: 18px;
             margin: 0 0 15px 0;
             border-bottom: 2px solid #f0f2f5;
             padding-bottom: 10px;
             color: #222222;
         }
-        .about-container p {
-            font-size: 14px;
-            line-height: 1.7;
-            margin: 0;
-            color: #555555;
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 0;
+            text-decoration: none;
+            color: #333333;
+            border-bottom: 1px dashed #eef0f2;
+            transition: transform 0.2s;
         }
+        .ranking-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .ranking-item:hover { transform: translateX(5px); color: #555555; }
+        .rank-num { font-weight: bold; font-size: 14px; width: 20px; text-align: center; color: #888888; }
+        .rank-1 { color: #d4af37; font-size: 16px; }
+        .rank-2 { color: #c0c0c0; font-size: 15px; }
+        .rank-3 { color: #cd7f32; font-size: 14px; }
+        .rank-title { font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 700; }
+
+        .about-container { padding: 25px; }
+        .about-container h2 { font-size: 18px; margin: 0 0 15px 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; color: #222222; }
+        .about-container p { font-size: 14px; line-height: 1.7; margin: 0; color: #555555; }
 
         @media (max-width: 800px) {
-            .layout-wrapper {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-            }
+            .layout-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; }
         }
     </style>
 </head>
@@ -196,6 +243,18 @@
 
     <div class="layout-wrapper">
         <main class="main-content">
+            <!-- 並び替えコントロール -->
+            <div class="controls-container">
+                <div id="post-count" style="font-size: 14px; color: #888888; font-weight: 700;"></div>
+                <select id="sort-select" class="sort-select">
+                    <option value="createdAt_desc">新着順</option>
+                    <option value="createdAt_asc">古い順 (投稿順)</option>
+                    <option value="updatedAt_desc">更新日順</option>
+                    <option value="views_desc">閲覧数順</option>
+                    <option value="likes_desc">いいね数順</option>
+                </select>
+            </div>
+
             <div id="post-list" class="post-list">
                 <div class="loading">記事を読み込んでいます...</div>
             </div>
@@ -207,6 +266,13 @@
                 <input type="text" id="search-input" class="search-input" placeholder="記事やタグを検索...">
             </div>
             
+            <div class="ranking-container panel">
+                <h2>人気記事ランキング</h2>
+                <div id="ranking-list">
+                    <div style="font-size: 13px; color: #888;">読み込み中...</div>
+                </div>
+            </div>
+
             <div class="about-container panel">
                 <h2>About</h2>
                 <p>ここはブログの自己紹介スペースです。<br>テキスト主体のシンプルなブログを目指しています。</p>
@@ -234,12 +300,40 @@
 
         const postListContainer = document.getElementById("post-list");
         const searchInput = document.getElementById("search-input");
+        const sortSelect = document.getElementById("sort-select");
         const loadMoreBtn = document.getElementById("load-more-btn");
         
         let allPosts = [];
         let filteredPosts = [];
         let currentDisplayCount = 0;
         const POSTS_PER_PAGE = 10;
+
+        function getTimestamp(data, key) {
+            if (!data[key]) return 0;
+            return data[key].toMillis ? data[key].toMillis() : 0;
+        }
+
+        // ランキングの描画 (閲覧数順トップ5)
+        function renderRanking() {
+            const rankingList = document.getElementById("ranking-list");
+            const topPosts = [...allPosts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+            
+            if (topPosts.length === 0) {
+                rankingList.innerHTML = '<p style="font-size: 13px; color: #888;">記事がありません</p>';
+                return;
+            }
+            
+            rankingList.innerHTML = topPosts.map((post, index) => {
+                const urlPath = post.urlPath || post.id;
+                const lockIcon = post.postPassword ? `🔒 ` : '';
+                return `
+                    <a href="post.html?id=${urlPath}" class="ranking-item">
+                        <span class="rank-num rank-${index + 1}">${index + 1}</span>
+                        <span class="rank-title">${lockIcon}${post.title}</span>
+                    </a>
+                `;
+            }).join('');
+        }
 
         function renderPosts(isAppend = false) {
             if (!isAppend) {
@@ -259,6 +353,8 @@
                 const title = data.title || "タイトルなし";
                 const tags = data.tags || [];
                 const urlPath = data.urlPath || data.id;
+                const views = data.views || 0;
+                const likes = data.likes || 0;
                 
                 const isLocked = !!data.postPassword;
                 const lockHtml = isLocked ? `<span class="lock-badge">[鍵付き]</span>` : '';
@@ -278,14 +374,19 @@
                 postCard.innerHTML = `
                     <h2 class="post-title">${lockHtml} ${title}</h2>
                     ${tagsHtml ? `<div class="post-tags">${tagsHtml}</div>` : ''}
-                    <div class="post-date">${dateString}</div>
+                    <div class="post-meta-container">
+                        <div class="post-date">${dateString}</div>
+                        <div class="post-stats">
+                            <span><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> ${views}</span>
+                            <span><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> ${likes}</span>
+                        </div>
+                    </div>
                 `;
 
                 postListContainer.appendChild(postCard);
             });
 
             currentDisplayCount += nextPosts.length;
-
             if (currentDisplayCount < filteredPosts.length) {
                 loadMoreBtn.classList.remove("hidden");
             } else {
@@ -293,13 +394,35 @@
             }
         }
 
-        function applyFilter() {
+        // 検索と並び替えを同時に適用
+        function applyFilterAndSort() {
             const queryText = searchInput.value.toLowerCase();
+            const sortType = sortSelect.value;
+
             filteredPosts = allPosts.filter(post => {
                 const titleMatch = (post.title || "").toLowerCase().includes(queryText);
                 const tagMatch = (post.tags || []).some(tag => tag.toLowerCase().includes(queryText));
                 return titleMatch || tagMatch;
             });
+
+            filteredPosts.sort((a, b) => {
+                if (sortType === "createdAt_desc") {
+                    return getTimestamp(b, 'createdAt') - getTimestamp(a, 'createdAt');
+                } else if (sortType === "createdAt_asc") {
+                    return getTimestamp(a, 'createdAt') - getTimestamp(b, 'createdAt');
+                } else if (sortType === "updatedAt_desc") {
+                    const timeA = getTimestamp(a, 'updatedAt') || getTimestamp(a, 'createdAt');
+                    const timeB = getTimestamp(b, 'updatedAt') || getTimestamp(b, 'createdAt');
+                    return timeB - timeA;
+                } else if (sortType === "views_desc") {
+                    return (b.views || 0) - (a.views || 0);
+                } else if (sortType === "likes_desc") {
+                    return (b.likes || 0) - (a.likes || 0);
+                }
+                return 0;
+            });
+
+            document.getElementById("post-count").textContent = `全 ${filteredPosts.length} 件`;
             renderPosts(false);
         }
 
@@ -318,8 +441,8 @@
                     }
                 });
 
-                filteredPosts = [...allPosts];
-                renderPosts(false);
+                renderRanking();
+                applyFilterAndSort(); // 絞り込み・並び替えを実行して描画
 
             } catch (error) {
                 console.error("データの取得に失敗しました:", error);
@@ -327,7 +450,8 @@
             }
         }
 
-        searchInput.addEventListener("input", applyFilter);
+        searchInput.addEventListener("input", applyFilterAndSort);
+        sortSelect.addEventListener("change", applyFilterAndSort);
         loadMoreBtn.addEventListener("click", () => renderPosts(true));
         
         fetchPosts();

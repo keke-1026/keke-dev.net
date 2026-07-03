@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        html { scroll-behavior: smooth; }
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
             background-color: #f7f9f9;
@@ -31,167 +32,95 @@
             border-bottom: 1px solid #eef0f2;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
         }
-        header a {
-            text-decoration: none;
-            color: #111111;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 26px;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
+        header a { text-decoration: none; color: #111111; }
+        header h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
         
-        main {
-            max-width: 800px;
-            margin: 0 auto 50px auto;
-            padding: 0 20px;
-        }
+        main { max-width: 800px; margin: 0 auto 50px auto; padding: 0 20px; }
         
-        .article-container {
-            padding: 40px;
-        }
-        
-        .post-title {
-            font-size: 28px;
-            margin: 0 0 15px 0;
-            font-weight: 700;
-            line-height: 1.4;
-            color: #222222;
-        }
+        .article-container { padding: 40px; margin-bottom: 30px; }
+        .post-title { font-size: 28px; margin: 0 0 15px 0; font-weight: 700; line-height: 1.4; color: #222222; }
         
         .post-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f0f2f5;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 1px solid #f0f2f5; padding-bottom: 20px; margin-bottom: 30px;
         }
+        .post-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { background: #f0f2f5; border: 1px solid #e1e4e8; padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #555555; }
         
-        .post-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .tag {
-            background: #f0f2f5;
-            border: 1px solid #e1e4e8;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: #555555;
-        }
-        
-        .post-date {
-            font-size: 13px;
-            color: #888888;
-        }
+        .post-date { font-size: 13px; color: #888888; }
+        .post-stats { display: flex; gap: 15px; font-size: 13px; color: #888888; margin-top: 5px; }
+        .post-stats span { display: flex; align-items: center; gap: 4px; }
+        .post-stats svg { width: 16px; height: 16px; fill: #bbbbbb; }
 
-        .post-content {
-            font-size: 16px;
-            line-height: 1.9;
-            color: #333333;
-            white-space: pre-wrap; 
-            word-wrap: break-word;
-        }
-        .post-content p {
-            margin-bottom: 1.5em;
-        }
-        .post-content img, .post-content iframe {
-            max-width: 100%;
-            border-radius: 12px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            display: block;
-        }
-        .post-content h2 {
-            border-bottom: 2px solid #eef0f2;
-            padding-bottom: 8px;
-            margin-top: 40px;
-        }
-        .post-content a {
-            color: #3182ce;
-            text-decoration: underline;
-        }
-        .post-content a:hover {
-            color: #2b6cb0;
-        }
+        .post-content { font-size: 16px; line-height: 1.9; color: #333333; white-space: pre-wrap; word-wrap: break-word; }
+        .post-content p { margin-bottom: 1.5em; }
+        .post-content img, .post-content iframe { max-width: 100%; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); display: block; }
+        .post-content h2 { border-bottom: 2px solid #eef0f2; padding-bottom: 8px; margin-top: 40px; }
+        .post-content a { color: #3182ce; text-decoration: underline; }
+        .post-content a:hover { color: #2b6cb0; }
         ruby { font-size: 1em; }
         rt { font-size: 0.6em; color: #888888; }
 
-        .back-link {
-            display: inline-block;
-            margin-top: 40px;
-            padding: 12px 24px;
-            color: #555555;
-            text-decoration: none;
-            font-weight: 700;
-            transition: background 0.2s;
-            border-radius: 12px;
+        .post-actions {
+            display: flex; justify-content: center;
+            margin-top: 50px; padding-top: 30px; border-top: 1px solid #f0f2f5;
         }
-        .back-link:hover {
-            background: #f0f2f5;
+        .like-btn {
+            background: #ffffff; border: 2px solid #eef0f2; padding: 12px 30px; border-radius: 30px;
+            font-size: 16px; color: #555555; cursor: pointer; display: flex; align-items: center; gap: 10px;
+            font-weight: 700; transition: 0.2s; font-family: inherit;
         }
-        
-        #loading-message, #error-message {
-            text-align: center;
-            padding: 50px;
-            font-size: 16px;
-            color: #888888;
-        }
-        #error-message {
-            color: #e53e3e;
-            display: none;
-        }
+        .like-btn:hover { background: #fff5f5; border-color: #feb2b2; color: #e53e3e; transform: translateY(-2px); }
+        .like-btn svg { width: 22px; height: 22px; fill: #e53e3e; }
+        .like-btn.liked { background: #e53e3e; color: #ffffff; border-color: #e53e3e; transform: translateY(0); }
+        .like-btn.liked svg { fill: #ffffff; }
 
-        #password-section {
-            text-align: center;
-            padding: 60px 40px;
+        .comments-section { padding: 30px 40px; margin-bottom: 50px; }
+        .comments-section h3 {
+            font-size: 18px; margin: 0 0 20px 0; color: #222222; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px;
         }
-        #password-section h2 {
-            margin-top: 0;
-            color: #222222;
+        .comments-list { margin-bottom: 30px; }
+        .comment-item {
+            padding: 15px 10px; border-bottom: 1px dashed #eef0f2; transition: background-color 0.8s ease;
         }
-        #password-section p {
-            color: #555555;
-            margin-bottom: 25px;
+        .comment-item:last-child { border-bottom: none; }
+        /* アンカーで飛んできたときのハイライト */
+        .comment-item:target { background-color: #fffacD; border-radius: 8px; }
+        
+        .comment-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        .comment-num { font-weight: 700; color: #3182ce; font-size: 14px; }
+        .comment-name { font-weight: 700; font-size: 14px; color: #333333; }
+        .comment-date { font-size: 12px; color: #888888; }
+        .comment-body { font-size: 14px; line-height: 1.6; color: #555555; white-space: pre-wrap; word-wrap: break-word; }
+        .comment-anchor { color: #3182ce; text-decoration: none; font-weight: bold; }
+        .comment-anchor:hover { text-decoration: underline; }
+        
+        .comment-form { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #eef0f2; }
+        .comment-form input, .comment-form textarea {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 14px; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: 0.2s;
         }
-        .password-input-group {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            max-width: 400px;
-            margin: 0 auto;
+        .comment-form input:focus, .comment-form textarea:focus { border-color: #a0aec0; background: #ffffff; }
+        .comment-form textarea { height: 100px; resize: vertical; }
+        .comment-form button {
+            background: #333333; color: #ffffff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: inherit;
         }
-        .password-input-group input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 15px;
-            outline: none;
-            font-family: inherit;
-        }
-        .password-input-group button {
-            background: #333333;
-            color: #ffffff;
-            border: none;
-            padding: 0 20px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .password-input-group button:hover {
-            background: #111111;
-        }
-        #password-error {
-            color: #e53e3e;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-        }
+        .comment-form button:hover { background: #111111; }
+        .comment-form button:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        .back-link { display: inline-block; padding: 12px 24px; color: #555555; text-decoration: none; font-weight: 700; transition: background 0.2s; border-radius: 12px; }
+        .back-link:hover { background: #f0f2f5; }
+        
+        #loading-message, #error-message { text-align: center; padding: 50px; font-size: 16px; color: #888888; }
+        #error-message { color: #e53e3e; display: none; }
+
+        #password-section { text-align: center; padding: 60px 40px; }
+        #password-section h2 { margin-top: 0; color: #222222; }
+        #password-section p { color: #555555; margin-bottom: 25px; }
+        .password-input-group { display: flex; justify-content: center; gap: 10px; max-width: 400px; margin: 0 auto; }
+        .password-input-group input { flex: 1; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; font-family: inherit; }
+        .password-input-group button { background: #333333; color: #ffffff; border: none; padding: 0 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .password-input-group button:hover { background: #111111; }
+        #password-error { color: #e53e3e; margin-top: 15px; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
@@ -216,14 +145,42 @@
             <div id="password-error">パスワードが間違っています。</div>
         </div>
 
-        <article id="article-container" class="article-container panel" style="display: none;">
-            <h1 id="post-title" class="post-title"></h1>
-            <div class="post-meta">
-                <div id="post-tags" class="post-tags"></div>
-                <div id="post-date" class="post-date"></div>
+        <div id="content-wrapper" style="display: none;">
+            <article id="article-container" class="article-container panel">
+                <h1 id="post-title" class="post-title"></h1>
+                <div class="post-meta">
+                    <div id="post-tags" class="post-tags"></div>
+                    <div>
+                        <div class="post-date" id="post-date"></div>
+                        <div class="post-stats">
+                            <span><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> <span id="view-count">0</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="post-content" class="post-content"></div>
+                
+                <div class="post-actions">
+                    <button id="like-btn" class="like-btn">
+                        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        いいね！ <span id="like-count">0</span>
+                    </button>
+                </div>
+            </article>
+
+            <div class="comments-section panel">
+                <h3>コメント</h3>
+                
+                <div id="comments-list" class="comments-list">
+                    <div style="text-align: center; color: #888888; font-size: 14px;">読み込み中...</div>
+                </div>
+
+                <div class="comment-form">
+                    <input type="text" id="comment-name" placeholder="名前 (省略時は「匿名」になります)">
+                    <textarea id="comment-text" placeholder="コメントを入力してください。>>1 のように書くと返信リンクになります" required></textarea>
+                    <button id="submit-comment-btn">送信する</button>
+                </div>
             </div>
-            <div id="post-content" class="post-content"></div>
-        </article>
+        </div>
 
         <div style="text-align: center;">
             <a href="index.html" class="back-link panel">一覧に戻る</a>
@@ -232,7 +189,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc, query, orderBy, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
@@ -253,36 +210,48 @@
 
         const loadingMsg = document.getElementById("loading-message");
         const errorMsg = document.getElementById("error-message");
-        const articleContainer = document.getElementById("article-container");
+        const contentWrapper = document.getElementById("content-wrapper");
         const passwordSection = document.getElementById("password-section");
         const unlockBtn = document.getElementById("unlock-btn");
         const passwordInput = document.getElementById("article-password");
         const passwordError = document.getElementById("password-error");
 
+        const commentsList = document.getElementById("comments-list");
+        const commentNameInput = document.getElementById("comment-name");
+        const commentTextInput = document.getElementById("comment-text");
+        const submitCommentBtn = document.getElementById("submit-comment-btn");
+
         let currentPostData = null;
+        let isLiked = false;
 
         async function fetchPost() {
             if (!postId) {
                 showError("記事のIDが指定されていません。");
                 return;
             }
-
             try {
                 const docRef = doc(db, "posts", postId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     currentPostData = docSnap.data();
-                    
                     if (currentPostData.status === "draft") {
                         showError("この記事は非公開です。");
                         return;
                     }
-
                     loadingMsg.style.display = "none";
-
                     if (currentPostData.postPassword) {
-                        passwordSection.style.display = "block";
+                        const urlPassword = urlParams.get('password');
+                        if (urlPassword && urlPassword === currentPostData.postPassword) {
+                            renderPostContent(currentPostData);
+                        } else {
+                            passwordSection.style.display = "block";
+                            if (urlPassword) {
+                                passwordInput.value = urlPassword;
+                                passwordError.textContent = "URLのパスワードが間違っています。";
+                                passwordError.style.display = "block";
+                            }
+                        }
                     } else {
                         renderPostContent(currentPostData);
                     }
@@ -290,7 +259,6 @@
                     showError("指定された記事は存在しないか、削除されました。");
                 }
             } catch (error) {
-                console.error("データの取得に失敗しました:", error);
                 showError("記事の読み込みに失敗しました。通信環境をご確認ください。");
             }
         }
@@ -304,23 +272,20 @@
             }
         });
 
-        function renderPostContent(data) {
-            articleContainer.style.display = "block";
-
+        async function renderPostContent(data) {
+            contentWrapper.style.display = "block";
             const title = data.title || "タイトルなし";
             document.title = `${title} - kekelog`;
 
             document.getElementById("post-title").textContent = title;
             document.getElementById("post-content").innerHTML = data.content || "";
+            document.getElementById("view-count").textContent = data.views || 0;
+            document.getElementById("like-count").textContent = data.likes || 0;
 
             if (data.createdAt) {
                 const date = data.createdAt.toDate();
                 document.getElementById("post-date").textContent = date.toLocaleDateString("ja-JP", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit"
+                    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
                 });
             }
 
@@ -329,7 +294,118 @@
             if (tags.length > 0) {
                 tagsContainer.innerHTML = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
             }
+
+            const contentLinks = document.querySelectorAll('#post-content a');
+            const currentDomain = window.location.origin;
+            contentLinks.forEach(link => {
+                const targetUrl = link.href;
+                if (targetUrl && !targetUrl.startsWith(currentDomain)) {
+                    link.href = `cushion.html?url=${encodeURIComponent(targetUrl)}`;
+                }
+            });
+
+            if (!data._viewIncremented) {
+                data._viewIncremented = true;
+                try {
+                    await updateDoc(doc(db, "posts", postId), { views: increment(1) });
+                } catch (e) {}
+            }
+            fetchComments();
         }
+
+        async function fetchComments() {
+            try {
+                const commentsRef = collection(db, "posts", postId, "comments");
+                const q = query(commentsRef, orderBy("createdAt", "asc"));
+                const querySnapshot = await getDocs(q);
+                
+                commentsList.innerHTML = "";
+                
+                if (querySnapshot.empty) {
+                    commentsList.innerHTML = '<div style="text-align: center; color: #888888; font-size: 14px;">コメントはまだありません。</div>';
+                    return;
+                }
+
+                let index = 1;
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const name = data.name || "匿名";
+                    
+                    let safeText = (data.text || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+
+                    // >>1 のようなアンカーをリンクに変換 (XSS対策で > が &gt; になっている点を考慮)
+                    safeText = safeText.replace(/&gt;&gt;(\d+)/g, '<a href="#comment-$1" class="comment-anchor">&gt;&gt;$1</a>');
+
+                    let dateStr = "";
+                    if (data.createdAt) {
+                        const date = data.createdAt.toDate();
+                        dateStr = date.toLocaleDateString("ja-JP", {
+                            year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+                        });
+                    }
+                    
+                    const div = document.createElement("div");
+                    div.className = "comment-item";
+                    div.id = `comment-${index}`; // ジャンプ用のIDを付与
+                    div.innerHTML = `
+                        <div class="comment-meta">
+                            <span class="comment-num">${index}</span>
+                            <span class="comment-name">${name}</span>
+                            <span class="comment-date">${dateStr}</span>
+                        </div>
+                        <div class="comment-body">${safeText}</div>
+                    `;
+                    commentsList.appendChild(div);
+                    index++;
+                });
+            } catch (e) {
+                commentsList.innerHTML = '<div style="text-align: center; color: #e53e3e; font-size: 14px;">コメントを読み込めませんでした。</div>';
+            }
+        }
+
+        submitCommentBtn.addEventListener("click", async () => {
+            const text = commentTextInput.value.trim();
+            let name = commentNameInput.value.trim();
+            if (!text) { alert("コメントを入力してください。"); return; }
+            if (!name) name = "匿名";
+            
+            submitCommentBtn.disabled = true;
+            submitCommentBtn.textContent = "送信中...";
+
+            try {
+                const commentsRef = collection(db, "posts", postId, "comments");
+                await addDoc(commentsRef, {
+                    name: name,
+                    text: text,
+                    createdAt: serverTimestamp()
+                });
+                commentTextInput.value = "";
+                commentNameInput.value = "";
+                await fetchComments();
+            } catch (e) {
+                alert("エラーが発生しました。");
+            } finally {
+                submitCommentBtn.disabled = false;
+                submitCommentBtn.textContent = "送信する";
+            }
+        });
+
+        document.getElementById("like-btn").addEventListener("click", async () => {
+            if (isLiked) return;
+            isLiked = true;
+            const btn = document.getElementById("like-btn");
+            const countSpan = document.getElementById("like-count");
+            btn.classList.add("liked");
+            countSpan.textContent = (parseInt(countSpan.textContent) || 0) + 1;
+            try {
+                await updateDoc(doc(db, "posts", postId), { likes: increment(1) });
+            } catch (e) {}
+        });
 
         function showError(message) {
             loadingMsg.style.display = "none";
