@@ -10,7 +10,8 @@
       "N":  { "name": "ノーマル", "color": "#888888", "weight": 40 },
       "R":  { "name": "レア", "color": "#2ca02c", "weight": 30 },
       "SR": { "name": "Sレア", "color": "#1f77b4", "weight": 20 },
-      "UR": { "name": "Uレア", "color": "#ff7f0e", "weight": 10 }
+      "UR": { "name": "Uレア", "color": "#ff7f0e", "weight": 15 },
+      "810": { "name": "810レア", "color": "#ff7f0e", "weight": 5 }
     },
     "items": [
       { "name": "謎のドナルド", "rarity": "N", "type": "item", "image": "donald.jpg" },
@@ -21,7 +22,8 @@
       { "name": "ミク", "rarity": "SR", "type": "item", "image": "mikutop.jpg" },
       { "name": "称号『ミクのファン』", "rarity": "SR", "type": "title", "titleId": "miku_fan", "image": "mikutop.jpg" },
       { "name": "称号『らでんおでんゲームマスター(?)』", "rarity": "UR", "type": "title", "titleId": "raden_odengame_master", "image": "radenoden.jpg" },
-      { "name": "称号『ガチャマスター(10%)』", "rarity": "UR", "type": "title", "titleId": "gacha_master", "image": "gacha.jpg" }
+      { "name": "称号『ガチャマスター(10%)』", "rarity": "UR", "type": "title", "titleId": "gacha_master", "image": "gacha.jpg" },
+      { "name": "アイスティー", "rarity": "810", "type": "item", "image": "iced_tea.png" }
     ]
   },
   {
@@ -63,6 +65,22 @@
     "items": [
       { "name": "時間短縮カード", "rarity": "N", "type": "item", "image": "" },
       { "name": "100連専用チケット", "rarity": "SECRET", "type": "item", "image": "" }
+    ]
+  },
+  {
+    "id": "1_8192",
+    "title": "(約)8192分の1ガチャ",
+    "description": "(約)1/8192の確率で1/8192を引き当てるガチャ「当てれるもんなら当ててみろ」",
+    "config": {
+      "cooldownHours": 1
+    },
+    "rarities": {
+      "N":   { "name": "N", "color": "#888888", "weight": 99.9878 },
+      "SSR": { "name": "1/8192", "color": "#9467bd", "weight": 0.0122 }
+    },
+    "items": [
+      { "name": "時間短縮カード", "rarity": "N", "type": "item", "image": "" },
+      { "name": "8192分の1", "rarity": "SSR", "type": "title", "image": "" }
     ]
   }
 ]

@@ -74,5 +74,30 @@
     "conditionValue": 10000,
     "rarity": "UR",
     "secret": true
+  },
+  {
+    "id": "gacha_addict_advanced",
+    "name": "ガチャに人生を捧げた人",
+    "desc": "ガチャを合計1000000回まわす",
+    "conditionType": "gachaCount",
+    "conditionValue": 1000000,
+    "rarity": "SUR",
+    "secret": true
+  },
+  {
+    "id": "gacha_addict",
+    "name": "超ガチャ廃人",
+    "desc": "ガチャを合計1000000000回まわす",
+    "conditionType": "gachaCount",
+    "conditionValue": 1000000000,
+    "rarity": "SSR",
+    "secret": false
+  },
+  {
+    "id": "1_8192",
+    "name": "8192分の1",
+    "desc": "8192分の1ガチャで8192分の1を引き当てる(付与が困難のため管理者が手動で付与)",
+    "rarity": "SSSSSSS...SSSR",
+    "secret": false
   }
 ]
