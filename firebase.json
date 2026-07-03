@@ -89,6 +89,24 @@
         "**/.*",
         "**/node_modules/**"
       ]
+    },
+    {
+      "target": "public_cdn",
+      "public": "public_cdn",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "target": "public_blog",
+      "public": "public_blog",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
     }
   ]
 }
