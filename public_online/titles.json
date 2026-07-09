@@ -1,7 +1,7 @@
 [
   {
     "id": "novice",
-    "name": "見習い開発者",
+    "name": "見習い見習い(?)",
     "desc": "アカウントを作成した証",
     "rarity": "N"
   },
@@ -96,8 +96,22 @@
   {
     "id": "1_8192",
     "name": "8192分の1",
-    "desc": "8192分の1ガチャで8192分の1を引き当てる(付与が困難のため管理者が手動で付与)",
+    "desc": "8192分の1ガチャで8192分の1を引き当てる",
     "rarity": "SSSSSSS...SSSR",
     "secret": false
+  },
+  {
+    "id": "happy_birthday",
+    "name": "また1つ年を取ってしまった...",
+    "desc": "誕生日を迎える!!おめでとう!!",
+    "rarity": "HappyBirthday",
+    "secret": false
+  },
+  {
+    "id": "nazoclear",
+    "name": "謎解きマスター",
+    "desc": "謎を解いた君へのプレゼントだ｡",
+    "rarity": "???",
+    "secret": true
   }
 ]

@@ -16,5 +16,11 @@
     "name": "100連専用チケット",
     "amount": 10,
     "message": "これを使うと100連ガチャが引けるようになります！"
+  },
+  "the_end?": {
+    "type": "title",
+    "name": "nazoclear",
+    "amount": 1,
+    "message": "称号をゲットした｡"
   }
 }

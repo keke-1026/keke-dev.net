@@ -80,7 +80,7 @@
     },
     "items": [
       { "name": "時間短縮カード", "rarity": "N", "type": "item", "image": "" },
-      { "name": "8192分の1", "rarity": "SSR", "type": "title", "image": "" }
+      { "name": "8192分の1", "rarity": "SSR", "type": "title", "titleId": "1_8192", "image": "" }
     ]
   }
 ]
