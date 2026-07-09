@@ -464,7 +464,7 @@
 
         linkBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            navigator.clipboard.writeText(window.location.href).then(() => {
+            navigator.clipboard.writeText("https://ke2.jp/mo2clock").then(() => {
                 popup.textContent = "リンクをコピーしました";
                 popup.classList.add('show');
 
