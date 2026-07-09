@@ -1,0 +1,128 @@
+@charset "UTF-8";
+
+/* ベースのカラー設定 */
+.u-nav-clr { color: #514b40; }
+.u-nav-bdr-clr { border-color: #514b40; }
+.u-nav-bg-clr { background-color: #f6eede; }
+.u-nav-bg-bdr-clr { border-color: #f6eede; }
+.u-site-clr { color: #514b40; }
+.u-base-bg-clr { background-color: #f6eede; }
+.u-btn-clr { color: #a79d8a; }
+.u-btn-clr:hover, .u-btn-clr--active { color: rgba(167,157,138, 0.7); }
+.u-btn-bdr-clr { border-color: #a79d8a; }
+.u-btn-bg-clr { background-color: #a79d8a; }
+.u-txt-clr { color: #514b40; }
+.u-txt-clr--lv1 { color: rgba(81,75,64, 0.7); }
+.u-txt-clr--lv2 { color: rgba(81,75,64, 0.5); }
+.u-lnk-clr, .u-clr-area a { color: #909f78; }
+.u-ttl-blk-clr { color: #514b40; }
+.u-bdr-clr { border-color: #cdc5b4; }
+.u-acnt-bg-clr { background-color: #a79d8a; }
+
+body { background-color: #f6eede; }
+blockquote { color: rgba(81,75,64, 0.7); border-left-color: #cdc5b4; }
+
+@font-face {
+  font-family: 'Raleway';
+  src: url('https://static.amebaowndme.com/madrid-frontend/fonts/userfont/Raleway.woff2');
+}
+.u-font { font-family: "Raleway", "Helvetica", "ヒラギノ角ゴ ProN W3", "Hiragino Kaku Gothic ProN", sans-serif; }
+
+/* === Ameba Owndの自動生成要素を強制非表示 === */
+.powered-by, 
+.footer--pagetop .pagetop,
+.reblog-btn-outer,
+.complementary-outer {
+    display: none !important;
+}
+
+/* === フッターの中央寄せを強制 === */
+.page__footer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.footer__inner {
+    width: 100%;
+    max-width: 1000px;
+    text-align: center !important;
+    padding: 40px 20px;
+    border-top: 1px solid #cdc5b4;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.footer__item, .footer__copyright { 
+    border: none !important; 
+    text-align: center !important; 
+    width: 100%; 
+    margin: 0 auto; 
+    display: block !important;
+}
+
+/* === トップに戻るボタン (右下固定) === */
+#scroll-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background-color: #a79d8a;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border: none;
+}
+#scroll-to-top.show {
+    opacity: 1;
+    visibility: visible;
+}
+#scroll-to-top:hover {
+    background-color: #514b40;
+}
+#scroll-to-top svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+/* === SNSボタン (SVG) === */
+.sns-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    background-color: transparent;
+    border: 1px solid #cdc5b4;
+    color: #514b40;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.sns-btn svg { width: 18px; height: 18px; margin-right: 8px; fill: currentColor; }
+.sns-btn:hover { background-color: #ededeb; border-color: #a79d8a; color: #a79d8a; }
+
+/* スマホ対応 */
+@media screen and (max-width: 768px) {
+    .page__inner { padding: 0 10px; }
+    .header__inner { flex-direction: column; align-items: center; padding: 15px 0; }
+    .global-nav__list { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+    .global-nav__item { margin: 0; border: none; }
+    .blog-body__item img, .blog-body__item iframe { max-width: 100% !important; }
+    #scroll-to-top { bottom: 20px; right: 20px; width: 45px; height: 45px; }
+}

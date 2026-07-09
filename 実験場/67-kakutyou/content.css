@@ -1,0 +1,38 @@
+/* 検出された「67」の初期スタイル */
+.sixtyseven-trigger {
+  transition: border-bottom-color 0.5s ease;
+  border-bottom: 2px solid transparent;
+  display: inline-block;
+}
+
+/* 画面内に入ったときに付与されるクラス（下線を引く） */
+.sixtyseven-trigger.active {
+  border-bottom: 2px solid #ff0000;
+}
+
+/* オーバーレイのスタイル */
+#sixtyseven-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  /* クリック等の操作を邪魔しない設定 */
+  pointer-events: none;
+  /* 最前面に表示 */
+  z-index: 2147483647;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 初期状態は透明 */
+  opacity: 0;
+  /* 3秒かけて透明度を変化させる */
+  transition: opacity 3s ease-out;
+}
+
+#sixtyseven-media {
+  width: 50vw;
+  max-width: 600px;
+  /* ここでメディアの薄さを設定 (0.0 から 1.0) */
+  opacity: 0.3;
+}

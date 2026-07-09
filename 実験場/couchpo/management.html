@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charSet="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>管理画面 - カウチポテト</title>
+    <link href="https://static.amebaowndme.com/madrid-frontend/css/user.min-82c20cadc.css" rel="stylesheet" />
+    <link href="https://static.amebaowndme.com/madrid-frontend/css/natalie/index.min-82c20cadc.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+
+    <style>
+        body { background-color: #fcfbf9; }
+        .admin-container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #cdc5b4; overflow-x: auto; white-space: nowrap; }
+        .tab-btn { padding: 15px 20px; font-size: 1.1em; background: none; border: none; color: #cdc5b4; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { color: #514b40; border-bottom: 4px solid #a79d8a; margin-bottom: -2px; }
+        .form-group { margin-bottom: 30px; }
+        .form-group label { display: block; margin-bottom: 10px; font-size: 1.1em; color: #514b40; font-weight: bold; }
+        .form-group input[type="text"] { width: 100%; padding: 10px 5px; border: none; border-bottom: 2px solid #cdc5b4; background: transparent; font-size: 1.1em; color: #514b40; outline: none; }
+        .checkbox-label { display: inline-flex; align-items: center; margin-right: 20px; font-weight: normal !important; cursor: pointer; font-size: 1.1em; color: #514b40;}
+        .checkbox-label input { margin-right: 8px; width: 18px; height: 18px; cursor: pointer;}
+        
+        .editor-block { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; border-left: 5px solid #a79d8a; display: flex; flex-direction: column;}
+        .editor-block.over { border: 2px dashed #a79d8a; opacity: 0.5; }
+        .drag-handle { cursor: grab; font-size: 1.5em; color: #cdc5b4; position: absolute; left: -25px; top: 50%; transform: translateY(-50%); }
+        .editor-block textarea, .editor-block input[type="text"] { width: 100%; min-height: 80px; border: 1px solid #eee; padding: 10px; outline: none; font-size: 1em; resize: vertical; margin-top: 10px; border-radius: 4px;}
+        .editor-block input[type="text"] { min-height: auto; }
+        .editor-block img { max-width: 100%; border-radius: 4px; margin-top: 10px; }
+        .block-controls { position: absolute; top: 10px; right: 10px; }
+        .block-controls button { background: #fee; color: #c33; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.9em; }
+        
+        .add-btns { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;}
+        .add-btns button { flex: 1; min-width: 120px; padding: 12px; background: transparent; border: 2px dashed #a79d8a; color: #a79d8a; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: bold;}
+        .submit-btn { width: 100%; padding: 18px; background-color: #a79d8a; color: #fff; border: none; border-radius: 30px; font-size: 1.2em; font-weight: bold; cursor: pointer; margin-top: 20px;}
+        .manage-list-item { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);}
+        .manage-actions button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px; font-weight: bold;}
+        .btn-edit { background: #a79d8a; color: #fff; }
+        .btn-delete { background: #fee; color: #c33; }
+        .setting-card { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="u-font">
+    <div class="admin-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-post')" id="tab-btn-post">記事を書く</button>
+            <button class="tab-btn" onclick="switchTab('tab-manage'); loadAdminPosts();">記事の管理</button>
+            <button class="tab-btn" onclick="switchTab('tab-settings')">サイトの設定</button>
+        </div>
+
+        <div id="tab-post">
+            <form id="news-form">
+                <input type="hidden" id="edit-post-id" value="">
+                
+                <div class="form-group" style="background:#fff; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                    <label>どこに投稿しますか？</label>
+                    <label class="checkbox-label"><input type="checkbox" id="cat-news" value="news" checked> News (お知らせ)</label>
+                    <label class="checkbox-label"><input type="checkbox" id="cat-live" value="live"> Live (スケジュール)</label>
+                </div>
+
+                <div class="form-group">
+                    <label>タイトル</label>
+                    <input type="text" id="news-title" required placeholder="例：ライブのお知らせ">
+                </div>
+                <div class="form-group">
+                    <label>タグ（キーワード）</label>
+                    <input type="text" id="news-tags" placeholder="例：ライブ, 音楽 （カンマ区切り）">
+                </div>
+                <label style="display:block; margin-bottom:10px; font-weight:bold; color:#514b40;">記事の内容（≡を長押しで上下に移動できます）</label>
+                <div id="blocks-container" style="margin-left: 30px;"></div>
+
+                <div class="add-btns">
+                    <button type="button" onclick="addBlock('text')">＋ 文章</button>
+                    <button type="button" onclick="addBlock('image')">＋ 画像</button>
+                    <button type="button" onclick="addBlock('youtube')">＋ YouTube</button>
+                    <button type="button" onclick="addBlock('twitter')">＋ X (Twitter)</button>
+                </div>
+                <button type="submit" class="submit-btn" id="submit-post-btn">サイトに公開する</button>
+                <button type="button" class="submit-btn" id="cancel-edit-btn" style="background:#ccc; display:none;" onclick="cancelEdit()">編集をキャンセル</button>
+                <p id="post-status" style="text-align:center; margin-top:20px; color: #909f78; font-weight:bold; display:none;"></p>
+            </form>
+        </div>
+
+        <div id="tab-manage" style="display: none;">
+            <p style="margin-bottom:20px; color:#514b40;">過去の記事を修正・削除できます。</p>
+            <div id="admin-posts-list"><p>読み込み中...</p></div>
+        </div>
+
+        <div id="tab-settings" style="display: none;">
+            <div class="setting-card">
+                <label style="font-weight:bold; display:block; margin-bottom:10px;">左上のヘッダーロゴ画像</label>
+                <button type="button" onclick="uploadSettingImage('headerLogo')" class="add-btns" style="padding:10px; border:1px solid #cdc5b4; border-radius:4px;">画像を選ぶ</button>
+                <img id="preview-headerLogo" src="" style="max-height:60px; margin-top:10px;">
+                <input type="hidden" id="input-headerLogo">
+            </div>
+            <div class="setting-card">
+                <label style="font-weight:bold; display:block; margin-bottom:10px;">トップ画像 (HOME画面)</label>
+                <button type="button" onclick="uploadSettingImage('topImage')" class="add-btns" style="padding:10px; border:1px solid #cdc5b4; border-radius:4px;">画像を選ぶ</button>
+                <img id="preview-topImage" src="" style="max-width:150px; display:block; margin-top:10px;">
+                <input type="hidden" id="input-topImage">
+            </div>
+            <div class="setting-card">
+                <label style="font-weight:bold; display:block; margin-bottom:10px;">ブラウザのタブアイコン (Favicon)</label>
+                <button type="button" onclick="uploadSettingImage('favicon')" class="add-btns" style="padding:10px; border:1px solid #cdc5b4; border-radius:4px;">画像を選ぶ</button>
+                <img id="preview-favicon" src="" style="max-width:50px; margin-top:10px;">
+                <input type="hidden" id="input-favicon">
+            </div>
+            <button type="button" onclick="saveSettings()" class="submit-btn">設定を保存する</button>
+            <p id="setting-status" style="text-align:center; margin-top:20px; color: #909f78; font-weight:bold; display:none;">保存しました！</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const app = initializeApp({
+            apiKey: "AIzaSyBss3X4TU521AXPLgWSA_lB6Un1yhO4oRg",
+            authDomain: "couchpotato-hp.firebaseapp.com",
+            projectId: "couchpotato-hp"
+        });
+        const db = getFirestore(app);
+        const container = document.getElementById('blocks-container');
+
+        window.switchTab = function(tabId) {
+            ['tab-post', 'tab-manage', 'tab-settings'].forEach(id => document.getElementById(id).style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // --- ドラッグ処理 ---
+        let draggedItem = null;
+        function handleDragStart(e) { draggedItem = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.style.opacity = '0.5'; }
+        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; }
+        function handleDragEnter(e) { this.classList.add('over'); }
+        function handleDragLeave(e) { this.classList.remove('over'); }
+        function handleDrop(e) {
+            e.stopPropagation();
+            if (draggedItem !== this) {
+                let siblings = Array.from(container.children);
+                if (siblings.indexOf(draggedItem) < siblings.indexOf(this)) container.insertBefore(draggedItem, this.nextSibling);
+                else container.insertBefore(draggedItem, this);
+            }
+            return false;
+        }
+        function handleDragEnd(e) { this.style.opacity = '1'; container.querySelectorAll('.editor-block').forEach(item => item.classList.remove('over')); }
+
+        window.addBlock = function(type, content = "") {
+            const div = document.createElement('div');
+            div.className = 'editor-block';
+            div.dataset.type = type;
+            div.setAttribute('draggable', true);
+            div.addEventListener('dragstart', handleDragStart, false); div.addEventListener('dragenter', handleDragEnter, false);
+            div.addEventListener('dragover', handleDragOver, false); div.addEventListener('dragleave', handleDragLeave, false);
+            div.addEventListener('drop', handleDrop, false); div.addEventListener('dragend', handleDragEnd, false);
+            
+            let inner = `<span class="drag-handle">≡</span><div class="block-controls"><button type="button" onclick="this.parentElement.parentElement.remove()">削除</button></div>`;
+            
+            if (type === 'text') { inner += `<span style="color:#a79d8a; font-weight:bold;">📝 文章</span><textarea placeholder="ここに文章を書きます...">${content}</textarea>`; div.innerHTML = inner; container.appendChild(div); } 
+            else if (type === 'youtube') { inner += `<span style="color:#a79d8a; font-weight:bold;">▶️ YouTube</span><input type="text" placeholder="URL、またはアカウントID (@〇〇)" value="${content}">`; div.innerHTML = inner; container.appendChild(div); } 
+            else if (type === 'twitter') { inner += `<span style="color:#a79d8a; font-weight:bold;">🐦 X (Twitter)</span><input type="text" placeholder="ポストのURL、またはアカウントID (@〇〇)" value="${content}">`; div.innerHTML = inner; container.appendChild(div); } 
+            else if (type === 'image') {
+                if (content) {
+                    div.dataset.url = content; inner += `<span style="color:#a79d8a; font-weight:bold;">🖼 画像</span><img src="${content}">`; div.innerHTML = inner; container.appendChild(div);
+                } else {
+                    cloudinary.openUploadWidget({ cloudName: 'dcgytcnqu', uploadPreset: 'couchpotato', cropping: true, language: "ja" }, (error, result) => {
+                        if (!error && result && result.event === "success") { div.dataset.url = result.info.secure_url; inner += `<span style="color:#a79d8a; font-weight:bold;">🖼 画像</span><img src="${result.info.secure_url}">`; div.innerHTML = inner; container.appendChild(div); }
+                    });
+                }
+            }
+        }
+
+        function getFormattedDate() {
+            const d = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        document.getElementById("news-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById("edit-post-id").value;
+            const title = document.getElementById("news-title").value;
+            const tags = document.getElementById("news-tags").value.split(',').map(t => t.trim()).filter(t => t !== "");
+            
+            const categories = [];
+            if(document.getElementById("cat-news").checked) categories.push("news");
+            if(document.getElementById("cat-live").checked) categories.push("live");
+
+            const blocks = [];
+            for (let el of container.children) {
+                const type = el.dataset.type;
+                if (type === 'text') blocks.push({ type: 'text', content: el.querySelector('textarea').value });
+                else if (type === 'image') blocks.push({ type: 'image', url: el.dataset.url });
+                else if (type === 'youtube' || type === 'twitter') blocks.push({ type: type, url: el.querySelector('input').value });
+            }
+
+            try {
+                const statusMsg = document.getElementById("post-status");
+                if (editId) {
+                    await setDoc(doc(db, "news", editId), { title, tags, categories, blocks }, { merge: true });
+                    statusMsg.textContent = "編集内容を保存しました！"; cancelEdit();
+                } else {
+                    await addDoc(collection(db, "news"), { title, date: getFormattedDate(), tags, categories, blocks, createdAt: new Date() });
+                    statusMsg.textContent = "新しく公開しました！"; document.getElementById("news-form").reset(); container.innerHTML = "";
+                }
+                statusMsg.style.display = "block"; setTimeout(() => { statusMsg.style.display = "none"; }, 3000);
+            } catch (error) { alert("エラーが発生しました。"); }
+        });
+
+        window.loadAdminPosts = async function() {
+            const listArea = document.getElementById('admin-posts-list');
+            listArea.innerHTML = "読み込み中...";
+            const snapshot = await getDocs(query(collection(db, "news"), orderBy("createdAt", "desc")));
+            if(snapshot.empty) { listArea.innerHTML = "記事がありません。"; return; }
+            listArea.innerHTML = "";
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const catStr = (data.categories || []).join(' / ') || 'news';
+                listArea.insertAdjacentHTML('beforeend', `
+                    <div class="manage-list-item">
+                        <div><span>${data.title}</span><br><small style="color:#a79d8a;">${data.date} [${catStr}]</small></div>
+                        <div class="manage-actions">
+                            <button type="button" class="btn-edit" onclick="editPost('${docSnap.id}')">編集</button>
+                            <button type="button" class="btn-delete" onclick="deletePost('${docSnap.id}', '${data.title}')">削除</button>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        window.deletePost = async function(id, title) {
+            if (confirm(`本当に「${title}」を削除しますか？`)) { await deleteDoc(doc(db, "news", id)); loadAdminPosts(); }
+        }
+
+        window.editPost = async function(id) {
+            const docSnap = await getDoc(doc(db, "news", id));
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                document.getElementById("edit-post-id").value = id;
+                document.getElementById("news-title").value = data.title;
+                document.getElementById("news-tags").value = data.tags ? data.tags.join(', ') : "";
+                
+                document.getElementById("cat-news").checked = data.categories ? data.categories.includes("news") : true;
+                document.getElementById("cat-live").checked = data.categories ? data.categories.includes("live") : false;
+
+                container.innerHTML = "";
+                if (data.blocks) data.blocks.forEach(b => addBlock(b.type, b.content || b.url));
+                
+                document.getElementById("submit-post-btn").textContent = "編集内容を保存する";
+                document.getElementById("cancel-edit-btn").style.display = "block";
+                document.getElementById("tab-btn-post").textContent = "記事の編集";
+                switchTab('tab-post');
+            }
+        }
+
+        window.cancelEdit = function() {
+            document.getElementById("edit-post-id").value = ""; document.getElementById("news-form").reset();
+            container.innerHTML = ""; document.getElementById("submit-post-btn").textContent = "サイトに公開する";
+            document.getElementById("cancel-edit-btn").style.display = "none"; document.getElementById("tab-btn-post").textContent = "記事を書く";
+        }
+
+        async function loadSettings() {
+            const snap = await getDoc(doc(db, "settings", "global"));
+            if(snap.exists()){
+                const data = snap.data();
+                ['topImage', 'headerLogo', 'favicon'].forEach(key => {
+                    if(data[key]) {
+                        document.getElementById(`preview-${key}`).src = data[key];
+                        document.getElementById(`input-${key}`).value = data[key];
+                    }
+                });
+            }
+        }
+        loadSettings();
+
+        window.uploadSettingImage = function(key) {
+            cloudinary.openUploadWidget({ cloudName: 'dcgytcnqu', uploadPreset: 'couchpotato', cropping: true, language: "ja" }, (error, result) => {
+                if (!error && result && result.event === "success") {
+                    document.getElementById(`input-${key}`).value = result.info.secure_url; document.getElementById(`preview-${key}`).src = result.info.secure_url;
+                }
+            });
+        }
+        window.saveSettings = async function() {
+            const topImage = document.getElementById('input-topImage').value;
+            const headerLogo = document.getElementById('input-headerLogo').value;
+            const favicon = document.getElementById('input-favicon').value;
+            await setDoc(doc(db, "settings", "global"), { topImage, headerLogo, favicon }, { merge: true });
+            const s = document.getElementById("setting-status"); s.style.display = "block"; setTimeout(() => { s.style.display = "none"; }, 3000);
+        }
+    </script>
+</body>
+</html>
