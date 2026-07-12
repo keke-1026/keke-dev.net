@@ -11,7 +11,8 @@
       "R":  { "name": "レア", "color": "#2ca02c", "weight": 30 },
       "SR": { "name": "Sレア", "color": "#1f77b4", "weight": 20 },
       "UR": { "name": "Uレア", "color": "#ff7f0e", "weight": 15 },
-      "810": { "name": "810レア", "color": "#ff7f0e", "weight": 5 }
+      "810": { "name": "810レア", "color": "#ff7f0e", "weight": 4.9999966 },
+      "key": { "name": "key", "color": "#ff7f0e", "weight": 0.0000034 }
     },
     "items": [
       { "name": "謎のドナルド", "rarity": "N", "type": "item", "image": "donald.jpg" },
@@ -23,7 +24,8 @@
       { "name": "称号『ミクのファン』", "rarity": "SR", "type": "title", "titleId": "miku_fan", "image": "mikutop.jpg" },
       { "name": "称号『らでんおでんゲームマスター(?)』", "rarity": "UR", "type": "title", "titleId": "raden_odengame_master", "image": "radenoden.jpg" },
       { "name": "称号『ガチャマスター(10%)』", "rarity": "UR", "type": "title", "titleId": "gacha_master", "image": "gacha.jpg" },
-      { "name": "アイスティー", "rarity": "810", "type": "item", "image": "iced_tea.png" }
+      { "name": "アイスティー", "rarity": "810", "type": "item", "image": "iced_tea.png" },
+      { "name": "key", "rarity": "key", "type": "item", "image": "sec-key.png" }
     ]
   },
   {
@@ -60,11 +62,13 @@
     },
     "rarities": {
       "N":   { "name": "ノーマル", "color": "#888888", "weight": 50 },
-      "SECRET": { "name": "SECRETレア", "color": "#9467bd", "weight": 50 }
+      "SECRET": { "name": "SECRETレア", "color": "#9467bd", "weight": 49 },
+      "なえ": { "name": "なえ", "color": "#ff7f0e", "weight": 1 }
     },
     "items": [
       { "name": "時間短縮カード", "rarity": "N", "type": "item", "image": "" },
-      { "name": "100連専用チケット", "rarity": "SECRET", "type": "item", "image": "" }
+      { "name": "100連専用チケット", "rarity": "SECRET", "type": "item", "image": "" },
+      { "name": "私は､いま､どこに､いる...?", "rarity": "なえ", "type": "title", "titleId": "nae1", "image": "" } 
     ]
   },
   {

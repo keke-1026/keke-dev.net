@@ -49,7 +49,11 @@
     "このサイトを見てくれてありがとう!!これからもよろしくね!!",
     "このサイトはまだまだ発展途上だから、みんなの意見をどんどん聞かせてね!!",
     "ﾁｮﾜﾖー☆",
-    "年度が変わるとverも変わるよ!(いまは､「Comeback」だよ!)"
+    "年度が変わるとverも変わるよ!(いまは､「Comeback」だよ!)",
+    "初音ミクほしい...買って...",
+    "お金ない",
+    "この文章を半年ぶりに更新しました",
+    "独自ドメインって結構するんだよね...短縮urlも取ってるから結構金かかる...(毎年5000円弱...)"
   ],
   "about": {
     "image": "about.png",
@@ -58,16 +62,16 @@
   },
   "works": [
     {
-      "title": "flightradar24modoki",
-      "description": "flightradarでは公開されない､スコーク(緊急事態)を出している機体を､Openskyから取得して表示させるサイトです｡",
-      "image": "work1.png",
-      "link": "to-project.html?data=projects/flightradar24modoki.html"
+      "title": "ホリエモンクロック",
+      "description": "毎時間00分に､MOMO2号機がJAXAのカウントダウンとともに打ち上がります｡まだバグあるのでバグが治っている環境であるChromeでの閲覧を推奨します｡",
+      "image": "momoclock.png",
+      "link": "to-project.html?data=projects/momoclock/index.html"
     },
     {
-      "title": "space",
-      "description": "宇宙みたいな空間で遊べるよ 授業中の暇つぶしにいいかもね",
-      "image": "work2.png",
-      "link": "to-project.html?data=projects/space.html"
+      "title": "i-Filter 規制画面",
+      "description": "タイトルの通りです｡i-Filterの規制画面を再現しました｡(持ってきただけ)",
+      "image": "momoclock.png",
+      "link": "8080block.html"
     }
   ],
   "qa": [
@@ -77,7 +81,7 @@
     },
     {
       "question": "お金ってもらってるんですか?",
-      "answer": "おかあさんからの案件(お手伝い)がやばいので紙1枚印刷=100円の世界で生きています｡あとはWeb作って1万とか?"
+      "answer": "おかあさんからの案件(お手伝い)がやばいので紙1枚印刷=100円の世界で生きています｡"
     },
     {
       "question": "将来の夢は何ですか？",
@@ -85,7 +89,7 @@
     },
     {
       "question": "好きな曲はなんですか?",
-      "answer": "ボカロ全般大体好きです｡でも特にバゥムクゥヘン・エンドロゥルとか好きですね｡"
+      "answer": "ボカロ全般大体好きです｡でも特にHand in Handとか好きですね｡"
     }
   ],
   "quiz": [
