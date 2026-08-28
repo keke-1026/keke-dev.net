@@ -31,7 +31,8 @@
         { "title": "コード", "sub": "コードが認証できるよ", "url": "https://code.keke-dev.net", "icon": "" },
         { "title": "ニコニコランダム動画", "sub": "ランダムな動画に飛ぶよ", "url": "https://keke-dev.net/niconico-random/index.html", "icon": "" },
         { "title": "アップデート履歴", "sub": "タイトルの通り", "url": "https://update.keke-dev.net", "icon": "" },
-        { "title": "矢印パスワード", "sub": "ピッピが理不尽のを出してきたあれです｡いえばあれ打てばクリアできます", "url": "https://keke-dev.net/arrow/index.html", "icon": "" }
+        { "title": "矢印パスワード", "sub": "ピッピが理不尽のを出してきたあれです｡いえばあれ打てばクリアできます", "url": "https://keke-dev.net/arrow/index.html", "icon": "" },
+        { "title": "ホリエモンクロック", "sub": "毎時間00分に､MOMO2号機がJAXAのカウントダウンとともに打ち上がります｡", "url": "https://keke-dev.net/momoclock/index.html", "icon": "" }
       ]
     }
   ]
