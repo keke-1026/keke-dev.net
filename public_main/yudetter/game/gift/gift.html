@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ギフト管理 | yudetter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    :root {
+      --main-color: #d8f12a;
+      --main-color-hover: #e4fc3b;
+      --dark-bg: #222222;
+      --dot-color: #111111;
+      --text-color: #333333;
+      --muted: #888888;
+      --border: #eaeaea;
+      --danger: #e5484d;
+      --danger-bg: #fdecec;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background-color: #f6f6f4;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      color: var(--text-color);
+    }
+
+    #topbar {
+      position: sticky; top: 0; z-index: 20;
+      background-color: var(--dark-bg);
+      background-image: radial-gradient(var(--dot-color) 15%, transparent 16%);
+      background-size: 14px 14px;
+      color: #fff;
+      padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+    #topbar .brand { display: flex; align-items: center; gap: 10px; }
+    #topbar .brand .material-icons-round { color: var(--main-color); font-size: 26px; }
+    #topbar h1 { font-size: 18px; font-weight: 900; margin: 0; letter-spacing: 0.5px; }
+    #topbar .count-pill {
+      background: var(--main-color); color: #111; font-weight: 900; font-size: 13px;
+      padding: 6px 14px; border-radius: 999px; border: 2px solid #111;
+    }
+
+    .page { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .reset-card {
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      margin-bottom: 22px; border-left: 4px solid #ff9800; flex-wrap: wrap;
+    }
+    .reset-card-main h2 { margin-bottom: 8px; }
+    .reset-card-main h2 .material-icons-round { color: #ff9800; }
+    .reset-desc { font-size: 12px; color: #666; line-height: 1.7; margin: 0 0 14px; max-width: 560px; }
+    .reset-desc b { color: #333; }
+    .reset-stats { display: flex; gap: 22px; margin-bottom: 10px; }
+    .reset-stat { display: flex; flex-direction: column; }
+    .reset-stat-num { font-size: 20px; font-weight: 900; color: #111; }
+    .reset-stat-label { font-size: 10px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+    .reset-last { font-size: 11px; color: var(--muted); font-weight: 700; }
+    #reset-board-btn {
+      flex-shrink: 0; display: flex; align-items: center; gap: 8px; width: auto;
+      padding: 14px 22px; font-size: 14px; font-weight: 900; background: #111; color: #fff;
+      border-radius: 10px; border: 2.5px solid #111; box-shadow: 0 4px 0 #555;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+    #reset-board-btn:hover:not(:disabled) { background: #333; }
+    #reset-board-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #555; }
+    #reset-board-btn:disabled { background: #ddd; border-color: #bbb; box-shadow: 0 4px 0 #bbb; color: #999; cursor: not-allowed; }
+
+    .container { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+    .form-section, .list-section { flex: 1; min-width: 320px; }
+
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 22px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .form-section { position: sticky; top: 92px; }
+
+    .card h2 {
+      font-size: 15px; font-weight: 900; margin: 0 0 18px 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card h2 .material-icons-round { font-size: 18px; color: var(--muted); }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #555; }
+    .label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .label-row label { margin-bottom: 0; }
+    input, select {
+      width: 100%; padding: 11px 12px; border: 1.5px solid #ddd; border-radius: 8px;
+      box-sizing: border-box; font-family: inherit; font-size: 14px; background: #fff;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    select { appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'><path d='M7 10l5 5 5-5z'/></svg>");
+      background-repeat: no-repeat; background-position: right 10px center; background-size: 18px; padding-right: 34px;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: var(--main-color);
+      box-shadow: 0 0 0 3px rgba(216,241,42,0.35);
+    }
+    .form-group.invalid input, .form-group.invalid select { border-color: var(--danger); }
+    .field-error { font-size: 11px; color: var(--danger); margin-top: 4px; display: none; }
+    .form-group.invalid .field-error { display: block; }
+
+    .row { display: flex; gap: 10px; }
+    .row .form-group { flex: 1; }
+
+    .price-input-wrap { position: relative; }
+    .price-input-wrap input { padding-right: 34px; }
+    .price-input-wrap span {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 12px; color: var(--muted); font-weight: 700; pointer-events: none;
+    }
+
+    .size-presets { display: flex; gap: 8px; margin-top: 6px; }
+    .size-preset-btn {
+      flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 700; text-align: center;
+      border: 1.5px solid #ddd; border-radius: 6px; background: #fafafa; color: #666;
+      cursor: pointer; transition: all 0.15s ease;
+    }
+    .size-preset-btn:hover { border-color: var(--main-color); background: #fbfde0; color: #111; }
+
+    .manage-link {
+      font-size: 11px; font-weight: 700; color: var(--muted); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 3px; user-select: none;
+    }
+    .manage-link:hover { color: #111; }
+    .manage-link .material-icons-round { font-size: 14px; }
+
+    #cat-manage-panel {
+      display: none; margin-top: 10px; padding: 12px; background: #fafafa;
+      border: 1px dashed #ddd; border-radius: 10px;
+    }
+    #cat-manage-panel.open { display: block; }
+    #cat-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    #cat-chip-list:empty::after {
+      content: 'カテゴリがまだありません。下から追加してください。';
+      font-size: 11px; color: var(--muted);
+    }
+    .cat-chip {
+      display: inline-flex; align-items: center; gap: 5px; background: #fff;
+      border: 1.5px solid #ddd; border-radius: 999px; padding: 5px 8px 5px 12px;
+      font-size: 11px; font-weight: 700; color: #444;
+    }
+    .cat-chip .chip-count { color: var(--muted); font-weight: 500; }
+    .cat-chip .chip-del {
+      width: 16px; height: 16px; border-radius: 50%; background: #eee; color: #888;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; line-height: 1;
+      transition: all 0.15s ease;
+    }
+    .cat-chip .chip-del:hover { background: var(--danger); color: #fff; }
+    .cat-add-row { display: flex; gap: 6px; }
+    .cat-add-row input { flex: 1; padding: 9px 10px; font-size: 13px; }
+    .cat-add-row button {
+      width: auto; margin: 0; padding: 0 16px; font-size: 12px; font-weight: 900;
+      background: #111; color: #fff; border-radius: 8px; flex-shrink: 0;
+    }
+    .cat-add-row button:hover { background: #333; }
+
+    button { font-family: inherit; cursor: pointer; border: none; }
+    #add-btn {
+      width: 100%; margin-top: 6px; padding: 14px; font-size: 15px; font-weight: 900;
+      background: var(--main-color); color: #111; border: 2.5px solid #111;
+      border-radius: 10px; box-shadow: 0 4px 0 #111;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+    #add-btn:hover:not(:disabled) { background: var(--main-color-hover); }
+    #add-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #111; }
+    #add-btn:disabled { background: #ddd; border-color: #bbb; box-shadow: 0 4px 0 #bbb; color: #999; cursor: not-allowed; }
+    #add-btn.editing { background: #111; color: #fff; box-shadow: 0 4px 0 #555; border-color: #111; }
+    #add-btn.editing:hover:not(:disabled) { background: #333; }
+
+    #cancel-edit-btn {
+      width: 100%; margin-top: 8px; padding: 10px; font-size: 12px; font-weight: 700;
+      background: transparent; color: var(--muted); border-radius: 8px;
+    }
+    #cancel-edit-btn:hover { color: #333; text-decoration: underline; }
+    #cancel-edit-btn { display: none; }
+
+    #editing-banner {
+      display: none; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
+      background: #fff9db; color: #8a6d00; border: 1px solid #ffe58f;
+      padding: 8px 12px; border-radius: 8px; margin-bottom: 16px;
+    }
+    #editing-banner .material-icons-round { font-size: 16px; }
+
+    #msg {
+      margin-top: 12px; font-size: 12px; font-weight: 700; padding: 10px 12px; border-radius: 8px;
+      display: none; align-items: center; gap: 6px;
+    }
+    #msg.show { display: flex; }
+    #msg.success { background: #eaf9ec; color: #1e8a3c; }
+    #msg.error { background: var(--danger-bg); color: var(--danger); }
+    #msg .material-icons-round { font-size: 16px; }
+
+    .preview-label { font-size: 11px; font-weight: 700; color: var(--muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .preview-card {
+      display: flex; align-items: center; gap: 12px; background: #fafafa;
+      border: 1px dashed #ddd; border-radius: 10px; padding: 12px;
+    }
+    .preview-card img {
+      width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: #eee;
+      border: 1px solid #eee; flex-shrink: 0;
+    }
+    .preview-card .pv-info { flex: 1; min-width: 0; }
+    .preview-card .pv-name { font-size: 13px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preview-card .pv-price { font-size: 12px; color: #ff9800; font-weight: 900; margin-top: 2px; }
+    .preview-card .pv-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+    .list-header h2 { margin: 0; }
+    .search-box { position: relative; width: 180px; }
+    .search-box input { padding-left: 32px; }
+    .search-box .material-icons-round {
+      position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 17px; color: var(--muted);
+    }
+
+    .category-group { margin-bottom: 20px; }
+    .category-group:last-child { margin-bottom: 0; }
+    .category-heading {
+      display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900;
+      color: #555; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--border);
+    }
+    .category-heading .badge {
+      background: #eee; color: #666; font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+    }
+
+    .catalog-item {
+      display: flex; align-items: center; gap: 14px; background: #fff;
+      padding: 10px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .catalog-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-color: #e0e0e0; }
+    .catalog-item img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; background: #eee; flex-shrink: 0; }
+    .catalog-info { flex: 1; min-width: 0; }
+    .catalog-info strong { display: block; font-size: 14px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .catalog-info .meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .catalog-info .meta b { color: #ff9800; }
+    .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-action-btn {
+      width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      background: #f5f5f5; color: #555; transition: all 0.15s ease;
+    }
+    .icon-action-btn .material-icons-round { font-size: 18px; }
+    .icon-action-btn:hover { background: #eee; color: #111; }
+    .icon-action-btn.delete:hover { background: var(--danger-bg); color: var(--danger); }
+
+    .empty-state, .loading-state {
+      text-align: center; padding: 50px 20px; color: var(--muted);
+    }
+    .empty-state .material-icons-round { font-size: 40px; color: #ddd; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; font-weight: 700; margin: 0; }
+    .loading-state .skeleton {
+      height: 68px; border-radius: 10px; background: linear-gradient(90deg, #f0f0f0 25%, #f7f7f7 37%, #f0f0f0 63%);
+      background-size: 400% 100%; animation: shimmer 1.4s ease infinite; margin-bottom: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+    @media (max-width: 720px) {
+      .form-section { position: static; }
+      #topbar { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <div class="brand">
+      <span class="material-icons-round">redeem</span>
+      <h1>ギフト管理</h1>
+    </div>
+    <span class="count-pill" id="count-pill">0件</span>
+  </div>
+
+  <div class="page">
+
+    <div class="card reset-card">
+      <div class="reset-card-main">
+        <h2><span class="material-icons-round">restart_alt</span> 盤面表示リセット</h2>
+        <p class="reset-desc">実行すると、これまで贈られたギフトが<b>盤面から見えなくなります</b>。<b>履歴と累計ユデドルは消えません</b></p>
+        <div class="reset-stats">
+          <div class="reset-stat"><span class="reset-stat-num" id="stat-total">-</span><span class="reset-stat-label">送信された総数</span></div>
+          <div class="reset-stat"><span class="reset-stat-num" id="stat-visible">-</span><span class="reset-stat-label">現在表示中</span></div>
+          <div class="reset-stat"><span class="reset-stat-num" id="stat-hidden">-</span><span class="reset-stat-label">非表示</span></div>
+        </div>
+        <div class="reset-last" id="reset-last">最終リセット: 取得中...</div>
+      </div>
+      <button id="reset-board-btn"><span class="material-icons-round">restart_alt</span>盤面をリセットする</button>
+    </div>
+
+    <div class="container">
+
+      <div class="form-section">
+        <div class="card">
+          <div id="editing-banner">
+            <span class="material-icons-round">edit</span>
+            <span id="editing-banner-text">「〇〇」を編集中</span>
+          </div>
+
+          <h2><span class="material-icons-round">add_circle</span> ギフトを登録</h2>
+
+          <div class="form-group" id="cat-group">
+            <div class="label-row">
+              <label>カテゴリ</label>
+              <span class="manage-link" id="manage-cat-toggle"><span class="material-icons-round">tune</span>カテゴリを管理</span>
+            </div>
+            <select id="cat-select"></select>
+            <div class="field-error">先にカテゴリを1つ追加してください</div>
+
+            <div id="cat-manage-panel">
+              <div id="cat-chip-list"></div>
+              <div class="cat-add-row">
+                <input type="text" id="new-cat-input" placeholder="新しいカテゴリ名 (例: 限定ギフト)">
+                <button id="add-cat-btn">追加</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" id="name-group">
+            <label>ギフト名</label>
+            <input type="text" id="gift-name" placeholder="例: 花束">
+            <div class="field-error">ギフト名を入力してください</div>
+          </div>
+
+          <div class="form-group" id="price-group">
+            <label>価格</label>
+            <div class="price-input-wrap">
+              <input type="number" id="gift-price" placeholder="例: 500" value="500" min="1">
+              <span>yd</span>
+            </div>
+            <div class="field-error">1以上の価格を入力してください</div>
+          </div>
+
+          <div class="form-group" id="image-group">
+            <label>画像URL</label>
+            <input type="text" id="gift-image" placeholder="https://..." value="https://cdn.ke2.jp/">
+            <div class="field-error">画像URLを入力してください</div>
+          </div>
+
+          <div class="row">
+            <div class="form-group" id="w-group">
+              <label>幅 (px)</label>
+              <input type="number" id="gift-w" value="80" min="1">
+            </div>
+            <div class="form-group" id="h-group">
+              <label>高さ (px)</label>
+              <input type="number" id="gift-h" value="100" min="1">
+            </div>
+          </div>
+          <div class="size-presets">
+            <div class="size-preset-btn" data-w="60" data-h="80">小 60×80</div>
+            <div class="size-preset-btn" data-w="80" data-h="100">中 80×100</div>
+            <div class="size-preset-btn" data-w="120" data-h="140">大 120×140</div>
+          </div>
+
+          <div class="preview-label">プレビュー</div>
+          <div class="preview-card">
+            <img id="pv-img" src="https://cdn.ke2.jp/" alt="" onerror="this.style.opacity=0.3">
+            <div class="pv-info">
+              <div class="pv-name" id="pv-name">ギフト名</div>
+              <div class="pv-price" id="pv-price">500 yd</div>
+              <div class="pv-size" id="pv-size">80×100px</div>
+            </div>
+          </div>
+
+          <button id="add-btn">登録する</button>
+          <button id="cancel-edit-btn">編集をキャンセル</button>
+          <div id="msg"></div>
+        </div>
+      </div>
+
+      <div class="list-section">
+        <div class="card">
+          <div class="list-header">
+            <h2><span class="material-icons-round">inventory_2</span> 登録済みギフト</h2>
+            <div class="search-box">
+              <span class="material-icons-round">search</span>
+              <input type="text" id="search-input" placeholder="検索">
+            </div>
+          </div>
+          <div id="catalog-list">
+            <div class="loading-state">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, updateDoc, onSnapshot, deleteDoc, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const catalogRef = collection(db, "gift_catalog");
+    const categoriesRef = collection(db, "gift_categories");
+    const giftsRef = collection(db, "gifts");
+    const resetStateRef = doc(db, "system_settings", "reset");
+
+    const listEl = document.getElementById('catalog-list');
+    const countPill = document.getElementById('count-pill');
+    const searchInput = document.getElementById('search-input');
+
+    const catGroup = document.getElementById('cat-group');
+    const catSelect = document.getElementById('cat-select');
+    const manageCatToggle = document.getElementById('manage-cat-toggle');
+    const catManagePanel = document.getElementById('cat-manage-panel');
+    const catChipList = document.getElementById('cat-chip-list');
+    const newCatInput = document.getElementById('new-cat-input');
+    const addCatBtn = document.getElementById('add-cat-btn');
+
+    const nameInput = document.getElementById('gift-name');
+    const priceInput = document.getElementById('gift-price');
+    const imageInput = document.getElementById('gift-image');
+    const wInput = document.getElementById('gift-w');
+    const hInput = document.getElementById('gift-h');
+
+    const addBtn = document.getElementById('add-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const editingBanner = document.getElementById('editing-banner');
+    const editingBannerText = document.getElementById('editing-banner-text');
+    const msg = document.getElementById('msg');
+
+    const pvImg = document.getElementById('pv-img');
+    const pvName = document.getElementById('pv-name');
+    const pvPrice = document.getElementById('pv-price');
+    const pvSize = document.getElementById('pv-size');
+
+    let allItems = [];
+    let allCategories = [];
+    let editingId = null;
+    let pendingSelectCategory = null;
+
+    function updatePreview() {
+      pvImg.src = imageInput.value.trim() || 'https://cdn.ke2.jp/';
+      pvImg.style.opacity = 1;
+      pvName.textContent = nameInput.value.trim() || 'ギフト名';
+      pvPrice.textContent = `${Number(priceInput.value || 0).toLocaleString()} yd`;
+      pvSize.textContent = `${wInput.value || 0}×${hInput.value || 0}px`;
+    }
+    [nameInput, priceInput, imageInput, wInput, hInput].forEach(el => el.addEventListener('input', updatePreview));
+    updatePreview();
+
+    document.querySelectorAll('.size-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        wInput.value = btn.dataset.w;
+        hInput.value = btn.dataset.h;
+        updatePreview();
+      });
+    });
+
+    manageCatToggle.addEventListener('click', () => {
+      catManagePanel.classList.toggle('open');
+    });
+
+    function renderCategorySelect() {
+      const prevValue = catSelect.value;
+      catSelect.innerHTML = '';
+
+      if (allCategories.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'カテゴリを追加してください';
+        opt.value = '';
+        catSelect.appendChild(opt);
+        catSelect.disabled = true;
+        return;
+      }
+      catSelect.disabled = false;
+      allCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.name;
+        opt.textContent = cat.name;
+        catSelect.appendChild(opt);
+      });
+
+      if (pendingSelectCategory && allCategories.some(c => c.name === pendingSelectCategory)) {
+        catSelect.value = pendingSelectCategory;
+        pendingSelectCategory = null;
+      } else if (allCategories.some(c => c.name === prevValue)) {
+        catSelect.value = prevValue;
+      } else {
+        catSelect.value = allCategories[0].name;
+      }
+    }
+
+    function renderCategoryChips() {
+      catChipList.innerHTML = '';
+      allCategories.forEach(cat => {
+        const count = allItems.filter(i => i.category === cat.name).length;
+        const chip = document.createElement('div');
+        chip.className = 'cat-chip';
+        chip.innerHTML = `${cat.name} <span class="chip-count">(${count})</span><span class="chip-del" title="削除">✕</span>`;
+        chip.querySelector('.chip-del').addEventListener('click', () => deleteCategory(cat.id, cat.name, count));
+        catChipList.appendChild(chip);
+      });
+    }
+
+    addCatBtn.addEventListener('click', addCategory);
+    newCatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addCategory(); });
+
+    async function addCategory() {
+      const name = newCatInput.value.trim();
+      if (!name) return;
+      if (allCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        newCatInput.value = '';
+        showMsg('そのカテゴリはすでにあります', 'error');
+        return;
+      }
+      addCatBtn.disabled = true;
+      try {
+        await addDoc(categoriesRef, { name, timestamp: serverTimestamp() });
+        pendingSelectCategory = name;
+        newCatInput.value = '';
+        catGroup.classList.remove('invalid');
+      } catch (e) {
+        showMsg('カテゴリの追加に失敗しました', 'error');
+      } finally {
+        addCatBtn.disabled = false;
+      }
+    }
+
+    async function deleteCategory(id, name, count) {
+      const warn = count > 0
+        ? `「${name}」を削除しますか？\nこのカテゴリのギフトが${count}件ありますがギフト自体は削除されません`
+        : `「${name}」を削除しますか？`;
+      if (!confirm(warn)) return;
+      await deleteDoc(doc(db, "gift_categories", id));
+    }
+
+    onSnapshot(categoriesRef, (snapshot) => {
+      allCategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+      renderCategorySelect();
+      renderCategoryChips();
+    });
+
+    let allSentGifts = [];
+    let lastResetAt = 0;
+
+    function isVisibleAfterReset(g) {
+      if (!g.timestamp) return true;
+      return g.timestamp.toMillis() > lastResetAt;
+    }
+
+    function renderResetStatus() {
+      const total = allSentGifts.length;
+      const visible = allSentGifts.filter(isVisibleAfterReset).length;
+      document.getElementById('stat-total').textContent = total.toLocaleString();
+      document.getElementById('stat-visible').textContent = visible.toLocaleString();
+      document.getElementById('stat-hidden').textContent = (total - visible).toLocaleString();
+      document.getElementById('reset-last').textContent = lastResetAt
+        ? `最終リセット: ${new Date(lastResetAt).toLocaleString('ja-JP', { year:'numeric', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}`
+        : '最終リセット: まだ一度もリセットされていません(全件表示中)';
+    }
+
+    onSnapshot(resetStateRef, (snap) => {
+      lastResetAt = (snap.exists() && snap.data().lastResetAt) ? snap.data().lastResetAt.toMillis() : 0;
+      renderResetStatus();
+    });
+
+    onSnapshot(giftsRef, (snapshot) => {
+      allSentGifts = snapshot.docs.map(d => d.data());
+      renderResetStatus();
+    });
+
+    document.getElementById('reset-board-btn').addEventListener('click', async () => {
+      const visibleCount = allSentGifts.filter(isVisibleAfterReset).length;
+      const ok = confirm(`現在盤面に表示されている${visibleCount}件のギフトが盤面からばいばいします`);
+      if (!ok) return;
+
+      const btn = document.getElementById('reset-board-btn');
+      btn.disabled = true;
+      try {
+        await setDoc(resetStateRef, { lastResetAt: serverTimestamp() }, { merge: true });
+      } catch (e) {
+        alert('リセットに失敗しました。もう一度お試しください。');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function showMsg(text, type) {
+      msg.textContent = text;
+      msg.className = `show ${type}`;
+      const icon = document.createElement('span');
+      icon.className = 'material-icons-round';
+      icon.textContent = type === 'success' ? 'check_circle' : 'error';
+      msg.prepend(icon);
+      if (type === 'success') setTimeout(() => { msg.className = ''; msg.textContent=''; }, 2200);
+    }
+
+    function renderList() {
+      const term = searchInput.value.trim().toLowerCase();
+      const filtered = allItems.filter(it =>
+        !term || it.name.toLowerCase().includes(term) || it.category.toLowerCase().includes(term)
+      );
+
+      countPill.textContent = `${allItems.length}件`;
+      renderCategoryChips();
+
+      if (allItems.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <span class="material-icons-round">redeem</span>
+            <p>まだギフトが登録されていません<br></p>
+          </div>`;
+        return;
+      }
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <span class="material-icons-round">search_off</span>
+            <p>「${term}」に一致するギフトはありません</p>
+          </div>`;
+        return;
+      }
+
+      const groups = {};
+      filtered.forEach(it => {
+        if (!groups[it.category]) groups[it.category] = [];
+        groups[it.category].push(it);
+      });
+
+      listEl.innerHTML = '';
+      Object.entries(groups).forEach(([category, items]) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'category-group';
+        groupDiv.innerHTML = `<div class="category-heading">${category}<span class="badge">${items.length}件</span></div>`;
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'catalog-item';
+          div.innerHTML = `
+            <img src="${item.image}" alt="" onerror="this.style.opacity=0.3">
+            <div class="catalog-info">
+              <strong>${item.name}</strong>
+              <div class="meta"><b>${item.price.toLocaleString()} yd</b><span>${item.w}×${item.h}px</span></div>
+            </div>
+            <div class="item-actions">
+              <button class="icon-action-btn edit" data-id="${item.id}" title="編集"><span class="material-icons-round">edit</span></button>
+              <button class="icon-action-btn delete" data-id="${item.id}" title="削除"><span class="material-icons-round">delete</span></button>
+            </div>
+          `;
+          groupDiv.appendChild(div);
+        });
+        listEl.appendChild(groupDiv);
+      });
+
+      listEl.querySelectorAll('.icon-action-btn.edit').forEach(btn => {
+        btn.addEventListener('click', () => startEdit(btn.getAttribute('data-id')));
+      });
+      listEl.querySelectorAll('.icon-action-btn.delete').forEach(btn => {
+        btn.addEventListener('click', () => handleDelete(btn.getAttribute('data-id')));
+      });
+    }
+
+    onSnapshot(catalogRef, (snapshot) => {
+      allItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderList();
+    });
+
+    searchInput.addEventListener('input', renderList);
+
+    function startEdit(id) {
+      const item = allItems.find(i => i.id === id);
+      if (!item) return;
+      editingId = id;
+
+      if (!allCategories.some(c => c.name === item.category)) {
+        const opt = document.createElement('option');
+        opt.value = item.category;
+        opt.textContent = `${item.category} (未登録)`;
+        catSelect.appendChild(opt);
+      }
+      catSelect.value = item.category;
+
+      nameInput.value = item.name;
+      priceInput.value = item.price;
+      imageInput.value = item.image;
+      wInput.value = item.w;
+      hInput.value = item.h;
+      updatePreview();
+
+      editingBannerText.textContent = `「${item.name}」を編集中`;
+      editingBanner.style.display = 'flex';
+      addBtn.textContent = '更新する';
+      addBtn.classList.add('editing');
+      cancelEditBtn.style.display = 'block';
+      document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetForm() {
+      editingId = null;
+      nameInput.value = '';
+      priceInput.value = 500;
+      imageInput.value = 'https://cdn.ke2.jp/';
+      wInput.value = 80;
+      hInput.value = 100;
+      renderCategorySelect();
+      updatePreview();
+      editingBanner.style.display = 'none';
+      addBtn.textContent = '登録する';
+      addBtn.classList.remove('editing');
+      cancelEditBtn.style.display = 'none';
+      clearFieldErrors();
+    }
+    cancelEditBtn.addEventListener('click', resetForm);
+
+    function clearFieldErrors() {
+      ['cat-group', 'name-group', 'price-group', 'image-group'].forEach(id => document.getElementById(id).classList.remove('invalid'));
+    }
+    function validate() {
+      clearFieldErrors();
+      let ok = true;
+      if (!catSelect.value) { catGroup.classList.add('invalid'); ok = false; }
+      if (!nameInput.value.trim()) { document.getElementById('name-group').classList.add('invalid'); ok = false; }
+      if (!priceInput.value || Number(priceInput.value) <= 0) { document.getElementById('price-group').classList.add('invalid'); ok = false; }
+      if (!imageInput.value.trim()) { document.getElementById('image-group').classList.add('invalid'); ok = false; }
+      return ok;
+    }
+
+    addBtn.addEventListener('click', async () => {
+      if (!validate()) { showMsg('入力内容を確認してください', 'error'); return; }
+
+      addBtn.disabled = true;
+      showMsg(editingId ? '更新中...' : '保存中...', 'success');
+
+      const payload = {
+        category: catSelect.value,
+        name: nameInput.value.trim(),
+        price: Number(priceInput.value),
+        image: imageInput.value.trim(),
+        w: Number(wInput.value) || 80,
+        h: Number(hInput.value) || 100,
+      };
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, "gift_catalog", editingId), payload);
+          showMsg('更新しました', 'success');
+          resetForm();
+        } else {
+          await addDoc(catalogRef, { ...payload, timestamp: serverTimestamp() });
+          showMsg('登録しました', 'success');
+          nameInput.value = '';
+          updatePreview();
+        }
+      } catch (e) {
+        showMsg('エラーが発生しました', 'error');
+      } finally {
+        addBtn.disabled = false;
+      }
+    });
+
+    async function handleDelete(id) {
+      const item = allItems.find(i => i.id === id);
+      if (!confirm(`「${item ? item.name : 'このギフト'}」を削除しますか？この操作は取り消せません。`)) return;
+      await deleteDoc(doc(db, "gift_catalog", id));
+      if (editingId === id) resetForm();
+    }
+  </script>
+</body>
+</html>

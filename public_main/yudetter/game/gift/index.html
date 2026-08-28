@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kekeへのギフトシステム</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    :root { --footer-height: 220px; --main-color: #d8f12a; --dark-bg: #222222; --dot-color: #111111; --text-color: #333333; --stage-w: 598px; --stage-h: 877px; }
+    html, body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background-color: #1a1a1a; font-family: 'M PLUS Rounded 1c', sans-serif; user-select: none; color: var(--text-color); }
+    * { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+
+    #stage-wrapper { width: 100%; overflow: hidden; background-color: #1a1a1a; display: flex; justify-content: center; }
+    #stage { position: relative; width: var(--stage-w); height: var(--stage-h); flex-shrink: 0; overflow: hidden; background-color: #ffffff; box-shadow: 0 0 40px rgba(0,0,0,0.35); transform-origin: top center; }
+
+    #global-header { position: absolute; top: 0; left: 0; width: 100%; height: 60px; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e0e0e0; padding: 0 16px; box-sizing: border-box; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .header-left img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc; }
+    .header-left span { font-weight: 900; font-size: 16px; color: #555; }
+    .header-center { position: absolute; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: 900; color: #333; white-space: nowrap; }
+    .header-right { display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; }
+    .header-right .material-icons-round { color: #ff9800; font-size: 18px; }
+
+    #gift-container { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100% - 60px); pointer-events: none; z-index: 1; overflow: hidden; }
+
+    #footer { position: absolute; bottom: 0; left: 0; width: 100%; height: var(--footer-height); background-color: var(--dark-bg); background-image: radial-gradient(var(--dot-color) 15%, transparent 16%); background-size: 16px 16px; z-index: 10; display: flex; align-items: center; justify-content: center; gap: 30px; box-shadow: 0 -4px 10px rgba(0,0,0,0.3); }
+    
+    .circle-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease; }
+    .circle-btn:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
+    .circle-btn:active { transform: scale(0.95); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .sub-btn { width: 100px; height: 100px; background-color: #ffffff; border: 2px solid #ccc; color: #111; }
+    .sub-btn .material-icons-round { font-size: 28px; margin-bottom: 2px; }
+    .sub-btn span { font-size: 20px; font-weight: bold; }
+
+    #main-gift-btn { width: 160px; height: 160px; background-color: var(--main-color); border: 3px solid #111; box-shadow: inset 0 0 0 2px var(--main-color), inset 0 0 0 3px #111, 0 4px 8px rgba(0,0,0,0.5); position: relative; margin-top: 0px; }
+    #main-gift-btn:hover { background-color: #e4fc3b; }
+    #main-gift-btn .btn-text-large { font-size: 30px; font-weight: 900; color: #111; line-height: 1.1; letter-spacing: -1px; }
+    #main-gift-btn .btn-text-small { font-size: 25px; font-weight: 900; color: #111; }
+
+    #modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; display: none; flex-direction: column; justify-content: flex-end; opacity: 0; transition: opacity 0.4s ease; }
+    #modal-overlay.active { opacity: 1; }
+    #modal-content { background: #ffffff; width: 100%; height: 85%; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; position: relative; overflow: hidden; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    #modal-overlay.active #modal-content { transform: translateY(0); }
+
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #eee; font-weight: 900; font-size: 18px; background: #fff; z-index: 2; }
+    .modal-header .icon-btn { cursor: pointer; font-size: 28px; color: #333; transition: color 0.2s; }
+    .modal-header .icon-btn:hover { color: #888; }
+    #back-btn { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    #back-btn.visible { opacity: 1; pointer-events: auto; }
+
+    #view-container { position: relative; flex: 1; overflow: hidden; }
+    .view-panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background: #fff; opacity: 0; pointer-events: none; transform: translateX(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+    .view-panel.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
+    .view-panel.exit-left { transform: translateX(-20px); }
+
+    #view-list { padding: 20px 16px; }
+    .category-section { text-align: center; margin-bottom: 24px; }
+    .category-title { font-size: 16px; font-weight: bold; margin-bottom: 16px; }
+    .gift-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; }
+    .gift-item { cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s ease; }
+    .gift-item:hover { transform: scale(1.05); }
+    .gift-item img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; background-color: #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .gift-item-price { margin-top: 8px; font-size: 14px; font-weight: bold; }
+    .gift-item-price span { font-size: 10px; }
+
+    #view-detail { display: flex; flex-direction: column; }
+    .detail-content { flex: 1; overflow-y: auto; padding: 30px 16px; text-align: center; }
+    .detail-content img { width: 120px; height: 120px; border-radius: 16px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 16px; }
+    .detail-title { font-size: 20px; font-weight: 900; margin-bottom: 8px; }
+    .detail-price-box { font-size: 24px; font-weight: 900; color: #ff9800; margin-bottom: 20px; }
+    .detail-price-box .unit { font-size: 14px; color: #333; }
+    .input-group { text-align: left; margin: 0 auto 20px auto; max-width: 300px; }
+    .input-group label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 6px; }
+    .input-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 16px; box-sizing: border-box; transition: border-color 0.3s; }
+    .input-group input:focus { outline: none; border-color: var(--main-color); }
+    .detail-footer { padding: 16px; background-color: #f9f9f9; border-top: 1px solid #eee; }
+    .detail-footer button { width: 100%; padding: 16px; background: var(--main-color); color: #111; border: 3px solid #111; border-radius: 8px; font-size: 18px; font-weight: 900; font-family: inherit; cursor: pointer; box-shadow: 0 4px 0 #111; transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s; }
+    .detail-footer button:hover:not(:disabled) { background: #e4fc3b; }
+    .detail-footer button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 #111; }
+    .detail-footer button:disabled { background: #ccc; border-color: #999; box-shadow: 0 4px 0 #999; cursor: not-allowed; }
+    #status-message { font-size: 14px; color: #e53935; margin-top: 12px; font-weight: bold; text-align: center; height: 20px;}
+
+    #view-history { padding: 0; }
+    .history-empty { padding: 40px; text-align: center; color: #888; font-weight: bold; }
+    .history-item { display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid #eee; transition: background-color 0.2s; }
+    .history-item:hover { background-color: #f5f5f5; }
+    .history-img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: #eee; }
+    .history-info { flex: 1; }
+    .history-name { font-size: 14px; font-weight: bold; margin-bottom: 4px; color: #333; }
+    .history-date { font-size: 11px; color: #888; }
+    .history-amount { font-size: 16px; font-weight: 900; color: #ff9800; }
+    .history-amount span { font-size: 10px; color: #666; }
+
+    #view-about { padding: 0; }
+    .about-content { padding: 30px 20px; color: #333; }
+    .about-hero { text-align: center; margin-bottom: 20px; }
+    .about-hero h3 { font-size: 20px; font-weight: 900; margin: 10px 0 0 0; }
+    .about-desc { font-size: 14px; line-height: 1.6; text-align: center; color: #555; margin-bottom: 30px; }
+    .about-section { background: #f9f9f9; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #eee; }
+    .about-section h4 { font-size: 15px; font-weight: bold; margin: 0 0 12px 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    .about-list { list-style: none; padding: 0; margin: 0; font-size: 13px; color: #444; }
+    .about-list li { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .about-list li:last-child { margin-bottom: 0; }
+    .about-list .material-icons-round { font-size: 20px; color: #888; }
+
+    .gift-element { position: absolute; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; transition: top 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .gift-image { width: 100%; height: calc(100% - 24px); object-fit: cover; background-color: #f0f0f0; border-bottom: 1px solid #eee; }
+    .gift-name { width: 100%; height: 24px; line-height: 24px; text-align: center; font-size: 11px; font-weight: bold; color: #333; background-color: #fafafa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+
+  <div id="stage-wrapper">
+  <div id="stage">
+
+  <div id="global-header">
+    <div class="header-left">
+      <img src="https://yudetter.com/logo.png" alt="icon">
+      <span>yudetter</span>
+    </div>
+    <div class="header-center">kekeへのギフト</div>
+    <div class="header-right">
+      <span class="material-icons-round">generating_tokens</span>
+      <span>総計: <span id="total-yd-display" style="transition: color 0.3s;">0</span> ユデドル</span>
+    </div>
+  </div>
+
+  <div id="gift-container"></div>
+
+  <div id="footer">
+    <div class="circle-btn sub-btn" id="history-btn">
+      <span class="material-icons-round">format_list_bulleted</span>
+      <span>履歴</span>
+    </div>
+    <div class="circle-btn" id="main-gift-btn">
+      <div class="btn-text-large">ギフト</div>
+      <div class="btn-text-small">を贈る！</div>
+    </div>
+    <div class="circle-btn sub-btn" id="what-btn">
+      <span class="material-icons-round">help_outline</span>
+      <span>what?</span>
+    </div>
+  </div>
+
+  <div id="modal-overlay">
+    <div id="modal-content">
+      <div class="modal-header">
+        <span class="material-icons-round icon-btn" id="back-btn">arrow_back_ios_new</span>
+        <span id="modal-title">ギフト選択</span>
+        <span class="material-icons-round icon-btn" id="close-btn">close</span>
+      </div>
+
+      <div id="view-container">
+        <div id="view-list" class="view-panel"></div>
+        
+        <div id="view-detail" class="view-panel">
+          <div class="detail-content">
+            <img id="detail-img" src="" alt="">
+            <div class="detail-title" id="detail-title">ギフト名</div>
+            <div class="detail-price-box">
+              <span id="detail-price">0</span> <span class="unit">yd</span>
+            </div>
+            <div class="input-group">
+              <label for="sender-name">贈り主のお名前</label>
+              <input type="text" id="sender-name" value="" placeholder="お名前を入力">
+            </div>
+          </div>
+          <div class="detail-footer">
+            <button id="submit-btn">決済して贈る！</button>
+            <div id="status-message"></div>
+          </div>
+        </div>
+        
+        <div id="view-history" class="view-panel">
+          <div id="history-list"></div>
+        </div>
+
+        <div id="view-about" class="view-panel">
+          <div class="about-content">
+            <div class="about-hero">
+              <span class="material-icons-round" style="font-size: 48px; color: #ff9800;">redeem</span>
+              <h3>ギフト</h3>
+            </div>
+            <p class="about-desc">
+              ユデドル(yd)を使って、kekeに直接ギフトを贈ることができるシステムです。<br>
+              贈られたギフトは画面上にはろーしていきます<br>
+              不定期で画面上のギフトは消えますが､履歴や合計には残るので､悲しくなる原因もないよ!!
+            </p>
+            
+            <div class="about-section">
+            <h4>猿でもわかる!簡単3ステップでギフト送信!</h4>
+              <ul class="about-list">
+                <li><span class="material-icons-round">touch_app</span> 好きなギフトを選ぶ</li>
+                <li><span class="material-icons-round">edit</span> 君の名は｡</li>
+                <li><span class="material-icons-round">payment</span> ユデドルで決済して贈る！</li>
+              </ul>
+            </div>
+        
+      </div>
+    </div>
+  </div>
+
+  </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, orderBy, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let giftCatalogData = []; 
+    
+    onSnapshot(collection(db, "gift_catalog"), (snapshot) => {
+      const categories = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        data.id = doc.id;
+        if(!categories[data.category]) {
+          categories[data.category] = { category: data.category, items: [] };
+        }
+        categories[data.category].items.push(data);
+      });
+      giftCatalogData = Object.values(categories);
+      
+      if(document.getElementById('view-list').innerHTML !== '') {
+        renderGiftList(true);
+      }
+    });
+
+    const stage = document.getElementById('stage');
+    const stageWrapper = document.getElementById('stage-wrapper');
+
+    function fitStage() {
+      const availableWidth = stageWrapper.clientWidth;
+      const scale = Math.min(1, availableWidth / 598);
+      stage.style.transform = `scale(${scale})`;
+      stageWrapper.style.height = `${877 * scale}px`;
+    }
+    fitStage();
+    if (window.ResizeObserver) {
+      new ResizeObserver(fitStage).observe(stageWrapper);
+    } else {
+      window.addEventListener('resize', fitStage);
+      window.addEventListener('orientationchange', fitStage);
+    }
+
+    const container = document.getElementById('gift-container');
+    const placedGifts = []; 
+    const renderedIds = new Set();
+
+    function calculateDropPosition(width, height) {
+      const screenWidth = stage.clientWidth;
+      const floorY = stage.clientHeight - 60 - 220; 
+      let bestX = 0; let bestY = 0; 
+      
+      for (let i = 0; i < 50; i++) {
+        const testX = Math.random() * Math.max(0, screenWidth - width);
+        let landY = floorY;
+        for (const p of placedGifts) {
+          if (testX < p.x + p.w && testX + width > p.x) {
+            if (p.y < landY) landY = p.y;
+          }
+        }
+        if (landY > bestY) { bestY = landY; bestX = testX; }
+      }
+      return { xRatio: bestX / screenWidth, bottomPx: floorY - (bestY - height) };
+    }
+
+    function requestYdPayment(amount, description) {
+      return new Promise((resolve, reject) => {
+        window.parent.postMessage({ type: 'YGS_PAYMENT_REQUEST', amount, description }, '*');
+        const handler = (e) => {
+          if (e.data && e.data.type === 'YGS_PAYMENT_RESPONSE') {
+            window.removeEventListener('message', handler);
+            if (e.data.success) resolve(e.data.transactionId);
+            else reject(new Error(e.data.error || '決済失敗'));
+          }
+        };
+        window.addEventListener('message', handler);
+        if (window === window.parent) setTimeout(() => { resolve("test-tx-" + Date.now()); }, 800);
+      });
+    }
+
+    const modal = document.getElementById('modal-overlay');
+    const backBtn = document.getElementById('back-btn');
+    const modalTitle = document.getElementById('modal-title');
+    let selectedGift = null;
+    let historyData = [];
+
+    function switchView(targetId, title, showBackBtn) {
+      document.querySelectorAll('.view-panel').forEach(panel => {
+        if (panel.classList.contains('active')) {
+          panel.classList.remove('active');
+          panel.classList.add('exit-left');
+        }
+      });
+      const target = document.getElementById(targetId);
+      target.classList.remove('exit-left');
+      setTimeout(() => target.classList.add('active'), 50);
+      modalTitle.textContent = title;
+      if (showBackBtn) backBtn.classList.add('visible');
+      else backBtn.classList.remove('visible');
+    }
+
+    function renderGiftList(force = false) {
+      const viewList = document.getElementById('view-list');
+      if (viewList.innerHTML !== '' && !force) return;
+      viewList.innerHTML = '';
+      
+      if(giftCatalogData.length === 0) {
+        viewList.innerHTML = '<div style="text-align:center; padding:40px; color:#888;">現在販売中のギフトはありません</div>';
+        return;
+      }
+
+      giftCatalogData.forEach(category => {
+        const section = document.createElement('div');
+        section.className = 'category-section';
+        section.innerHTML = `<div class="category-title">${category.category}</div>`;
+        const grid = document.createElement('div');
+        grid.className = 'gift-grid';
+
+        category.items.forEach(item => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'gift-item';
+          itemDiv.onclick = () => openDetail(item);
+          itemDiv.innerHTML = `<img src="${item.image}" alt=""><div class="gift-item-price">${item.price.toLocaleString()} <span>ユデドル</span></div>`;
+          grid.appendChild(itemDiv);
+        });
+        section.appendChild(grid);
+        viewList.appendChild(section);
+      });
+    }
+
+    function openDetail(item) {
+      selectedGift = item;
+      document.getElementById('detail-img').src = item.image;
+      document.getElementById('detail-title').textContent = item.name;
+      document.getElementById('detail-price').textContent = item.price.toLocaleString();
+      document.getElementById('status-message').textContent = '';
+      switchView('view-detail', 'ギフト詳細', true);
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById('history-list');
+      historyList.innerHTML = '';
+      if (historyData.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">まだギフトがありません</div>';
+        return;
+      }
+      [...historyData].reverse().forEach(data => {
+        const dateStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '送信中...';
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'history-item';
+        itemDiv.innerHTML = `
+          <img class="history-img" src="${data.imageUrl}" alt="">
+          <div class="history-info">
+            <div class="history-name">${data.senderName} <span>さんが贈りました</span></div>
+            <div class="history-date">${dateStr}</div>
+          </div>
+          <div class="history-amount">${data.amount.toLocaleString()} <span>yd</span></div>
+        `;
+        historyList.appendChild(itemDiv);
+      });
+    }
+
+    function openModal() {
+      modal.style.display = 'flex';
+      void modal.offsetWidth;
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.style.display = 'none';
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active', 'exit-left'));
+      }, 400);
+    }
+
+    document.getElementById('main-gift-btn').addEventListener('click', () => {
+      renderGiftList();
+      document.getElementById('view-list').classList.add('active');
+      switchView('view-list', 'ギフト選択', false);
+      openModal();
+    });
+
+    document.getElementById('history-btn').addEventListener('click', () => {
+      renderHistory();
+      document.getElementById('view-history').classList.add('active');
+      switchView('view-history', 'ギフト履歴', false);
+      openModal();
+    });
+
+    document.getElementById('what-btn').addEventListener('click', () => {
+      document.getElementById('view-about').classList.add('active');
+      switchView('view-about', 'ギフトについて', false);
+      openModal();
+    });
+    
+    document.getElementById('close-btn').addEventListener('click', closeModal);
+    backBtn.addEventListener('click', () => { switchView('view-list', 'ギフト選択', false); selectedGift = null; });
+
+    const submitBtn = document.getElementById('submit-btn');
+    const statusMsg = document.getElementById('status-message');
+
+    submitBtn.addEventListener('click', async () => {
+      if (!selectedGift) return;
+      const senderName = document.getElementById('sender-name').value.trim() || '名無し';
+      submitBtn.disabled = true;
+      statusMsg.textContent = '決済処理中...';
+
+      try {
+        const transactionId = await requestYdPayment(selectedGift.price, `ギフト送信: ${selectedGift.name}`);
+        statusMsg.textContent = `完了しました！`;
+        const pos = calculateDropPosition(selectedGift.w, selectedGift.h);
+
+        await addDoc(collection(db, "gifts"), {
+          senderName: senderName,
+          giftName: selectedGift.name,
+          imageUrl: selectedGift.image,
+          amount: selectedGift.price,
+          width: selectedGift.w,
+          height: selectedGift.h,
+          xRatio: pos.xRatio,
+          bottomPx: pos.bottomPx,
+          transactionId: transactionId,
+          timestamp: serverTimestamp()
+        });
+        setTimeout(closeModal, 600);
+      } catch (error) {
+        statusMsg.textContent = `エラー: ${error.message}`;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    const totalDisplay = document.getElementById('total-yd-display');
+
+    const systemSettingsRef = doc(db, "system_settings", "reset");
+    let lastResetAt = 0;
+    let allGiftsCache = [];
+
+    function isVisibleAfterReset(data) {
+      if (!data.timestamp) return true;
+      return data.timestamp.toMillis() > lastResetAt;
+    }
+
+    function placeGiftOnBoard(data, animate) {
+      const screenWidth = stage.clientWidth;
+      const floorY = stage.clientHeight - 60 - 220;
+      const targetX = data.xRatio * screenWidth;
+      const targetY = floorY - data.bottomPx;
+
+      placedGifts.push({ x: targetX, y: targetY, w: data.width, h: data.height });
+
+      const giftDiv = document.createElement('div');
+      giftDiv.className = 'gift-element';
+      giftDiv.style.width = `${data.width}px`;
+      giftDiv.style.height = `${data.height}px`;
+      giftDiv.style.left = `${targetX}px`;
+      giftDiv.innerHTML = `<img class="gift-image" src="${data.imageUrl}" alt=""><div class="gift-name">${data.senderName}</div>`;
+
+      if (animate) {
+        giftDiv.style.top = `-200px`;
+        container.appendChild(giftDiv);
+        setTimeout(() => { giftDiv.style.top = `${targetY}px`; }, 100);
+      } else {
+        giftDiv.style.top = `${targetY}px`;
+        container.appendChild(giftDiv);
+      }
+    }
+
+    function rebuildGiftBoard() {
+      container.innerHTML = '';
+      placedGifts.length = 0;
+      renderedIds.clear();
+      allGiftsCache.forEach(data => {
+        if (isVisibleAfterReset(data)) {
+          renderedIds.add(data.id);
+          placeGiftOnBoard(data, false);
+        }
+      });
+    }
+
+    function subscribeGifts() {
+      const q = query(collection(db, "gifts"), orderBy("timestamp", "asc"));
+      onSnapshot(q, (snapshot) => {
+        let total = 0;
+        historyData = [];
+        allGiftsCache = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          data.id = docSnap.id;
+          historyData.push(data);
+          allGiftsCache.push(data);
+          if (data.amount) total += data.amount;
+
+          if (!renderedIds.has(data.id) && isVisibleAfterReset(data)) {
+            renderedIds.add(data.id);
+            placeGiftOnBoard(data, true);
+          }
+        });
+
+        totalDisplay.style.color = '#ff9800';
+        totalDisplay.textContent = total.toLocaleString();
+        setTimeout(() => { totalDisplay.style.color = '#333'; }, 500);
+      });
+    }
+
+    async function performReset() {
+      try {
+        await setDoc(systemSettingsRef, { lastResetAt: serverTimestamp() }, { merge: true });
+      } catch (e) {
+        console.error('リセット処理に失敗しました', e);
+      }
+    }
+
+    function scheduleMidnightReset() {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5, 0);
+      const ms = next.getTime() - now.getTime();
+      setTimeout(async () => {
+        await performReset();
+        scheduleMidnightReset();
+      }, ms);
+    }
+
+    async function initGiftBoard() {
+      try {
+        const snap = await getDoc(systemSettingsRef);
+        lastResetAt = (snap.exists() && snap.data().lastResetAt) ? snap.data().lastResetAt.toMillis() : 0;
+      } catch (e) {
+        console.error('リセット状態の取得に失敗しました。一度全件表示します。', e);
+        lastResetAt = 0;
+      }
+
+      onSnapshot(systemSettingsRef, (snap) => {
+        const newVal = (snap.exists() && snap.data().lastResetAt) ? snap.data().lastResetAt.toMillis() : 0;
+        if (newVal !== lastResetAt) {
+          lastResetAt = newVal;
+          rebuildGiftBoard();
+        }
+      });
+
+      subscribeGifts();
+
+      scheduleMidnightReset();
+    }
+
+    initGiftBoard();
+  </script>
+</body>
+</html>

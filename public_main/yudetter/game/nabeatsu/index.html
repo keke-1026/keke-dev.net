@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3の倍数と3がつく数字</title>
+  
+  <!-- Google Fonts: Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Google Fonts: Material Symbols -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <style>
+    :root {
+      --primary-color: #333;
+      --bg-color: #fff;
+      --border-color: #ccc;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: var(--primary-color);
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* 背景画像設定 */
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* ★ここに背景のナベアツ画像のURLを指定してください */
+      background-image: url('背景画像のURLをここに入力');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.2; /* 白ベースを保つために薄く表示 */
+      z-index: -1;
+    }
+
+    header {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    /* タイトル画像設定 */
+    #top-image {
+      max-width: 300px;
+      height: auto;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.85); /* 背景を見せつつ見やすく */
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin: 20px 0;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      text-align: center;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 16px;
+      margin: 10px 0;
+    }
+
+    .score-board {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    input[type="number"], input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      width: calc(100% - 24px);
+      max-width: 200px;
+      text-align: center;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: var(--bg-color);
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Noto Sans JP', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+      margin: 5px;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    button.outline {
+      background-color: transparent;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+    }
+
+    #game-number {
+      font-size: 80px;
+      font-weight: bold;
+      margin: 40px 0;
+      min-height: 120px;
+    }
+
+    #action-btn {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .small-btn {
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="background-image"></div>
+
+  <header>
+    <!-- ★ここにタイトル画像のURLを指定してください -->
+    <img id="top-image" src="タイトル画像のURLをここに入力" alt="タイトル">
+  </header>
+
+  <main>
+    <!-- ホーム画面 -->
+    <div id="screen-home" class="screen active">
+      <div class="score-board">
+        <p>歴代最高記録: <span id="high-score-alltime">-</span></p>
+        <p>本日の最高記録: <span id="high-score-today">-</span></p>
+      </div>
+      <div class="input-group">
+        <label>BPM: <input type="number" id="bpm-input" value="120" min="40" max="300"></label>
+      </div>
+      <button id="btn-start"><span class="material-symbols-outlined">play_arrow</span>スタート</button>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="screen-game" class="screen">
+      <div id="game-number">0</div>
+      <button id="action-btn">押す！</button>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="screen-gameover" class="screen">
+      <h2>GAME OVER</h2>
+      <p id="fail-reason"></p>
+      <p>あなたの記録: <span id="final-score">0</span></p>
+      
+      <div style="margin-top: 30px;">
+        <input type="text" id="player-name" placeholder="名前を入力">
+        <div style="margin-top: 15px;">
+          <button id="btn-save"><span class="material-symbols-outlined">save</span>記録を残す</button>
+          <button id="btn-nosave" class="outline">残さない</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <button id="btn-credit" class="small-btn outline"><span class="material-symbols-outlined">info</span>クレジット</button>
+    <button id="btn-donate" class="small-btn"><span class="material-symbols-outlined">volunteer_activism</span>寄付</button>
+  </footer>
+
+  <!-- Firebase v9 SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase初期化設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // DOM要素の取得
+    const screens = {
+      home: document.getElementById('screen-home'),
+      game: document.getElementById('screen-game'),
+      gameover: document.getElementById('screen-gameover')
+    };
+    
+    const ui = {
+      allTimeHigh: document.getElementById('high-score-alltime'),
+      todayHigh: document.getElementById('high-score-today'),
+      bpmInput: document.getElementById('bpm-input'),
+      gameNumber: document.getElementById('game-number'),
+      failReason: document.getElementById('fail-reason'),
+      finalScore: document.getElementById('final-score'),
+      playerName: document.getElementById('player-name')
+    };
+
+    // ゲームのステータス管理
+    let gameInterval = null;
+    let currentNum = 0;
+    let bpm = 120;
+    let isExpectedToPress = false;
+    let hasPressedInCurrentTurn = false;
+    
+    // AudioContext
+    let audioCtx = null;
+
+    // 画面切り替え関数
+    function showScreen(screenName) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[screenName].classList.add('active');
+    }
+
+    // ビープ音生成関数
+    function playBeep(freq = 440, type = 'sine', duration = 0.1) {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // カウントダウン音（1小節分 = 4拍）
+    async function playCountDown() {
+      const beatInterval = 60000 / bpm;
+      for (let i = 0; i < 4; i++) {
+        playBeep(i === 0 ? 880 : 440, 'square', 0.1); // 1拍目だけ高い音
+        await new Promise(r => setTimeout(r, beatInterval));
+      }
+    }
+
+    // 3の倍数、または3がつく数字か判定
+    function checkCondition(num) {
+      if (num === 0) return false;
+      return (num % 3 === 0) || String(num).includes('3');
+    }
+
+    // ゲーム開始処理
+    document.getElementById('btn-start').addEventListener('click', async () => {
+      bpm = parseInt(ui.bpmInput.value) || 120;
+      currentNum = 0;
+      hasPressedInCurrentTurn = false;
+      isExpectedToPress = false;
+
+      showScreen('game');
+      ui.gameNumber.textContent = "準備...";
+      
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+      await playCountDown();
+      startGameLoop();
+    });
+
+    function startGameLoop() {
+      const intervalMs = 60000 / bpm;
+      
+      gameInterval = setInterval(() => {
+        // 前のターンの判定
+        if (currentNum > 0) {
+          if (isExpectedToPress && !hasPressedInCurrentTurn) {
+            gameOver("押し忘れました！");
+            return;
+          }
+        }
+
+        // 次の数字へ
+        currentNum++;
+        ui.gameNumber.textContent = currentNum;
+        playBeep(660, 'sine', 0.1);
+        
+        isExpectedToPress = checkCondition(currentNum);
+        hasPressedInCurrentTurn = false;
+
+      }, intervalMs);
+    }
+
+    // ボタンクリックアクション
+    document.getElementById('action-btn').addEventListener('click', () => {
+      if (!isExpectedToPress) {
+        gameOver("間違えて押しました！");
+      } else if (hasPressedInCurrentTurn) {
+        gameOver("2回押しました！");
+      } else {
+        hasPressedInCurrentTurn = true;
+      }
+    });
+
+    // ゲームオーバー処理
+    function gameOver(reason) {
+      clearInterval(gameInterval);
+      ui.failReason.textContent = reason;
+      ui.finalScore.textContent = currentNum > 0 ? currentNum - 1 : 0; // ミスしたターンの手前がスコア
+      showScreen('gameover');
+    }
+
+    // ランキング取得処理
+    async function fetchRankings() {
+      try {
+        const scoresRef = collection(db, "scores");
+        // 単純化のためスコア順に取得し、クライアント側で本日分をフィルタリング
+        const q = query(scoresRef, orderBy("score", "desc"), limit(100));
+        const snapshot = await getDocs(q);
+        
+        let allTimeHigh = 0;
+        let todayHigh = 0;
+        
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        let isFirst = true;
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (isFirst) {
+            allTimeHigh = data.score;
+            isFirst = false;
+          }
+          if (data.timestamp) {
+            const date = new Date(data.timestamp);
+            if (date >= todayStart && data.score > todayHigh) {
+              todayHigh = data.score;
+            }
+          }
+        });
+
+        ui.allTimeHigh.textContent = allTimeHigh;
+        ui.todayHigh.textContent = todayHigh;
+      } catch (e) {
+        console.error("ランキング取得エラー:", e);
+      }
+    }
+
+    // 記録保存
+    document.getElementById('btn-save').addEventListener('click', async () => {
+      const name = ui.playerName.value.trim() || "名無し";
+      const score = parseInt(ui.finalScore.textContent);
+      
+      try {
+        await addDoc(collection(db, "scores"), {
+          name: name,
+          score: score,
+          timestamp: Date.now()
+        });
+        alert("記録を保存しました。");
+        ui.playerName.value = "";
+        await fetchRankings();
+        showScreen('home');
+      } catch (e) {
+        console.error("保存エラー:", e);
+        alert("保存に失敗しました。");
+      }
+    });
+
+    document.getElementById('btn-nosave').addEventListener('click', () => {
+      showScreen('home');
+    });
+
+    // クレジット表示
+    document.getElementById('btn-credit').addEventListener('click', () => {
+      alert("作成: 3の倍数ゲーム\nサウンド: Web Audio API");
+    });
+
+    // 寄付機能
+    function requestYdPayment(amount, description) {
+      return new Promise((resolve, reject) => {
+        window.parent.postMessage({ type: 'YGS_PAYMENT_REQUEST', amount, description }, '*');
+        const handler = (e) => {
+          if (e.data && e.data.type === 'YGS_PAYMENT_RESPONSE') {
+            window.removeEventListener('message', handler);
+            if (e.data.success) {
+              resolve(e.data.transactionId);
+            } else {
+              reject(new Error(e.data.error || '決済失敗'));
+            }
+          }
+        };
+        window.addEventListener('message', handler);
+      });
+    }
+
+    document.getElementById('btn-donate').addEventListener('click', async () => {
+      const amountStr = prompt("寄付額を入力してください (円)");
+      if (!amountStr) return;
+      const amount = parseInt(amountStr);
+      if (isNaN(amount) || amount <= 0) {
+        alert("正しい金額を入力してください。");
+        return;
+      }
+
+      try {
+        const txId = await requestYdPayment(amount, 'ゲームへの寄付');
+        alert(`寄付ありがとうございます！\nトランザクションID: ${txId}`);
+      } catch (error) {
+        alert(`決済がキャンセルされたか、失敗しました。\n詳細: ${error.message}`);
+      }
+    });
+
+    // 初期読み込み
+    window.onload = fetchRankings;
+
+  </script>
+</body>
+</html>
