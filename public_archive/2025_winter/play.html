@@ -8,9 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 紙吹雪アニメーション用のライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-  <!-- 画像保存(ダウンロード)用のライブラリ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     tailwind.config = {
@@ -24,7 +22,6 @@
     }
   </script>
   <style>
-    /* CSS読み込み前の一瞬のチラつき(FOUC)を防止 */
     body {
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
@@ -33,9 +30,7 @@
       opacity: 1;
     }
     
-    /* キャンバス描画中のスクロールを防止 */
     canvas { touch-action: none; }
-    /* フェードインアニメーション */
     .fade-in { animation: fadeIn 0.5s ease-out forwards; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
@@ -46,7 +41,6 @@
 <body class="bg-slate-50 text-gray-800 font-sans min-h-screen selection:bg-blue-100 relative flex flex-col" id="main-body">
   <div id="app-container" class="w-full relative flex-grow flex flex-col">
     <div id="announcement-container" class="w-full shrink-0"></div>
-    <!-- iPad向けに中央寄せ (my-auto と min-h-[80vh] などで調整) -->
     <div id="app" class="w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col justify-center flex-grow min-h-[85vh]">
       <div class="text-center text-xl text-gray-500 animate-pulse flex flex-col items-center justify-center my-auto">
         <svg class="w-10 h-10 mb-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -63,7 +57,6 @@
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, addDoc, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- Firebase Initialization ---
     const firebaseConfig = {
       apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
       authDomain: "keke-dev.firebaseapp.com",
@@ -81,7 +74,6 @@
     const globalStateRef = doc(db, 'artifacts', AppId, 'public', 'data', 'global_state', 'main');
     const teamsCollRef = collection(db, 'artifacts', AppId, 'public', 'data', 'teams');
 
-    // --- App State ---
     const urlParams = new URLSearchParams(window.location.search);
     const isAdmin = urlParams.get('admin') === 'true';
     const roomId = urlParams.get('room');
@@ -95,18 +87,17 @@
     let currentTimer = null;
     let previewInterval = null;
     let currentActionState = null; 
-    let memoryPhase = null; // 記憶モード用のフェーズ管理 (true: 記憶中, false: 描画中)
+    let memoryPhase = null;
     let isDrawing = false;
     let ctx = null;
     let canvasEl = null;
     let drawingHistory = [];
     let hasFiredConfetti = false;
-    let isBodyVisible = false; // FOUC対策フラグ
+    let isBodyVisible = false;
     let allTeamsUnsubscribe = null;
 
     const appDiv = document.getElementById('app');
 
-    // ★チカチカ防止: HTML文字列が変更された場合のみDOMを更新する
     let currentAppHTML = "";
     function updateAppHTML(html) {
       if (currentAppHTML !== html) {
@@ -123,7 +114,6 @@
     }
     let themeList = ["りんご"];
 
-    // --- Authentication ---
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -145,7 +135,6 @@
       }
     });
 
-    // 画面を表示する関数
     function showBody() {
       if (!isBodyVisible) {
         document.getElementById('main-body').classList.add('ready');
@@ -153,7 +142,6 @@
       }
     }
 
-    // --- Firestore Listeners ---
     function setupListeners() {
       onSnapshot(globalStateRef, (docSnap) => {
         if (!docSnap.exists() && isAdmin) {
@@ -218,7 +206,6 @@
       }
     }
 
-    // --- UI Update ---
     function updateAnnouncementDOM() {
       const annContainer = document.getElementById('announcement-container');
       if (!annContainer) return;
@@ -234,10 +221,9 @@
       }
     }
 
-    // --- Render Logic Router ---
     function renderApp() {
       if (!globalState) return;
-      showBody(); // データが取得できたら画面を表示する
+      showBody();
 
       updateAnnouncementDOM();
 
@@ -265,7 +251,6 @@
       }
     }
 
-    // --- Player Views ---
     window.selectName = async (name) => {
       myName = name;
       renderApp();
@@ -321,7 +306,6 @@
       `;
       updateAppHTML(html);
 
-      // リロード時等のためのフェイルセーフでここでも記録
       if (myTeamData && myName) {
         const teamRef = doc(db, 'artifacts', AppId, 'public', 'data', 'teams', myTeamData.id);
         updateDoc(teamRef, { readyPlayers: arrayUnion(myName) }).catch(e => console.warn(e));
@@ -373,7 +357,6 @@
 
          const myIndex = myTeamData.players.indexOf(myName);
          if (myTeamData.currentTurn === myIndex) {
-            // フェーズとインデックスを組み合わせたキーで再描画を制御
             const stateKey = `${myIndex}-${memoryPhase}`;
             if (currentActionState === stateKey) return; 
             currentActionState = stateKey;
@@ -392,11 +375,10 @@
               message = `あと <span class="text-xl font-black text-red-500 mx-1">${waitCount}</span> 人であなたの番です！`;
             }
 
-            // 何をしているか表示のロジック
             const mode = globalState.settings?.mode || 'normal';
             let isDrawingTask = mode === 'memory' ? true : (currentTurn % 2 === 0);
             if (mode === 'memory' && currentTurn === totalPlayers - 1) {
-              isDrawingTask = false; // 記憶モードでも最後の人は文字
+              isDrawingTask = false;
             }
             const taskText = isDrawingTask 
               ? `<svg class="w-6 h-6 inline mr-1 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>絵を描いています` 
@@ -434,16 +416,15 @@
     window.skipMemoryPhase = () => {
       if(currentTimer) clearInterval(currentTimer);
       memoryPhase = false;
-      renderApp(); // フェーズ変更後に再評価させて画面を描き変える
+      renderApp();
     };
 
-    // --- Action Views (Draw & Guess) ---
     function renderActionView(myIndex) {
       const mode = globalState.settings?.mode || 'normal';
       const isLastPlayer = myTeamData && (myIndex === myTeamData.players.length - 1);
       let isDrawTurn = mode === 'memory' ? true : (myIndex % 2 === 0);
       if (mode === 'memory' && isLastPlayer) {
-        isDrawTurn = false; // 記憶モードでも最後の人は文字
+        isDrawTurn = false;
       }
 
       const previousData = myIndex === 0 ? myTeamData.theme : myTeamData.chain[myIndex - 1].data;
@@ -451,14 +432,11 @@
       const textTime = globalState.settings?.textTime || 20;
       const memTime = globalState.settings?.memoryTime || 5;
 
-      // === 記憶スケッチモードの特別処理 ===
-      // ※最後の人は絵を見て文字で答えるため、記憶フェーズはスキップ
       if (mode === 'memory' && myIndex > 0 && !isLastPlayer) {
-        if (memoryPhase === null) memoryPhase = true; // 初回は記憶フェーズ
+        if (memoryPhase === null) memoryPhase = true;
 
         if (memoryPhase) {
           const prevPlayer = myTeamData.chain[myIndex - 1].player;
-          // 1. 記憶フェーズ
           updateAppHTML(`
             <div class="fade-in w-full max-w-2xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center my-auto">
               <h2 class="text-2xl md:text-3xl font-black text-red-500 mb-2 animate-pulse">前の人の絵を覚えて！</h2>
