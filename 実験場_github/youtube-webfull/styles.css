@@ -1,0 +1,33 @@
+.custom-browser-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  background-color: #000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.custom-fullscreen-body-lock {
+  overflow: hidden !important;
+}
+
+#custom-fullscreen-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.9;
+  transition: opacity 0.1s cubic-bezier(0.4,0.0,1,1);
+}
+
+#custom-fullscreen-btn:hover {
+  opacity: 1;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 24px;
+  color: #ffffff;
+}

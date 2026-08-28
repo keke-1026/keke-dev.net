@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "dwangoが午前0時ぐらいをお知らせする拡張機能",
+  "version": "1.1",
+  "description": "毎日dwangoが午前0時ぐらいに午前0時ぐらいをお知らせしてくれるよ。 | © niwango/dwango KADOKAWA co, ltd.",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "alarms",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sample.mp4"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

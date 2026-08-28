@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>無限のキャンバス</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,300,0,0" />
+  
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('canvas-container');
+      const canvas = document.getElementById('canvas');
+      const writeForm = document.getElementById('write-form');
+      const editForm = document.getElementById('edit-form');
+      const coordinateDisplay = document.getElementById('coordinate-display');
+      const customPopup = document.getElementById('custom-popup');
+      
+      // 中央を(0,0)の基準とするための初期計算
+      let currentX = window.innerWidth / 2;
+      let currentY = window.innerHeight / 2;
+      let scale = 1;
+      
+      let isDragging = false;
+      let startMouseX, startMouseY;
+      let startTransformX, startTransformY;
+      
+      let targetX = 0;
+      let targetY = 0;
+      let currentEditId = null;
+      let currentEditLogicalX = 0;
+      let currentEditLogicalY = 0;
+
+      // フォームが画面端で開かれた時のオフセット補正値
+      let writeFormOffsetX = 0;
+      let writeFormOffsetY = 0;
+      let editFormOffsetX = 0;
+      let editFormOffsetY = 0;
+
+      // オリジナルのポップアップ通知
+      let popupTimeout;
+      function showPopup(message) {
+        customPopup.textContent = message;
+        customPopup.classList.add('show');
+        clearTimeout(popupTimeout);
+        popupTimeout = setTimeout(() => {
+          customPopup.classList.remove('show');
+        }, 3000);
+      }
+
+      // URLクエリパラメータの解析と初期位置設定
+      const urlParams = new URLSearchParams(window.location.search);
+      const qX = urlParams.get('x');
+      const qY = urlParams.get('y');
+      const qId = urlParams.get('id');
+
+      const hasXY = qX !== null || qY !== null;
+      const hasId = qId !== null;
+
+      if (hasXY && hasId) {
+        // クエリ競合時：(0,0)に戻してポップアップ
+        currentX = window.innerWidth / 2;
+        currentY = window.innerHeight / 2;
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => {
+          showPopup("クエリは1つまでにしてください");
+        }, 500);
+      } else if (hasId) {
+        // ID指定で飛ぶ
+        getDoc(doc(db, "canvas_texts", qId)).then(docSnap => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            currentX = (window.innerWidth / 2) - (data.x * scale);
+            currentY = (window.innerHeight / 2) - (data.y * scale);
+            updateCanvasTransform();
+          } else {
+            showPopup("指定されたIDの投稿が見つかりませんでした");
+          }
+        }).catch(() => {
+          showPopup("読み込みエラーが発生しました");
+        });
+      } else if (hasXY) {
+        // x, y 座標指定で飛ぶ
+        currentX = (window.innerWidth / 2) - (parseFloat(qX || 0) * scale);
+        currentY = (window.innerHeight / 2) - (parseFloat(qY || 0) * scale);
+      }
+
+      // ホイールによる拡大縮小
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 1.1;
+        let newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+
+        if (newScale >= 0.2 && newScale <= 3.0) {
+          const mouseX = e.clientX;
+          const mouseY = e.clientY;
+          
+          currentX = mouseX - (mouseX - currentX) * (newScale / scale);
+          currentY = mouseY - (mouseY - currentY) * (newScale / scale);
+          scale = newScale;
+          
+          updateCanvasTransform();
+        }
+      }, { passive: false });
+
+      // キャンバスのドラッグ移動処理
+      container.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.text-node') || e.target.closest('.ui-panel') || e.target.closest('.fixed-ui')) return;
+        
+        isDragging = true;
+        startMouseX = e.clientX;
+        startMouseY = e.clientY;
+        startTransformX = currentX;
+        startTransformY = currentY;
+        container.style.cursor = 'grabbing';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startMouseX;
+        const dy = e.clientY - startMouseY;
+        currentX = startTransformX + dx;
+        currentY = startTransformY + dy;
+        updateCanvasTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        container.style.cursor = 'grab';
+      });
+
+      // 画面端判定とフォーム表示
+      function openForm(formElement, clientX, clientY, logicalX, logicalY) {
+        formElement.style.display = 'block';
+        
+        // フォームのおおよそのサイズ
+        const formWidth = 320;
+        const formHeight = 350;
+        
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        // 画面右や下にはみ出る場合は、吹き出しの位置を反対側にずらす
+        if (clientX + formWidth > window.innerWidth - 20) offsetX = -formWidth;
+        if (clientY + formHeight > window.innerHeight - 20) offsetY = -formHeight;
+
+        // 吹き出しの尻尾（角の尖り）を配置場所に合わせて変更
+        if (offsetX < 0 && offsetY < 0) {
+           formElement.style.borderBottomRightRadius = '0';
+           formElement.style.borderTopLeftRadius = '24px';
+        } else if (offsetX < 0) {
+           formElement.style.borderTopRightRadius = '0';
+           formElement.style.borderTopLeftRadius = '24px';
+        } else if (offsetY < 0) {
+           formElement.style.borderBottomLeftRadius = '0';
+           formElement.style.borderTopLeftRadius = '24px';
+        } else {
+           formElement.style.borderTopLeftRadius = '0';
+           formElement.style.borderTopRightRadius = '24px';
+           formElement.style.borderBottomLeftRadius = '24px';
+           formElement.style.borderBottomRightRadius = '24px';
+        }
+
+        if (formElement === writeForm) {
+           writeFormOffsetX = offsetX;
+           writeFormOffsetY = offsetY;
+        } else {
+           editFormOffsetX = offsetX;
+           editFormOffsetY = offsetY;
+        }
+
+        updateFormPosition(formElement, logicalX, logicalY);
+      }
+
+      // フォームの座標更新（ドラッグ中にも追従させるため）
+      function updateFormPosition(formElement, logicalX, logicalY) {
+        const screenX = logicalX * scale + currentX;
+        const screenY = logicalY * scale + currentY;
+        const offsetX = formElement === writeForm ? writeFormOffsetX : editFormOffsetX;
+        const offsetY = formElement === writeForm ? writeFormOffsetY : editFormOffsetY;
+        formElement.style.left = `${screenX + offsetX}px`;
+        formElement.style.top = `${screenY + offsetY}px`;
+      }
+
+      // 全体UIの描画更新
+      function updateCanvasTransform() {
+        canvas.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
+        container.style.backgroundPosition = `${currentX}px ${currentY}px`;
+        container.style.backgroundSize = `${40 * scale}px ${40 * scale}px`;
+        
+        // 画面中央の論理座標を計算して左下に表示
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const displayX = Math.floor((centerX - currentX) / scale);
+        const displayY = Math.floor((centerY - currentY) / scale);
+        coordinateDisplay.textContent = `x: ${displayX}, y: ${displayY} (zoom: ${scale.toFixed(1)}x)`;
+
+        // フォームが開かれている場合、キャンバスの移動に合わせてフォームも移動
+        if (writeForm.style.display === 'block') {
+           updateFormPosition(writeForm, targetX, targetY);
+        }
+        if (editForm.style.display === 'block' && currentEditId) {
+           updateFormPosition(editForm, currentEditLogicalX, currentEditLogicalY);
+        }
+      }
+
+      // キャンバスのダブルクリックで書き込み
+      container.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.text-node') || e.target.closest('.ui-panel')) return;
+        
+        targetX = (e.clientX - currentX) / scale;
+        targetY = (e.clientY - currentY) / scale;
+        
+        editForm.style.display = 'none';
+        openForm(writeForm, e.clientX, e.clientY, targetX, targetY);
+        document.getElementById('input-text').focus();
+      });
+
+      document.getElementById('cancel-write').addEventListener('click', () => {
+        writeForm.style.display = 'none';
+        document.getElementById('write-form-el').reset();
+      });
+      
+      document.getElementById('cancel-edit').addEventListener('click', () => {
+        editForm.style.display = 'none';
+        document.getElementById('edit-form-el').reset();
+        currentEditId = null;
+      });
+
+      async function verifySignature(signature, passwordHash) {
+        if (!signature) return true;
+        
+        const sigRef = doc(db, "signatures", signature);
+        const sigSnap = await getDoc(sigRef);
+        
+        if (sigSnap.exists()) {
+          if (sigSnap.data().passwordHash !== passwordHash) {
+            throw new Error("署名のパスワードが違います");
+          }
+        } else {
+          await setDoc(sigRef, {
+            passwordHash: passwordHash,
+            createdAt: new Date()
+          });
+        }
+        return true;
+      }
+
+      // 書き込み処理
+      document.getElementById('write-form-el').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const text = document.getElementById('input-text').value;
+        const signature = document.getElementById('input-signature').value; 
+        const password = document.getElementById('input-password').value;
+        
+        if (!text || !password) return;
+
+        try {
+          const encodedPassword = btoa(password); 
+          await verifySignature(signature, encodedPassword);
+
+          await addDoc(collection(db, "canvas_texts"), {
+            text: text,
+            signature: signature || "", 
+            passwordHash: encodedPassword,
+            x: targetX,
+            y: targetY,
+            timestamp: serverTimestamp(),
+            edited: false
+          });
+
+          writeForm.style.display = 'none';
+          document.getElementById('write-form-el').reset();
+          showPopup("書き込みました");
+        } catch (error) {
+          console.error("書き込みエラー: ", error);
+          showPopup(error.message || "書き込みに失敗しました");
+        }
+      });
+
+      // 編集・削除処理
+      document.getElementById('edit-form-el').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const newText = document.getElementById('edit-text').value;
+        const password = document.getElementById('edit-password').value;
+        const action = e.submitter.value; 
+        
+        if (!password || !currentEditId) return;
+
+        try {
+          const docRef = doc(db, "canvas_texts", currentEditId);
+          const docSnap = await getDoc(docRef);
+          
+          if(docSnap.exists() && docSnap.data().passwordHash !== btoa(password)) {
+             throw new Error("パスワードが違います");
+          }
+          
+          if (action === 'update') {
+             await updateDoc(docRef, { text: newText, edited: true });
+             showPopup("更新しました");
+          } else if (action === 'delete') {
+             await deleteDoc(docRef);
+             showPopup("削除しました");
+          }
+          
+          editForm.style.display = 'none';
+          document.getElementById('edit-form-el').reset();
+          currentEditId = null;
+
+        } catch (error) {
+          console.error("更新エラー: ", error);
+          showPopup(error.message || "操作が許可されていません");
+        }
+      });
+
+      function formatDate(timestamp) {
+        if (!timestamp) return "";
+        const date = timestamp.toDate();
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const ss = String(date.getSeconds()).padStart(2, '0');
+        return `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+      }
+
+      // リアルタイム取得・描画
+      onSnapshot(collection(db, "canvas_texts"), (snapshot) => {
+        canvas.innerHTML = '';
+        
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const el = document.createElement('div');
+          
+          el.className = 'text-node speech-bubble';
+          el.style.left = `${data.x}px`;
+          el.style.top = `${data.y}px`;
+          
+          const textSpan = document.createElement('span');
+          textSpan.className = 'content';
+          textSpan.textContent = data.text;
+          el.appendChild(textSpan);
+
+          const footerDiv = document.createElement('div');
+          footerDiv.className = 'node-footer';
+
+          const leftMeta = document.createElement('div');
+          leftMeta.className = 'meta-left';
+
+          const idSpan = document.createElement('span');
+          idSpan.textContent = `ID: ${docSnap.id}`;
+          leftMeta.appendChild(idSpan);
+
+          const timeSpan = document.createElement('span');
+          let timeText = formatDate(data.timestamp);
+          if (data.edited) timeText += " (編集済み)";
+          timeSpan.textContent = timeText;
+          leftMeta.appendChild(timeSpan);
+          
+          footerDiv.appendChild(leftMeta);
+
+          if (data.signature) {
+            const sigSpan = document.createElement('span');
+            sigSpan.className = 'signature';
+            sigSpan.textContent = data.signature;
+            footerDiv.appendChild(sigSpan);
+          }
+
+          el.appendChild(footerDiv);
+          
+          // 編集モードへの移行
+          el.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            
+            currentEditId = docSnap.id;
+            currentEditLogicalX = data.x;
+            currentEditLogicalY = data.y;
+            
+            document.getElementById('edit-text').value = data.text;
+            document.getElementById('edit-signature-display').textContent = data.signature ? `署名: ${data.signature}` : "署名: なし (匿名)";
+            document.getElementById('edit-id-display').textContent = `投稿ID: ${docSnap.id}`;
+            
+            writeForm.style.display = 'none';
+            const screenX = currentEditLogicalX * scale + currentX;
+            const screenY = currentEditLogicalY * scale + currentY;
+            openForm(editForm, screenX, screenY, currentEditLogicalX, currentEditLogicalY);
+            document.getElementById('edit-password').focus();
+          });
+          
+          canvas.appendChild(el);
+        });
+      });
+      
+      updateCanvasTransform();
+      
+      window.addEventListener('resize', () => {
+         updateCanvasTransform();
+      });
+    });
+  </script>
+
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #ffffff;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      color: #555555;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      cursor: grab;
+      background-image: 
+        linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0; 
+      height: 0;
+      transform-origin: 0 0;
+    }
+
+    /* WEBオリジナルのポップアップ通知 */
+    .custom-popup {
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px) scale(0.9);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e8e8e8;
+      border-radius: 50px;
+      padding: 14px 28px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      font-size: 0.95rem;
+      color: #555555;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    .custom-popup.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    /* 吹き出しとアニメーション */
+    .speech-bubble {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e8e8e8;
+      border-radius: 24px;
+      padding: 16px 20px;
+      box-shadow: 2px 4px 16px rgba(0, 0, 0, 0.05);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .text-node {
+      cursor: pointer;
+      width: 280px; 
+      word-break: break-all;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      border-top-left-radius: 0; 
+    }
+
+    .text-node:hover {
+      box-shadow: 2px 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: #cccccc;
+      z-index: 10;
+    }
+
+    .text-node .content {
+      display: block;
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    .node-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 0.75rem;
+      color: #aaaaaa;
+      margin-top: 10px;
+      border-top: 1px solid #f2f2f2;
+      padding-top: 6px;
+      gap: 8px;
+    }
+
+    .meta-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .node-footer .signature {
+      font-weight: 500;
+      color: #888888;
+    }
+
+    /* フォームUI */
+    .ui-panel {
+      display: none;
+      z-index: 100;
+      width: 320px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      color: #888888;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #dddddd;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      background-color: #fafafa;
+      color: #555555;
+      transition: border-color 0.2s;
+    }
+
+    textarea {
+      resize: none;
+      height: 100px;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #999999;
+      background-color: #ffffff;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    button {
+      padding: 6px 16px;
+      border: 1px solid #dddddd;
+      background-color: transparent;
+      color: #777777;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background-color: #f0f0f0;
+      color: #555555;
+    }
+
+    button.primary {
+      background-color: #555555;
+      color: #ffffff;
+      border-color: #555555;
+    }
+
+    button.primary:hover {
+      background-color: #333333;
+    }
+    
+    button.danger {
+      color: #d9534f;
+      border-color: #ffcccc;
+      background-color: #fff9f9;
+    }
+    
+    button.danger:hover {
+       background-color: #d9534f;
+       color: white;
+    }
+
+    .fixed-ui {
+      position: fixed;
+      z-index: 1000;
+    }
+
+    .help-wrapper {
+      bottom: 24px;
+      right: 24px;
+    }
+
+    .help-icon {
+      color: #aaaaaa;
+      cursor: help;
+      transition: color 0.3s ease;
+      font-size: 32px;
+      user-select: none;
+    }
+
+    .help-wrapper:hover .help-icon {
+      color: #666666;
+    }
+
+    .tooltip {
+      position: absolute;
+      bottom: 40px;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e8e8e8;
+      padding: 12px 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      font-size: 0.85rem;
+      color: #666666;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .help-wrapper:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .tooltip p {
+      margin: 4px 0;
+    }
+
+    .coordinate-display {
+      bottom: 24px;
+      left: 24px;
+      font-size: 0.85rem;
+      color: #888888;
+      pointer-events: none;
+      letter-spacing: 0.05em;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- カスタムポップアップ -->
+  <div id="custom-popup" class="custom-popup"></div>
+
+  <div id="canvas-container">
+    <div id="canvas"></div>
+  </div>
+
+  <div id="coordinate-display" class="fixed-ui coordinate-display">x: 0, y: 0 (zoom: 1.0x)</div>
+
+  <div class="fixed-ui help-wrapper">
+    <span class="material-symbols-rounded help-icon">help</span>
+    <div class="tooltip">
+      <p>ドラッグ : 移動 / ホイール : 拡大縮小</p>
+      <p>ダブルクリック : 書き込む</p>
+      <p>テキストクリック : 編集・削除</p>
+    </div>
+  </div>
+
+  <!-- 書き込みフォーム -->
+  <div id="write-form" class="ui-panel speech-bubble">
+    <form id="write-form-el">
+      <div class="form-group">
+        <label for="input-text">
+          <span>言葉</span>
+          <span>300文字まで</span>
+        </label>
+        <textarea id="input-text" maxlength="300" required placeholder="ここに静かに書き込む..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="input-signature">署名 (任意)</label>
+        <input type="text" id="input-signature" placeholder="名前または仮名">
+      </div>
+      <div class="form-group">
+        <label for="input-password">パスワード</label>
+        <input type="password" id="input-password" required placeholder="本人確認・編集用">
+      </div>
+      <div class="button-group">
+        <button type="button" id="cancel-write">キャンセル</button>
+        <button type="submit" class="primary">残す</button>
+      </div>
+    </form>
+  </div>
+  
+  <!-- 編集・削除フォーム -->
+  <div id="edit-form" class="ui-panel speech-bubble">
+    <form id="edit-form-el">
+      <div class="form-group">
+        <label id="edit-id-display" style="font-size: 0.75rem; color: #aaaaaa; margin-bottom: 2px;"></label>
+        <label id="edit-signature-display" style="font-weight: 500; color: #555555; margin-bottom: 8px;"></label>
+        <label for="edit-text">言葉</label>
+        <textarea id="edit-text" maxlength="300" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="edit-password">署名パスワード</label>
+        <input type="password" id="edit-password" required placeholder="書き込み時のパスワード">
+      </div>
+      <div class="button-group" style="justify-content: space-between;">
+        <button type="submit" value="delete" class="danger">削除</button>
+        <div style="display: flex; gap: 8px;">
+           <button type="button" id="cancel-edit">キャンセル</button>
+           <button type="submit" value="update" class="primary">更新</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

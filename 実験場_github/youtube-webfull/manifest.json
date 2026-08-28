@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Window Fullscreen",
+  "version": "1.0",
+  "description": "YouTubeのプレイヤーをブラウザウィンドウいっぱいに拡大します",
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "css": ["styles.css"],
+      "js": ["content.js"]
+    }
+  ]
+}

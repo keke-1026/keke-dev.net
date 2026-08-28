@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blue Back Camera</title>
+  <!-- Google Fonts の読み込み -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Google Fonts アイコン (Material Symbols) の読み込み -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <!-- MediaPipe の安定版ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #ffffff;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    
+    .video-container {
+      width: 100%;
+      height: 100%;
+      background-color: #0000FF; /* 初期表示用 */
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    
+    video {
+      display: none;
+    }
+    
+    .ui-container {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+    }
+
+    .icon-button {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      user-select: none;
+      /* くっそ薄く表示 (不透明度15%) */
+      opacity: 0.15;
+      color: #ffffff; 
+    }
+
+    /* マウスを乗せた時だけ少し見えるようにする */
+    .icon-button:hover {
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="video-container">
+    <video class="input_video" playsinline></video>
+    <canvas class="output_canvas"></canvas>
+  </div>
+  
+  <div class="ui-container">
+    <!-- カメラ反転アイコンのみ残す -->
+    <span class="material-symbols-outlined icon-button" id="switchCameraBtn">cameraswitch</span>
+  </div>
+
+<script>
+    const videoElement = document.querySelector('.input_video');
+    const canvasElement = document.querySelector('.output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+
+    let cameraStream;
+    let isFacingUser = true;
+    let lastVideoTime = -1;
+
+    // キャンバスのリサイズ処理
+    function resizeCanvas() {
+      canvasElement.width = window.innerWidth;
+      canvasElement.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // MediaPipe の結果をCanvasに描画（安定方式 ＋ 境界線ぼかし）
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+      // 1. マスク（シルエット）を描画する際、境界線にわずかに「ぼかし」をかける
+      canvasCtx.filter = 'blur(3px)'; // ここの数値を調整するとぼかし具合が変わります
+      canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+      
+      // フィルターを元に戻す
+      canvasCtx.filter = 'none';
+
+      // 2. マスクの内側（人物部分）にのみ元のカメラ映像を重ねる
+      canvasCtx.globalCompositeOperation = 'source-in';
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+      // 3. マスクの外側（背景部分）を青色で塗りつぶす
+      canvasCtx.globalCompositeOperation = 'destination-over';
+      canvasCtx.fillStyle = '#0000FF';
+      canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+
+      canvasCtx.restore();
+    }
+
+    // MediaPipe Selfie Segmentationの初期化
+    const selfieSegmentation = new SelfieSegmentation({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+    }});
+    selfieSegmentation.setOptions({
+      modelSelection: 1, // 1: 高精度モデル
+    });
+    selfieSegmentation.onResults(onResults);
+
+    // 映像の処理ループ
+    async function processVideo() {
+      if (videoElement.currentTime !== lastVideoTime) {
+        lastVideoTime = videoElement.currentTime;
+        await selfieSegmentation.send({image: videoElement});
+      }
+      requestAnimationFrame(processVideo);
+    }
+
+    // カメラの起動
+    async function startCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+      
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: isFacingUser ? 'user' : 'environment'
+        }
+      };
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = cameraStream;
+        videoElement.onloadeddata = () => {
+          videoElement.play();
+          requestAnimationFrame(processVideo);
+        };
+      } catch (err) {
+        console.error("カメラの取得に失敗しました: ", err);
+      }
+    }
+
+    // ページ読み込み時にカメラを起動
+    startCamera();
+
+    // カメラ切り替え処理
+    switchCameraBtn.addEventListener('click', () => {
+      isFacingUser = !isFacingUser;
+      startCamera();
+    });
+</script>
+</body>
+</html>
