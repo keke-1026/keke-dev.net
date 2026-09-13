@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Web Radio</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --border-color: #e0e0e0;
+      --primary-color: #1a73e8;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Noto Sans JP', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    header {
+      width: 100%;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    
+    /* 配信ステータス */
+    .status-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    
+    /* チャットエリア */
+    .chat-box {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: #fafafa;
+    }
+    
+    .message {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.95rem;
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+    
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    
+    button {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      padding: 0 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: inherit;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    /* 配信者専用コントロール */
+    #admin-controls {
+      display: none;
+      margin-bottom: 24px;
+      padding: 16px;
+      background-color: #f0f4f8;
+      border-radius: 8px;
+      border: 1px solid #c9dff7;
+    }
+    
+    #admin-controls h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="material-symbols-outlined">radio</span>
+    <h1>My Radio</h1>
+  </header>
+
+  <div class="container">
+    <!-- 配信者専用エリア -->
+    <div id="admin-controls">
+      <h3>Broadcast Controls</h3>
+      <button id="start-btn">
+        <span class="material-symbols-outlined">mic</span>
+        Start Broadcast
+      </button>
+    </div>
+
+    <!-- 配信ステータス -->
+    <div class="status-box">
+      <span class="material-symbols-outlined" id="status-icon">volume_off</span>
+      <span id="status-text">Offline</span>
+    </div>
+
+    <!-- リスナー用音声再生要素 -->
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+    <!-- チャット・リクエストエリア -->
+    <div class="chat-box" id="chat-box"></div>
+    <div class="input-group">
+      <input type="text" id="chat-input" placeholder="Type a message...">
+      <button id="send-btn">
+        <span class="material-symbols-outlined">send</span>
+        Send
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Firestoreの設定 (ご自身のFirebaseプロジェクトの設定に書き換えてください)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // あなた専用の固定チャンネル名
+    const CHANNEL_NAME = "my-single-channel";
+
+    // 管理者モードの判定 (URLに ?mode=admin があるかどうか)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('mode') === 'admin';
+
+    if (isAdmin) {
+      document.getElementById('admin-controls').style.display = 'block';
+    }
+
+    // チャット機能の実装 (Firestore)
+    const chatBox = document.getElementById('chat-box');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50));
+    
+    onSnapshot(q, (snapshot) => {
+      chatBox.innerHTML = '';
+      const messages = [];
+      snapshot.forEach((doc) => {
+        messages.push(doc.data());
+      });
+      
+      messages.reverse().forEach((msg) => {
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.textContent = msg.text;
+        chatBox.appendChild(div);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    sendBtn.addEventListener('click', async () => {
+      const text = chatInput.value.trim();
+      if (text) {
+        await addDoc(collection(db, "messages"), {
+          text: text,
+          timestamp: new Date()
+        });
+        chatInput.value = '';
+      }
+    });
+
+    // 配信開始ボタンの動作 (WebRTC組み込み用のプレースホルダー)
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        document.getElementById('status-text').textContent = "Live";
+        document.getElementById('status-icon').textContent = "volume_up";
+        console.log("Broadcasting to channel: " + CHANNEL_NAME);
+        // ※ここにLiveKitやAgoraなどの音声配信開始処理を組み込みます
+      });
+    }
+  </script>
+</body>
+</html>

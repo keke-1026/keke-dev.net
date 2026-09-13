@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>りくさんの素材抽選ページ</title>
+
+    <meta property="og:title" content="りくさんの素材抽選ページ">
+    <meta property="og:description" content="100000000分の1の確率でりくさんの素材が当たる抽選ページです。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ke2.jp/riku-1oku">
+    <meta property="og:image" content="https://cdn.ke2.jp/%E7%B4%A0%E6%9D%90%E7%B3%BB/%E3%82%84%E3%82%8A%E3%82%89%E3%81%B5%E3%81%83%E3%83%BC/%E3%82%84%E3%82%8A%E3%82%89.gif">
+    <meta property="og:site_name" content="りくさんの素材抽選ページ">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    
+    <style>
+        body {
+            background-color: #ffffff;
+            font-family: 'Noto Sans JP', sans-serif;
+            color: #333333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+        .container {
+            text-align: center;
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            margin-top: 0;
+        }
+        #countDisplay {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: #555555;
+        }
+        .button-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        button {
+            border-radius: 9999px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: 'Noto Sans JP', sans-serif;
+            color: #333333;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.05s, background-color 0.2s, color 0.2s;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        #drawButton {
+            padding: 16px 48px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        #autoButton {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .auto-active {
+            background-color: #333333 !important;
+            color: #ffffff !important;
+            border-color: #333333 !important;
+        }
+        #message {
+            margin-top: 24px;
+            font-size: 18px;
+            font-weight: 700;
+            min-height: 27px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>100000000分の1でりくの画像が当たる抽選</h1>
+        <div id="countDisplay">抽選回数: 0</div>
+        
+        <div class="button-wrapper">
+            <button id="drawButton">
+                <span class="material-symbols-outlined" style="font-size: 28px;">casino</span>
+                <span>抽選</span>
+            </button>
+            <button id="autoButton">
+                <span class="material-symbols-outlined">autorenew</span>
+                <span id="autoText">オート ← !?</span>
+            </button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const messageElement = document.getElementById('message');
+        const countDisplay = document.getElementById('countDisplay');
+        const drawButton = document.getElementById('drawButton');
+        const autoButton = document.getElementById('autoButton');
+        const autoText = document.getElementById('autoText');
+        
+        let count = 0;
+        let autoIntervalId = null;
+
+        function executeDraw() {
+            count++;
+            countDisplay.textContent = `抽選回数: ${count}`;
+            
+            const randomValue = Math.floor(Math.random() * 100000000);
+
+            if (randomValue === 0) {
+                if (autoIntervalId !== null) {
+                    clearInterval(autoIntervalId);
+                }
+                window.location.href = "https://cdn.ke2.jp/%E7%B4%A0%E6%9D%90%E7%B3%BB/5000%E5%85%86%E3%81%8A%E3%82%81%E3%81%A7%E3%81%A8%E3%81%86.png"; 
+            } else {
+                messageElement.textContent = "はずれ!!!ざんねん!!!がんばれ!!!";
+            }
+        }
+
+        drawButton.addEventListener('click', function() {
+            if (autoIntervalId === null) {
+                executeDraw();
+            }
+        });
+
+        autoButton.addEventListener('click', function() {
+            if (autoIntervalId !== null) {
+                clearInterval(autoIntervalId);
+                autoIntervalId = null;
+                autoText.textContent = "オート ← !?";
+                autoButton.classList.remove('auto-active');
+            } else {
+                autoText.textContent = "ストップ";
+                autoButton.classList.add('auto-active');
+                autoIntervalId = setInterval(executeDraw, 1);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <title>boxblox</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <style>
+        /* 共通設定 */
+        body, html { font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 300; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #ffffff; color: #333; touch-action: none; transition: background 0.3s, color 0.3s; }
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+        button, input { font-family: inherit; font-weight: 300; outline: none; transition: color 0.3s; }
+        .action-btn { background: none; border: none; font-size: 16px; cursor: pointer; text-align: left; padding: 0; display: inline-flex; align-items: center; gap: 5px; color: inherit; }
+        .action-btn:hover { opacity: 0.7; }
+        .action-btn:disabled { color: #ccc; cursor: not-allowed; }
+
+        body.dark-mode { background: #121212; color: #eee; }
+        body.dark-mode input[type="text"], body.dark-mode input[type="password"] { color: #eee; border-bottom: 1px solid #555; }
+        body.dark-mode input[type="text"]:focus, body.dark-mode input[type="password"]:focus { border-bottom: 1px solid #eee; }
+        body.dark-mode .modal { background: rgba(18, 18, 18, 0.95); }
+        body.dark-mode .server-meta, body.dark-mode .player-list { opacity: 0.7; color: #ccc; }
+
+        #notification-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 9999; pointer-events: none; }
+        .notification { background: rgba(51, 51, 51, 0.9); color: white; padding: 10px 20px; border-radius: 30px; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; transform: translateY(-20px); animation: dropDown 0.3s forwards, fadeUp 0.3s forwards 2.7s; text-align: center; }
+        @keyframes dropDown { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { to { opacity: 0; transform: translateY(-20px); } }
+
+        /* Hub画面 */
+        #hub-screen { padding: 50px; width: 100%; height: 100%; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; }
+        .hub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        h1 { font-weight: 300; font-size: 24px; margin: 0; letter-spacing: 2px; }
+        
+        .server-list { display: flex; flex-wrap: wrap; gap: 50px 40px; margin-bottom: 80px; }
+        .server-item { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+        .server-name { font-size: 18px; display: flex; align-items: center; gap: 5px; }
+        .server-meta { font-size: 14px; opacity: 0.7; }
+        .player-list { font-size: 12px; opacity: 0.5; }
+        .join-btn { background: none; border: none; color: inherit; font-size: 14px; cursor: pointer; padding: 0; text-decoration: underline; margin-top: 5px; text-align: left; opacity: 0.8; }
+        
+        .creation-area { display: flex; flex-direction: column; gap: 20px; max-width: 400px; margin-bottom: 60px; }
+        input[type="text"], input[type="password"] { border: none; border-bottom: 1px solid #ccc; padding: 5px 0; font-size: 16px; background: transparent; }
+        .creation-row { display: flex; align-items: center; gap: 10px; }
+        .creation-info { font-size: 12px; opacity: 0.5; }
+
+        .hub-footer { margin-top: auto; padding-top: 40px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 20px; font-size: 14px; }
+        .footer-section { display: flex; flex-direction: column; gap: 5px; }
+        .footer-text { font-size: 12px; line-height: 1.6; opacity: 0.8; }
+
+        /* モーダル用汎用ボタンスタイル */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.95); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { display: flex; flex-direction: column; gap: 15px; width: 300px; }
+        .modal-btn { display: flex; justify-content: center; align-items: center; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background: transparent; font-size: 16px; cursor: pointer; color: inherit; gap: 5px; font-family: inherit; transition: background 0.3s; }
+        .modal-btn:hover { background: rgba(0,0,0,0.05); }
+        body.dark-mode .modal-btn { border-color: #555; color: #eee; }
+        body.dark-mode .modal-btn:hover { background: rgba(255,255,255,0.05); }
+        .modal-btn.danger { background: #ff6b6b; color: white; border-color: #ff6b6b; }
+        .modal-btn.danger:hover { background: #ff5252; }
+
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; }
+        .key-bind-btn { padding: 5px; border: 1px solid #ccc; background: transparent; border-radius: 4px; cursor: pointer; color: inherit; text-align: center; }
+        .key-bind-btn.editing { background: #333; color: white; }
+
+        #portrait-warning { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.95); z-index: 10000; justify-content: center; align-items: center; flex-direction: column; text-align: center; font-size: 20px; font-weight: 400; gap: 20px; color: #333; }
+        #portrait-warning .material-symbols-outlined { font-size: 48px; }
+        @media (max-width: 768px) and (orientation: portrait) { #portrait-warning { display: flex; } }
+
+        /* ゲームUI画面 */
+        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1000; color: #333; }
+        #game-ui .action-btn { color: #333; text-shadow: 0 0 3px rgba(255,255,255,0.8); }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: rgba(0,0,0,0.5); border-radius: 50%; transform: translate(-50%, -50%); }
+        
+        #top-info { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+
+        #top-right-menu { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; pointer-events: auto; align-items: flex-start; z-index: 1010; }
+        
+        /* チャット */
+        #chat-container { display: flex; flex-direction: column; width: 300px; background: rgba(255,255,255,0.7); border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: width 0.3s ease, opacity 0.3s ease; transform-origin: right; overflow: hidden; pointer-events: auto; z-index: 1010; }
+        #chat-container.hidden { width: 0px; opacity: 0; padding: 0; margin: 0; border: none; pointer-events: none; }
+        #chat-log { height: 200px; overflow-y: auto; padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; min-width: 280px; }
+        #chat-input-area { display: flex; border-top: 1px solid #ccc; background: rgba(255,255,255,0.9); border-radius: 0 0 5px 5px; min-width: 280px; }
+        #chat-input { flex: 1; border: none; background: transparent; padding: 8px 10px; font-size: 14px; color: #333; }
+        .chat-time { opacity: 0.6; font-size: 11px; margin-right: 5px; color: #666; }
+        
+        /* 管理者メニュー (スライドアニメーション付き) */
+        #admin-panel { display: none; position: absolute; top: 60px; right: 330px; background: rgba(255,255,255,0.95); padding: 20px; flex-direction: column; gap: 15px; min-width: 200px; pointer-events: auto; border-radius: 8px; border: 1px solid #eee; z-index: 1010; transition: right 0.3s ease; }
+        .kick-list-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+
+        /* スマホ用UI */
+        #mobile-controls { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; }
+        #look-zone { position: absolute; top: 0; right: 0; width: 50vw; height: 100vh; pointer-events: auto; z-index: 500; }
+        #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(0,0,0,0.1); border-radius: 50%; pointer-events: auto; z-index: 600; }
+        #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(0,0,0,0.3); border-radius: 50%; }
+        
+        #mobile-btns-container { position: absolute; bottom: 40px; right: 40px; width: 200px; height: 200px; pointer-events: none; z-index: 600; }
+        .mobile-btn { position: absolute; border-radius: 50%; background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.3); color: #333; font-family: inherit; display: flex; justify-content: center; align-items: center; pointer-events: auto; font-weight: bold; }
+        
+        #mobile-jump { width: 120px; height: 120px; bottom: 0; right: 0; font-size: 20px; }
+        #mobile-crouch { width: 60px; height: 60px; bottom: 0; right: 130px; font-size: 14px; }
+        #mobile-grab { width: 80px; height: 80px; bottom: 120px; right: 0; font-size: 14px; }
+
+        @media (max-width: 768px) {
+            #hub-screen { padding: 30px 20px; }
+            #chat-container { width: 220px; }
+            #chat-log, #chat-input-area { min-width: 200px; }
+            #admin-panel { right: 10px !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="notification-container"></div>
+
+    <!-- HUB画面 -->
+    <div id="hub-screen">
+        <div class="hub-header">
+            <h1>hub</h1>
+            <div style="display: flex; gap: 15px;">
+                <button class="action-btn" id="open-settings-btn"><span class="material-symbols-outlined">settings</span> PC設定</button>
+                <button class="action-btn" id="theme-toggle"><span class="material-symbols-outlined">dark_mode</span></button>
+            </div>
+        </div>
+        
+        <div id="server-list" class="server-list"></div>
+
+        <div class="creation-area">
+            <input type="text" id="player-name" placeholder="プレイヤー名 (必須)" maxlength="15">
+            <div class="creation-row">
+                <button class="action-btn" id="create-public-btn"><span class="material-symbols-outlined">add</span> パブリック鯖を作成</button>
+                <span class="creation-info" id="public-capacity"></span>
+            </div>
+            <div class="creation-row">
+                <button class="action-btn" id="open-private-modal-btn"><span class="material-symbols-outlined">lock</span> プライベート鯖を作成</button>
+                <span class="creation-info">(15人まで)</span>
+            </div>
+        </div>
+
+        <div class="hub-footer">
+            <div class="footer-section">
+                <span>遊び方 (How to play)</span>
+                <span class="footer-text">
+                    [PC] WASD:移動 / Shift:ダッシュ / Space:ジャンプ / Ctrl:しゃがむ<br>
+                    左クリック長押し:物を掴む・離して投げる / B:物を出す / M:退出 / /:チャット<br>
+                    ※プラベ鯖のみ2回ジャンプで空中浮遊 (Spaceで上昇、Ctrlで下降)<br>
+                    ※設定からキー配置の変更が可能
+                </span>
+            </div>
+            <div class="footer-section"><span class="footer-text" style="opacity: 0.5;">Created by ke2.jp</span></div>
+        </div>
+    </div>
+
+    <!-- モード選択モーダル -->
+    <div id="mode-select-modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 18px; text-align: center;">操作モードを選択</div>
+            <button class="modal-btn" id="mode-pc-btn"><span class="material-symbols-outlined">computer</span> PCモード</button>
+            <button class="modal-btn" id="mode-mobile-btn"><span class="material-symbols-outlined">smartphone</span> スマホモード</button>
+            <button class="modal-btn" onclick="document.getElementById('mode-select-modal').style.display='none'"><span class="material-symbols-outlined">close</span> キャンセル</button>
+        </div>
+    </div>
+
+    <!-- PCキーボード設定モーダル -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content" style="width: 350px;">
+            <div style="font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">PC操作設定</div>
+            <div style="font-size: 14px;">クリックしてキー入力</div>
+            <div class="settings-grid" id="key-config-grid"></div>
+            <button class="modal-btn" onclick="document.getElementById('settings-modal').style.display='none'"><span class="material-symbols-outlined">close</span> 閉じる</button>
+        </div>
+    </div>
+
+    <!-- プラベ鯖作成モーダル -->
+    <div id="private-modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 18px; text-align: center;">プライベート鯖作成</div>
+            <input type="password" id="private-password" placeholder="パスワード (4-16文字)" minlength="4" maxlength="16">
+            <button class="modal-btn" id="create-private-btn"><span class="material-symbols-outlined">done</span> 作成する</button>
+            <button class="modal-btn" onclick="document.getElementById('private-modal').style.display='none'"><span class="material-symbols-outlined">close</span> キャンセル</button>
+        </div>
+    </div>
+
+    <!-- パスワード入室モーダル -->
+    <div id="join-password-modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 18px; text-align: center;">パスワードを入力</div>
+            <input type="password" id="join-password-input" placeholder="パスワード">
+            <button class="modal-btn" id="submit-join-password-btn"><span class="material-symbols-outlined">login</span> 入室</button>
+            <button class="modal-btn" onclick="document.getElementById('join-password-modal').style.display='none'"><span class="material-symbols-outlined">close</span> キャンセル</button>
+        </div>
+    </div>
+
+    <!-- サーバー解散確認モーダル -->
+    <div id="disband-confirm-modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 18px; text-align: center;">本当にサーバーを解散しますか？</div>
+            <div style="font-size: 14px; text-align: center; color: #ff6b6b; margin-bottom: 10px;">この操作は取り消せません。</div>
+            <button class="modal-btn danger" id="confirm-disband-btn"><span class="material-symbols-outlined">delete_forever</span> 解散する</button>
+            <button class="modal-btn" onclick="document.getElementById('disband-confirm-modal').style.display='none'"><span class="material-symbols-outlined">close</span> キャンセル</button>
+        </div>
+    </div>
+
+    <div id="portrait-warning"><span class="material-symbols-outlined">screen_rotation</span> 画面を横向きにして<br>お楽しみください</div>
+
+    <!-- ゲームUI画面 -->
+    <div id="game-ui">
+        <div id="crosshair"></div>
+        <div id="top-info">
+            <div id="room-display">Room: </div>
+            <button class="action-btn" id="spawn-btn"><span class="material-symbols-outlined">inventory_2</span> 物を出す (B)</button>
+            <button class="action-btn" id="leave-btn"><span class="material-symbols-outlined">logout</span> 退出する (M)</button>
+        </div>
+        
+        <div id="top-right-menu">
+            <button class="action-btn" id="admin-menu-btn" style="display: none;"><span class="material-symbols-outlined">settings</span></button>
+            <button class="action-btn" id="chat-toggle-btn"><span class="material-symbols-outlined">chat</span></button>
+            <div id="chat-container">
+                <div id="chat-log"></div>
+                <div id="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="チャット ( / で入力 )" maxlength="50">
+                    <button class="action-btn" id="chat-send" style="padding: 0 10px;"><span class="material-symbols-outlined">send</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-panel">
+            <div style="font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Admin</div>
+            <button class="action-btn" id="toggle-chat-btn">チャット: ON</button>
+            <button class="action-btn" id="toggle-hub-btn">Hub表示: ON</button>
+            <button class="action-btn" id="disband-btn" style="color: #ff6b6b;"><span class="material-symbols-outlined">delete_forever</span> サーバー解散</button>
+            <div style="font-size: 14px; margin-top: 10px;">参加者管理:</div>
+            <div id="admin-player-list"></div>
+        </div>
+
+        <div id="mobile-controls">
+            <div id="look-zone"></div>
+            <div id="joystick-zone"><div id="joystick-knob"></div></div>
+            <div id="mobile-btns-container">
+                <button class="mobile-btn" id="mobile-jump">ジャンプ</button>
+                <button class="mobile-btn" id="mobile-crouch">しゃがむ</button>
+                <button class="mobile-btn" id="mobile-grab">投げる</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <script>
+        let controls; // グローバルスコープで保持
+
+        const defaultKeys = { forward: 'KeyW', backward: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', dash: 'ShiftLeft', crouch: 'ControlLeft', spawn: 'KeyB', leave: 'KeyM', chat: 'Slash' };
+        let customKeys = JSON.parse(localStorage.getItem('wfs_keys')) || defaultKeys;
+        const keyNames = { forward: '前進', backward: '後退', left: '左', right: '右', jump: 'ジャンプ/浮遊', dash: 'ダッシュ', crouch: 'しゃがむ/下降', spawn: '物を出す', leave: '退出', chat: 'チャット' };
+        
+        function renderKeyConfig() {
+            const grid = document.getElementById('key-config-grid'); grid.innerHTML = '';
+            for(let act in customKeys) {
+                const div = document.createElement('div'); div.innerHTML = `<span>${keyNames[act]}</span> <button class="key-bind-btn" data-action="${act}">${customKeys[act]}</button>`;
+                grid.appendChild(div);
+            }
+            document.querySelectorAll('.key-bind-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.key-bind-btn').forEach(b => { b.classList.remove('editing'); b.innerText = customKeys[b.dataset.action]; });
+                    this.classList.add('editing'); this.innerText = '入力待ち...';
+                    const action = this.dataset.action;
+                    const handler = (e) => {
+                        e.preventDefault(); customKeys[action] = e.code; localStorage.setItem('wfs_keys', JSON.stringify(customKeys));
+                        this.innerText = e.code; this.classList.remove('editing');
+                        document.removeEventListener('keydown', handler);
+                    };
+                    document.addEventListener('keydown', handler);
+                });
+            });
+        }
+        document.getElementById('open-settings-btn').addEventListener('click', () => { renderKeyConfig(); document.getElementById('settings-modal').style.display = 'flex'; });
+
+        let isDarkMode = localStorage.getItem('wfs_theme') === 'dark';
+        if(isDarkMode) document.body.classList.add('dark-mode');
+        document.getElementById('theme-toggle').innerHTML = isDarkMode ? '<span class="material-symbols-outlined">light_mode</span>' : '<span class="material-symbols-outlined">dark_mode</span>';
+        document.getElementById('theme-toggle').addEventListener('click', (e) => {
+            isDarkMode = !isDarkMode; document.body.classList.toggle('dark-mode', isDarkMode);
+            localStorage.setItem('wfs_theme', isDarkMode ? 'dark' : 'light');
+            e.currentTarget.innerHTML = isDarkMode ? '<span class="material-symbols-outlined">light_mode</span>' : '<span class="material-symbols-outlined">dark_mode</span>';
+        });
+
+        function showNotification(msg) {
+            const container = document.getElementById('notification-container'), notif = document.createElement('div');
+            notif.className = 'notification'; notif.innerText = msg; container.appendChild(notif);
+            setTimeout(() => { if(notif.parentNode) notif.parentNode.removeChild(notif); }, 3000);
+        }
+        function formatTimeElapsed(ms) { const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000); return `${m}分${s}秒`; }
+        function formatTimeHM(timestamp) { const date = new Date(timestamp); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; }
+
+        const firebaseConfig = { apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU", authDomain: "keke-dev.firebaseapp.com", databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "keke-dev" };
+        firebase.initializeApp(firebaseConfig); const db = firebase.database();
+
+        let myName = "", currentRoomId = "", currentRoomType = "", isAdmin = false, gameStarted = false, pendingJoinData = null, isLeavingIntentional = false, selectedMode = 'pc';
+        const myColor = Math.random() * 0xffffff;
+        const keyState = {};
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        setInterval(() => {
+            if (gameStarted) return;
+            document.querySelectorAll('.server-item').forEach(item => {
+                const ca = parseInt(item.getAttribute('data-created-at'));
+                if (ca) item.querySelector('.time-display').innerText = formatTimeElapsed(Date.now() - ca);
+            });
+        }, 1000);
+
+        db.ref('rooms').on('value', (snapshot) => {
+            if (gameStarted) return; 
+            const listDiv = document.getElementById('server-list'); listDiv.innerHTML = "";
+            const rooms = snapshot.val() || {}; let hasRooms = false; let publicCount = 0;
+
+            Object.keys(rooms).forEach(roomId => {
+                const room = rooms[roomId], pCount = room.players ? Object.keys(room.players).length : 0;
+                const isOld = (Date.now() - (room.createdAt || 0)) > 10000;
+                
+                if (pCount === 0 && isOld) { db.ref(`rooms/${roomId}`).remove(); return; }
+
+                if (room.type === 'public') publicCount++;
+                hasRooms = true;
+                const maxPlayers = room.type === 'public' ? 8 : 15;
+                
+                let playersText = "非公開";
+                if (room.type === 'public' || (room.type === 'private' && room.settings?.showPlayers)) {
+                    playersText = room.players ? Object.keys(room.players).join(', ') : "誰もいません";
+                }
+                const icon = room.type === 'private' ? '<span class="material-symbols-outlined">lock</span>' : '<span class="material-symbols-outlined">public</span>';
+                
+                const item = document.createElement('div'); item.className = 'server-item';
+                item.setAttribute('data-created-at', room.createdAt || Date.now());
+                item.innerHTML = `
+                    <div class="server-name">${icon} ${roomId}</div>
+                    <div class="server-meta">${pCount} / ${maxPlayers} 人 | <span class="time-display">${formatTimeElapsed(Date.now() - (room.createdAt || Date.now()))}</span></div>
+                    <div class="player-list">参加者: ${playersText}</div>
+                    <button class="join-btn" onclick="openModeSelect('${roomId}', '${room.type}')" ${pCount >= maxPlayers ? 'disabled' : ''}>${pCount >= maxPlayers ? '満員' : '参加する'}</button>
+                `;
+                listDiv.appendChild(item);
+            });
+            document.getElementById('public-capacity').innerText = `(残り ${10 - publicCount}枠)`;
+            if(!hasRooms) listDiv.innerHTML = "<div style='color: #999;'>稼働中のサーバーはありません</div>";
+        });
+
+        document.getElementById('create-public-btn').addEventListener('click', async () => {
+            myName = document.getElementById('player-name').value.trim(); if (!myName) return showNotification('プレイヤー名を入力してください');
+            const snap = await db.ref('rooms').once('value'); const rooms = snap.val() || {};
+            let target = null; for (let i = 1; i <= 10; i++) { const id = `room_${String(i).padStart(2, '0')}`; if (!rooms[id]) { target = id; break; } }
+            if (!target) return showNotification('通常鯖の上限に達しています。');
+            await db.ref(`rooms/${target}`).set({ type: 'public', createdAt: firebase.database.ServerValue.TIMESTAMP }); openModeSelect(target, 'public');
+        });
+
+        document.getElementById('open-private-modal-btn').addEventListener('click', () => {
+            myName = document.getElementById('player-name').value.trim(); if (!myName) return showNotification('プレイヤー名を入力してください');
+            document.getElementById('private-modal').style.display = 'flex';
+        });
+
+        document.getElementById('create-private-btn').addEventListener('click', async () => {
+            const pass = document.getElementById('private-password').value; if (!/^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]{4,16}$/.test(pass)) return showNotification('パスワードは半角英数字記号4〜16文字です。');
+            const snap = await db.ref('rooms').once('value'); const rooms = snap.val() || {};
+            let i = 1; while(rooms[`room_p${String(i).padStart(2, '0')}`]) { i++; } const target = `room_p${String(i).padStart(2, '0')}`;
+            
+            const adminToken = Math.random().toString(36).substring(2);
+            sessionStorage.setItem('adminToken_' + target, adminToken);
+            
+            // デフォルトでチャットON、Hub表示ONとして作成
+            await db.ref(`rooms/${target}`).set({ type: 'private', password: pass, adminToken: adminToken, createdAt: firebase.database.ServerValue.TIMESTAMP, settings: { chatEnabled: true, showPlayers: true } });
+            document.getElementById('private-modal').style.display = 'none'; openModeSelect(target, 'private');
+        });
+
+        window.openModeSelect = async function(roomId, type) {
+            myName = document.getElementById('player-name').value.trim(); if (!myName) return showNotification('プレイヤー名を入力してください');
+            const roomSnap = await db.ref(`rooms/${roomId}`).once('value'); if(!roomSnap.exists()) return showNotification('このサーバーは既に存在しません。');
+            const roomData = roomSnap.val();
+            pendingJoinData = { roomId, type, roomData };
+            
+            const myToken = sessionStorage.getItem('adminToken_' + roomId);
+            if (type === 'private' && roomData.adminToken !== myToken) {
+                document.getElementById('join-password-input').value = ''; document.getElementById('join-password-modal').style.display = 'flex';
+            } else {
+                document.getElementById('mode-select-modal').style.display = 'flex';
+            }
+        };
+
+        document.getElementById('submit-join-password-btn').addEventListener('click', () => {
+            const pass = document.getElementById('join-password-input').value;
+            if (pass !== pendingJoinData.roomData.password) return showNotification("パスワードが違います");
+            document.getElementById('join-password-modal').style.display = 'none';
+            document.getElementById('mode-select-modal').style.display = 'flex';
+        });
+
+        document.getElementById('mode-pc-btn').addEventListener('click', () => proceedJoin('pc'));
+        document.getElementById('mode-mobile-btn').addEventListener('click', () => proceedJoin('mobile'));
+
+        async function proceedJoin(mode) {
+            selectedMode = mode;
+            const { roomId, type, roomData } = pendingJoinData;
+            const pSnap = await db.ref(`rooms/${roomId}/players/${myName}`).once('value');
+            if(pSnap.exists()) { document.getElementById('mode-select-modal').style.display = 'none'; return showNotification("その名前は現在この部屋で使用されています。"); }
+            
+            currentRoomId = roomId; currentRoomType = type; 
+            const myToken = sessionStorage.getItem('adminToken_' + roomId);
+            isAdmin = (type === 'private' && roomData.adminToken === myToken); 
+            isLeavingIntentional = false; 
+            
+            document.getElementById('mode-select-modal').style.display = 'none'; document.getElementById('hub-screen').style.display = 'none'; 
+            document.getElementById('game-ui').style.display = 'block'; document.getElementById('room-display').innerText = `Room: ${roomId}`;
+            
+            document.body.classList.remove('dark-mode'); document.body.style.background = '#ffffff';
+            
+            if (isAdmin) document.getElementById('admin-menu-btn').style.display = 'flex';
+            if (selectedMode === 'mobile') { document.getElementById('mobile-controls').style.display = 'block'; }
+            
+            startGame();
+        }
+
+        document.getElementById('leave-btn').addEventListener('click', () => { isLeavingIntentional = true; db.ref(`rooms/${currentRoomId}/players/${myName}`).remove().then(() => window.location.reload()); });
+
+        // 解散モーダルの処理
+        document.getElementById('confirm-disband-btn').addEventListener('click', () => {
+            if (currentRoomId) db.ref(`rooms/${currentRoomId}`).remove();
+            document.getElementById('disband-confirm-modal').style.display = 'none';
+        });
+
+        let isChatVisible = true;
+        document.getElementById('chat-toggle-btn').addEventListener('click', () => {
+            isChatVisible = !isChatVisible;
+            const container = document.getElementById('chat-container');
+            const adminPanel = document.getElementById('admin-panel');
+            if(isChatVisible) {
+                container.classList.remove('hidden');
+                if(window.innerWidth > 768) adminPanel.style.right = '330px';
+            } else {
+                container.classList.add('hidden');
+                if(window.innerWidth > 768) adminPanel.style.right = '20px';
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            const adminPanel = document.getElementById('admin-panel');
+            if (window.innerWidth <= 768) {
+                adminPanel.style.right = '10px';
+            } else {
+                adminPanel.style.right = isChatVisible ? '330px' : '20px';
+            }
+        });
+
+        function appendSystemLog(text, color) {
+            const log = document.getElementById('chat-log'), div = document.createElement('div');
+            div.style.color = color; div.innerHTML = `<span class="chat-time">[${formatTimeHM(Date.now())}]</span> ${text}`;
+            log.appendChild(div); log.scrollTop = log.scrollHeight;
+        }
+
+        function startGame() {
+            gameStarted = true;
+            const roomRef = db.ref(`rooms/${currentRoomId}`), playersRef = roomRef.child('players'), objectsRef = roomRef.child('objects'), chatRef = roomRef.child('chat'), settingsRef = roomRef.child('settings');
+
+            playersRef.child(myName).set({ x: 0, y: 2, z: 0, color: myColor, crouch: false }); playersRef.child(myName).onDisconnect().remove();
+            appendSystemLog(`${myName} として入室しました`, "#4caf50");
+
+            roomRef.on('value', snap => { if (!snap.exists()) { showNotification('サーバーが解散されました。'); setTimeout(() => window.location.reload(), 2000); } });
+            playersRef.child(myName).on('value', snap => { if (!snap.exists() && gameStarted && !isLeavingIntentional) { showNotification('サーバーからキックされました。'); setTimeout(() => window.location.reload(), 2000); } });
+
+            const world = new CANNON.World(); world.gravity.set(0, -25, 0); world.broadphase = new CANNON.NaiveBroadphase();
+            const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: new CANNON.Material({ friction: 0.1, restitution: 0.3 }) });
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); world.addBody(groundBody);
+
+            const myShape = new CANNON.Sphere(0.8);
+            const myBody = new CANNON.Body({ mass: 50, shape: myShape, fixedRotation: true, linearDamping: 0.9 }); myBody.position.set(0, 2, 0); world.addBody(myBody);
+
+            const scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff); scene.fog = new THREE.Fog(0xffffff, 10, 80);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); 
+            const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight); 
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5); dirLight.position.set(10, 20, 10); scene.add(dirLight); 
+            scene.add(new THREE.GridHelper(200, 100, 0xcccccc, 0xeeeeee));
+
+            controls = new THREE.PointerLockControls(camera, document.body);
+            document.addEventListener('click', e => { 
+                if (window.innerWidth <= 768 || selectedMode === 'mobile' || ['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
+                if (!document.getElementById('admin-panel').contains(e.target) && !document.getElementById('chat-container').contains(e.target)) controls.lock(); 
+            });
+            scene.add(controls.getObject());
+
+            const playerMeshes = {};
+            function createAvatar(color, name) {
+                const group = new THREE.Group(); 
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.8), new THREE.MeshStandardMaterial({ color: color })); group.add(mesh);
+                const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#333'; ctx.font = "bold 24px sans-serif"; ctx.textAlign = "center"; ctx.fillText(name, 128, 48);
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) })); sprite.position.y = 1.3; sprite.scale.set(2, 0.5, 1); group.add(sprite); 
+                return group;
+            }
+
+            let initialLoad = true; playersRef.once('value', () => { initialLoad = false; }); 
+            playersRef.on('child_added', snap => { 
+                if (snap.key === myName) return; 
+                const d = snap.val(); const avatar = createAvatar(d.color, snap.key); avatar.position.set(d.x, d.y, d.z); scene.add(avatar); playerMeshes[snap.key] = avatar; 
+                updateAdminList(); if (!initialLoad) appendSystemLog(`+ ${snap.key} が入室しました`, "#4caf50"); 
+            });
+            playersRef.on('child_changed', snap => { 
+                if (snap.key === myName || !playerMeshes[snap.key]) return; 
+                const d = snap.val(); playerMeshes[snap.key].position.set(d.x, d.y, d.z);
+                const bodyMesh = playerMeshes[snap.key].children[0], sprite = playerMeshes[snap.key].children[1];
+                if(d.crouch) { bodyMesh.scale.y = 0.5; bodyMesh.position.y = -0.4; sprite.position.y = 0.5; } else { bodyMesh.scale.y = 1; bodyMesh.position.y = 0; sprite.position.y = 1.3; }
+            });
+            playersRef.on('child_removed', snap => { 
+                if (playerMeshes[snap.key]) { scene.remove(playerMeshes[snap.key]); delete playerMeshes[snap.key]; } 
+                updateAdminList(); if (!initialLoad) appendSystemLog(`- ${snap.key} が退出しました`, "#f44336"); 
+            });
+
+            const boxes = [];
+            objectsRef.on('child_added', snap => {
+                const d = snap.val(); let geo, shape;
+                if(d.type === 'sphere') { geo = new THREE.SphereGeometry(0.6, 16, 16); shape = new CANNON.Sphere(0.6); }
+                else if(d.type === 'block') { geo = new THREE.BoxGeometry(0.4, 2, 0.4); shape = new CANNON.Box(new CANNON.Vec3(0.2, 1, 0.2)); }
+                else { geo = new THREE.BoxGeometry(1,1,1); shape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5)); }
+                const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: d.color })); scene.add(mesh);
+                const body = new CANNON.Body({ mass: 5, shape: shape }); body.position.set(d.x, d.y, d.z); world.addBody(body); boxes.push({ mesh, body });
+            });
+            
+            function triggerSpawn() {
+                const types = ['box', 'sphere', 'block'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const colorNum = Math.floor(Math.random() * 0xffffff);
+                const pos = new THREE.Vector3(); camera.getWorldDirection(pos); pos.multiplyScalar(5).add(camera.position); pos.y += 2;
+                objectsRef.push({ type: type, x: pos.x, y: pos.y, z: pos.z, color: colorNum });
+            }
+            document.getElementById('spawn-btn').addEventListener('click', triggerSpawn);
+
+            const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0); let heldBody = null, originalMass = 0;
+            function grab() { raycaster.setFromCamera(center, camera); const hit = raycaster.intersectObjects(boxes.map(b => b.mesh))[0]; if (hit && hit.distance < 8) { const obj = boxes.find(b => b.mesh === hit.object); if (obj) { heldBody = obj.body; originalMass = heldBody.mass; heldBody.type = CANNON.Body.KINEMATIC; } } }
+            function release() { if (heldBody) { heldBody.type = CANNON.Body.DYNAMIC; heldBody.mass = originalMass; heldBody.updateMassProperties(); heldBody = null; } }
+            document.addEventListener('mousedown', e => { if (controls.isLocked && e.button===0) grab(); }); document.addEventListener('mouseup', e => { if (e.button===0) release(); });
+
+            const joyZone = document.getElementById('joystick-zone'), joyKnob = document.getElementById('joystick-knob'), lookZone = document.getElementById('look-zone'); let joyActive = false, joyStartX = 0, joyStartY = 0, touchMoveX = 0, touchMoveY = 0;
+            joyZone.addEventListener('touchstart', e => { joyActive = true; const r = joyZone.getBoundingClientRect(); joyStartX = r.left+60; joyStartY = r.top+60; }); 
+            joyZone.addEventListener('touchmove', e => { if(!joyActive) return; const dx = e.touches[0].clientX - joyStartX, dy = e.touches[0].clientY - joyStartY; const dist = Math.min(Math.sqrt(dx*dx+dy*dy), 35), angle = Math.atan2(dy, dx); touchMoveX = (dist/35)*Math.cos(angle); touchMoveY = (dist/35)*Math.sin(angle); joyKnob.style.transform = `translate(${touchMoveX*35}px, ${touchMoveY*35}px)`; }); 
+            joyZone.addEventListener('touchend', () => { joyActive = false; touchMoveX = 0; touchMoveY = 0; joyKnob.style.transform = `translate(0px,0px)`; });
+            let lookStartX = 0, lookStartY = 0; lookZone.addEventListener('touchstart', e => { lookStartX = e.touches[0].clientX; lookStartY = e.touches[0].clientY; }); 
+            lookZone.addEventListener('touchmove', e => { camera.rotation.y -= (e.touches[0].clientX - lookStartX)*0.005; camera.rotation.x -= (e.touches[0].clientY - lookStartY)*0.005; camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x)); camera.rotation.order = 'YXZ'; lookStartX = e.touches[0].clientX; lookStartY = e.touches[0].clientY; });
+            
+            let canJump = false, isCrouching = false, isFlying = false, lastJumpTime = 0;
+            
+            function handleJump() {
+                const now = Date.now();
+                if(currentRoomType === 'private' && now - lastJumpTime < 350) {
+                    isFlying = !isFlying; showNotification(isFlying ? "空中浮遊: ON" : "空中浮遊: OFF");
+                    if(isFlying) { myBody.mass = 0; myBody.velocity.set(0,0,0); } else { myBody.mass = 50; }
+                } else {
+                    if (canJump && !isFlying) { myBody.velocity.y = 12; canJump = false; }
+                }
+                lastJumpTime = now;
+            }
+
+            document.getElementById('mobile-jump').addEventListener('touchstart', handleJump);
+            document.getElementById('mobile-crouch').addEventListener('touchstart', () => isCrouching = true);
+            document.getElementById('mobile-crouch').addEventListener('touchend', () => isCrouching = false);
+            document.getElementById('mobile-grab').addEventListener('touchstart', grab); document.getElementById('mobile-grab').addEventListener('touchend', release);
+
+            let moveF = false, moveB = false, moveL = false, moveR = false, moveShift = false, moveJump = false, moveCrouch = false;
+            document.addEventListener('keydown', e => { 
+                keyState[e.code] = true;
+                
+                if (e.code === customKeys.chat && document.activeElement !== document.getElementById('chat-input')) { 
+                    e.preventDefault(); 
+                    if (!isChatVisible) document.getElementById('chat-toggle-btn').click();
+                    document.getElementById('chat-input').focus(); 
+                    return; 
+                }
+                
+                if(!controls.isLocked && window.innerWidth > 768 && e.code !== 'KeyO' && e.code !== 'KeyP') return; 
+                if(document.activeElement.tagName === 'INPUT') return; 
+                
+                if (isAdmin && keyState['KeyO'] && keyState['KeyP']) { const ap = document.getElementById('admin-panel'); ap.style.display = ap.style.display === 'none' ? 'flex' : 'none'; if (controls.isLocked) controls.unlock(); }
+                
+                if(e.code === customKeys.forward) moveF=true; if(e.code === customKeys.backward) moveB=true; if(e.code === customKeys.left) moveL=true; if(e.code === customKeys.right) moveR=true; 
+                if(e.code === customKeys.dash) moveShift = true;
+                if(e.code === customKeys.crouch) { isCrouching = true; moveCrouch = true; }
+                if(e.code === customKeys.jump && !moveJump) { moveJump = true; handleJump(); }
+                if(e.code === customKeys.spawn) triggerSpawn();
+                if(e.code === customKeys.leave) document.getElementById('leave-btn').click();
+            });
+            document.addEventListener('keyup', e => { 
+                keyState[e.code] = false; 
+                if(e.code === customKeys.forward) moveF=false; if(e.code === customKeys.backward) moveB=false; if(e.code === customKeys.left) moveL=false; if(e.code === customKeys.right) moveR=false; 
+                if(e.code === customKeys.dash) moveShift = false;
+                if(e.code === customKeys.crouch) { isCrouching = false; moveCrouch = false; }
+                if(e.code === customKeys.jump) moveJump = false;
+            });
+
+            let chatEnabled = true; settingsRef.on('value', snap => { if(!snap.exists()) return; chatEnabled = snap.val().chatEnabled; document.getElementById('chat-input').placeholder = chatEnabled ? "チャット ( / で入力 )" : "チャットは無効化"; document.getElementById('chat-input').disabled = !chatEnabled; document.getElementById('chat-send').disabled = !chatEnabled; document.getElementById('toggle-chat-btn').innerHTML = chatEnabled ? 'チャット: ON' : 'チャット: OFF'; document.getElementById('toggle-hub-btn').innerHTML = snap.val().showPlayers ? 'Hub表示: ON' : 'Hub表示: OFF'; });
+            chatRef.on('child_added', snap => { const msg = snap.val(), log = document.getElementById('chat-log'), div = document.createElement('div'); div.innerHTML = `<span class="chat-time">[${formatTimeHM(msg.timestamp||Date.now())}]</span> <strong>${msg.sender}:</strong> ${msg.text}`; log.appendChild(div); log.scrollTop = log.scrollHeight; });
+            function sendChat() { const inp = document.getElementById('chat-input'); if(inp.value.trim() && chatEnabled) { chatRef.push({ sender: myName, text: inp.value.trim(), timestamp: firebase.database.ServerValue.TIMESTAMP }); inp.value = ''; } }
+            document.getElementById('chat-send').addEventListener('click', sendChat); document.getElementById('chat-input').addEventListener('keydown', e => { if(e.key === 'Enter') sendChat(); });
+
+            if (isAdmin) {
+                let chatState = true, hubState = true;
+                settingsRef.once('value', s => { if(s.exists()){ chatState = s.val().chatEnabled; hubState = s.val().showPlayers; }});
+                document.getElementById('admin-menu-btn').addEventListener('click', () => { const p = document.getElementById('admin-panel'); p.style.display = p.style.display === 'none' ? 'flex' : 'none'; if(controls.isLocked) controls.unlock(); });
+                document.getElementById('toggle-chat-btn').addEventListener('click', () => { chatState = !chatState; settingsRef.update({ chatEnabled: chatState }); });
+                document.getElementById('toggle-hub-btn').addEventListener('click', () => { hubState = !hubState; settingsRef.update({ showPlayers: hubState }); });
+                document.getElementById('disband-btn').addEventListener('click', () => { 
+                    document.getElementById('disband-confirm-modal').style.display = 'flex';
+                    if(controls && controls.isLocked) controls.unlock();
+                });
+            }
+
+            function updateAdminList() {
+                if(!isAdmin) return; const list = document.getElementById('admin-player-list'); list.innerHTML = "";
+                Object.keys(playerMeshes).forEach(name => { const div = document.createElement('div'); div.className = 'kick-list-item'; div.innerHTML = `<span>${name}</span> <button class="action-btn" style="color:#ff6b6b; font-size:12px;">Kick</button>`; div.querySelector('button').onclick = () => playersRef.child(name).remove(); list.appendChild(div); });
+                if(Object.keys(playerMeshes).length === 0) list.innerHTML = "<span style='font-size:12px; opacity:0.5;'>他プレイヤーなし</span>";
+            }
+
+            let prevTime = performance.now(), lastSync = 0, lastCrouchState = false;
+            function animate() {
+                if(!gameStarted) return; requestAnimationFrame(animate); 
+                const time = performance.now(), delta = Math.min((time - prevTime) / 1000, 0.1);
+                
+                world.step(1/60, delta, 3); 
+                boxes.forEach(b => { b.mesh.position.copy(b.body.position); b.mesh.quaternion.copy(b.body.quaternion); });
+                
+                if (heldBody) { 
+                    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir); 
+                    const targetPos = camera.position.clone().add(camDir.multiplyScalar(2.5)); 
+                    heldBody.velocity.set((targetPos.x - heldBody.position.x)*15, (targetPos.y - heldBody.position.y)*15, (targetPos.z - heldBody.position.z)*15);
+                }
+
+                const direction = new THREE.Vector3(); camera.getWorldDirection(direction); direction.y = 0; direction.normalize();
+                const right = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
+
+                const isMobileDash = Math.sqrt(touchMoveX*touchMoveX + touchMoveY*touchMoveY) > 0.8;
+                let velX = 0, velZ = 0;
+                if(moveF) { velX += direction.x; velZ += direction.z; } if(moveB) { velX -= direction.x; velZ -= direction.z; }
+                if(moveL) { velX -= right.x; velZ -= right.z; } if(moveR) { velX += right.x; velZ += right.z; }
+                if(touchMoveY !== 0 || touchMoveX !== 0) { velX += direction.x * -touchMoveY + right.x * touchMoveX; velZ += direction.z * -touchMoveY + right.z * touchMoveX; }
+
+                const speed = isCrouching ? 6 : ((moveShift || isMobileDash) ? 25 : 15);
+                if (velX !== 0 || velZ !== 0) { const len = Math.sqrt(velX*velX + velZ*velZ); myBody.velocity.x = (velX / len) * speed; myBody.velocity.z = (velZ / len) * speed; } 
+                else { myBody.velocity.x = 0; myBody.velocity.z = 0; }
+
+                if(isFlying) {
+                    if (moveJump) myBody.velocity.y = 15; else if (moveCrouch) myBody.velocity.y = -15; else myBody.velocity.y = 0;
+                } else {
+                    if (myBody.position.y < 1.1) canJump = true;
+                }
+
+                const baseCamY = isCrouching ? 0.2 : 1.0;
+                camera.position.set(myBody.position.x, myBody.position.y + baseCamY, myBody.position.z);
+                
+                if (time - lastSync > 100) { 
+                    const moved = Math.abs(myBody.velocity.x)>0.1 || Math.abs(myBody.velocity.z)>0.1 || Math.abs(myBody.velocity.y)>0.1 || isCrouching !== lastCrouchState;
+                    if(moved) { playersRef.child(myName).update({ x: myBody.position.x, y: myBody.position.y - 0.8, z: myBody.position.z, crouch: isCrouching }); lastSync = time; lastCrouchState = isCrouching; }
+                }
+                renderer.render(scene, camera); prevTime = time;
+            }
+            window.addEventListener('resize', () => { 
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); 
+                const adminPanel = document.getElementById('admin-panel');
+                if (window.innerWidth <= 768) { adminPanel.style.right = '10px'; } else { adminPanel.style.right = isChatVisible ? '330px' : '20px'; }
+            });
+            animate(); 
+        }
+        if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then((reg) => console.log('ServiceWorker 登録成功:', reg.scope))
+            .catch((err) => console.log('ServiceWorker 登録失敗:', err));
+    });
+}
+    </script>
+</body>
+</html>
