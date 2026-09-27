@@ -1,3 +1,2 @@
-hello.
-my name is keke　!!
-enjoy keke-dev.net !
+keke が運営する､「keke-dev.net」系列のフォルダ・ファイル
+実験として作っているフォルダ・ファイルもあります

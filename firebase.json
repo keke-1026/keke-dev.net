@@ -107,6 +107,39 @@
         "**/.*",
         "**/node_modules/**"
       ]
+    },
+    {
+      "target": "public_who",
+      "public": "public_who/out",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "public_boxblox",
+      "public": "public_boxblox",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "target": "public_sc-proxy/ke2-chat",
+      "public": "public_sc-proxy/ke2-chat",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
     }
   ]
 }
