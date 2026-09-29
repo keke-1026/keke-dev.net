@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUID RPG Status - UUID Labs</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .status-card {
+            text-align: left;
+            padding: 1rem;
+        }
+        .job-title {
+            font-size: 2rem;
+            margin: 0;
+            color: var(--primary);
+            font-family: var(--font-en);
+        }
+        .rank-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 1rem;
+            font-family: var(--font-en);
+        }
+        /* レア度ごとの色 */
+        .rank-N { background: #6b7280; }
+        .rank-R { background: #3b82f6; }
+        .rank-SR { background: #8b5cf6; font-box-shadow: 0 0 10px #8b5cf6; }
+        .rank-SSR { background: #f59e0b; box-shadow: 0 0 15px #f59e0b; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .stat-item {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-family: var(--font-en);
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-family: var(--font-en);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <button id="menu-btn" class="icon-btn" aria-label="Menu">
+                <span class="material-symbols-rounded">menu</span>
+            </button>
+            <div class="logo">UUID RPG</div>
+        </div>
+        <div class="header-right">
+            <button id="theme-btn" class="icon-btn" aria-label="Toggle Theme">
+                <span class="material-symbols-rounded">dark_mode</span>
+            </button>
+        </div>
+    </header>
+
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h2>Saved Data</h2>
+            <button id="close-menu-btn" class="icon-btn">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+        <ul id="saved-list">
+            <li class="empty-msg">保存されたデータはありません</li>
+        </ul>
+    </nav>
+    <div id="overlay"></div>
+
+    <main>
+        <div class="info-card status-card">
+            <div id="rpg-result-area">
+               Generating...
+            </div>
+        </div>
+
+        <div class="info-card" style="margin-top: 1rem;">
+            <div class="user-info" id="user-info-area" style="display: none;">
+                <span class="badge">Player</span>
+                <span id="display-nickname" class="nickname">Guest</span>
+            </div>
+            
+            <div class="uuid-display">
+                <span class="label">Source UUID</span>
+                <code id="current-uuid">Generating...</code>
+            </div>
+
+            <div class="action-buttons">
+                <button id="generate-btn" class="btn primary">
+                    <span class="material-symbols-rounded">refresh</span>
+                    再召喚
+                </button>
+                <button id="save-btn" class="btn secondary">
+                    <span class="material-symbols-rounded">bookmark</span>
+                    保存
+                </button>
+                <button id="share-btn" class="btn secondary">
+                    <span class="material-symbols-rounded">share</span>
+                    共有
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/rpg-main.js"></script>
+</body>
+</html>

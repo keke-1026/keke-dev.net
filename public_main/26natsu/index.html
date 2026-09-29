@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="夏休みカウントダウン2026 by keke">
+    <meta property="og:description" content="もうすぐ終わってしまうね...">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://keke-dev.net/26natsu/index.html">
+    <meta property="og:image" content="https://keke-dev.net/26natsu/ogp.png">
+    <title>夏休みカウントダウン2026 by keke</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            position: fixed; 
+            touch-action: none; 
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+        
+        #clock-container {
+            z-index: 10;
+            text-align: center;
+            user-select: none;
+            padding: 20px;
+        }
+
+        #mode-label {
+            font-size: 2vw;
+            color: #555555;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+        
+        #time-display {
+            font-size: 12vw; 
+            font-weight: 700;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 1.0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .char-box {
+            display: inline-block;
+            height: 1em;
+            overflow: hidden; 
+            position: relative;
+        }
+        
+        .char-box:not(.colon):not(.sign-box) {
+            width: 0.65em;
+            text-align: center;
+        }
+        
+        .colon {
+            width: 0.3em;
+            text-align: center;
+            transform: translateY(-0.05em); 
+        }
+
+        .sign-box {
+            width: 0.6em;
+            text-align: right;
+            margin-right: 0.1em;
+        }
+
+        .slide-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .slide-wrapper.animate {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .slide-wrapper div, .char-inner {
+            height: 1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #main-video {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 480px;
+            max-width: 90vw;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            z-index: 50;
+            background-color: #000000;
+            object-fit: cover;
+            pointer-events: none;
+            
+            opacity: 0;
+            transform: translateY(120px) scale(0.85);
+            transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #main-video.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        #finish-message {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%) translateY(50px) scale(0.8);
+            opacity: 0;
+            font-size: 3vw;
+            font-weight: 700;
+            color: #ff3b30; 
+            text-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            pointer-events: none;
+            transition: opacity 0.5s ease, transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        #finish-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
+        #control-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .icon-btn {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #eeeeee;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: #333333;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .icon-btn:hover {
+            background-color: #f8f8f8;
+            transform: scale(1.08);
+        }
+
+        #message-popup {
+            position: absolute;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 12px 40px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eeeeee;
+            transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 150;
+        }
+        #message-popup.show {
+            bottom: 40px; 
+        }
+
+        @media (max-width: 480px) {
+            #control-bar {
+                left: 15px;
+                bottom: 15px;
+            }
+            #main-video {
+                right: 15px;
+                bottom: 15px;
+                width: calc(100vw - 30px);
+            }
+            #mode-label {
+                font-size: 5vw;
+            }
+            #finish-message {
+                font-size: 6vw;
+                bottom: 25%;
+            }
+            .icon-btn {
+                width: 48px;
+                height: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="clock-container">
+        <div id="mode-label">夏休み終了まで</div>
+        
+        <div id="time-display">
+            <div class="char-box sign-box" id="char-sign"><div class="char-inner"></div></div>
+            
+            <div class="char-box" id="char-0"><div class="char-inner">0</div></div>
+            <div class="char-box" id="char-1"><div class="char-inner">0</div></div>
+            <div class="char-box colon">:</div>
+            <div class="char-box" id="char-3"><div class="char-inner">0</div></div>
+            <div class="char-box" id="char-4"><div class="char-inner">0</div></div>
+            <div class="char-box colon">:</div>
+            <div class="char-box" id="char-6"><div class="char-inner">0</div></div>
+            <div class="char-box" id="char-7"><div class="char-inner">0</div></div>
+        </div>
+    </div>
+
+    <div id="finish-message"></div>
+
+    <video id="main-video" src="niconico.mp4" playsinline></video>
+    <audio id="finish-se" src="se.mp3" preload="auto"></audio>
+
+    <div id="message-popup"></div>
+
+    <div id="control-bar">
+        <button id="link-btn" class="icon-btn" title="リンクをコピー">
+            <span class="material-symbols-outlined">link</span>
+        </button>
+    </div>
+
+    <script>
+        const TARGET_DATE = new Date('2026-08-25T00:00:00+09:00').getTime();
+        const VIDEO_START_BEFORE_SEC = 13;      
+        const SHARE_LINK = "https://ke2.jp/26natsu"; 
+
+        const video = document.getElementById('main-video');
+        const finishSe = document.getElementById('finish-se');
+        const finishMessage = document.getElementById('finish-message');
+        const popup = document.getElementById('message-popup');
+        const linkBtn = document.getElementById('link-btn');
+        const modeLabel = document.getElementById('mode-label');
+        
+        let timeOffset = 0;
+        let isVideoPlayed = false;
+        let isFinishedTriggered = false; 
+        let isAudioUnlocked = false;
+        let isFirstRender = true;
+
+        window.addEventListener('click', () => {
+            if (!isAudioUnlocked) isAudioUnlocked = true;
+        });
+
+        let popupTimeout = null;
+        linkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(SHARE_LINK).then(() => {
+                popup.textContent = "リンクをコピーしました";
+                popup.classList.add('show');
+                if (popupTimeout) clearTimeout(popupTimeout);
+                popupTimeout = setTimeout(() => popup.classList.remove('show'), 3000);
+            }).catch(err => console.error('コピーに失敗しました', err));
+        });
+
+        video.addEventListener('ended', () => {
+            video.classList.remove('show');
+            setTimeout(() => {
+                video.pause();
+                video.currentTime = 0;
+            }, 1000);
+        });
+
+        function updateCharBox(box, oldChar, newChar, isCountingUp) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'slide-wrapper';
+
+            const charA = document.createElement('div');
+            const charB = document.createElement('div');
+
+            if (isCountingUp) {
+                charA.textContent = oldChar;
+                charB.textContent = newChar;
+                wrapper.appendChild(charA);
+                wrapper.appendChild(charB);
+                box.innerHTML = '';
+                box.appendChild(wrapper);
+
+                wrapper.style.transform = 'translateY(0)';
+                void wrapper.offsetWidth; 
+                wrapper.classList.add('animate');
+                wrapper.style.transform = 'translateY(-50%)';
+            } else {
+                charA.textContent = newChar;
+                charB.textContent = oldChar;
+                wrapper.appendChild(charA);
+                wrapper.appendChild(charB);
+                box.innerHTML = '';
+                box.appendChild(wrapper);
+
+                wrapper.style.transform = 'translateY(-50%)';
+                void wrapper.offsetWidth; 
+                wrapper.classList.add('animate');
+                wrapper.style.transform = 'translateY(0)';
+            }
+
+            setTimeout(() => {
+                if (box.contains(wrapper)) {
+                    box.innerHTML = `<div class="char-inner">${newChar}</div>`;
+                }
+            }, 400);
+        }
+
+        async function fetchTime() {
+            try {
+                const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache' });
+                const serverTime = new Date(response.headers.get('Date')).getTime();
+                timeOffset = serverTime - Date.now();
+            } catch (error) {
+                timeOffset = 0;
+            }
+        }
+
+        function updateClock() {
+            const now = Date.now() + timeOffset;
+            const distance = TARGET_DATE - now;
+            const isNegative = distance < 0;
+            const absDistance = Math.abs(distance);
+
+            if (isFirstRender && isNegative) {
+                isVideoPlayed = true;
+                isFinishedTriggered = true;
+                finishMessage.classList.add('show');
+            }
+
+            if (distance <= VIDEO_START_BEFORE_SEC * 1000 && distance > 0 && !isVideoPlayed) {
+                video.classList.add('show');
+                video.muted = !isAudioUnlocked; 
+                video.play().catch(e => console.log("自動再生ブロック:", e));
+                isVideoPlayed = true;
+            }
+
+            if (isNegative && !isFinishedTriggered) {
+                isFinishedTriggered = true;
+                
+                if (isAudioUnlocked) {
+                    finishSe.play().catch(e => console.log("SE自動再生ブロック:", e));
+                }
+
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    zIndex: 200,
+                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+                });
+
+                finishMessage.classList.add('show');
+            }
+
+            if (isNegative && modeLabel.textContent !== "夏休み終了から") {
+                modeLabel.textContent = "夏休み終了から";
+            }
+
+            const signInner = document.getElementById('char-sign').querySelector('.char-inner');
+            if (isNegative && signInner.textContent !== '-') {
+                signInner.textContent = '-';
+            } else if (!isNegative && signInner.textContent !== '') {
+                signInner.textContent = '';
+            }
+
+            const h = Math.floor(absDistance / (1000 * 60 * 60));
+            const m = Math.floor((absDistance % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((absDistance % (1000 * 60)) / 1000);
+            
+            const timeStr = String(h).padStart(2, '0') + ":" + 
+                            String(m).padStart(2, '0') + ":" + 
+                            String(s).padStart(2, '0');
+
+            for (let i = 0; i < timeStr.length; i++) {
+                if (i === 2 || i === 5) continue; 
+
+                const box = document.getElementById('char-' + i);
+                if (!box) continue;
+
+                const currentInner = box.querySelector('.char-inner');
+                if (!currentInner) continue;
+
+                const currentChar = currentInner.textContent;
+                const newChar = timeStr[i];
+
+                if (currentChar !== newChar) {
+                    if (isFirstRender) {
+                        currentInner.textContent = newChar; 
+                    } else {
+                        updateCharBox(box, currentChar, newChar, isNegative);
+                    }
+                }
+            }
+            isFirstRender = false;
+        }
+
+        let keyBuffer = "";
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            keyBuffer += e.key;
+            if (keyBuffer.length > 4) keyBuffer = keyBuffer.slice(-4);
+
+            if (keyBuffer === '0150') {
+                timeOffset = TARGET_DATE - Date.now() - (15 * 1000);
+                
+                popup.textContent = "15秒前にワープしました";
+                popup.classList.add('show');
+                if (popupTimeout) clearTimeout(popupTimeout);
+                popupTimeout = setTimeout(() => popup.classList.remove('show'), 3000);
+                
+                isVideoPlayed = false; 
+                isFinishedTriggered = false;
+                
+                video.classList.remove('show');
+                video.pause();
+                video.currentTime = 0;
+                
+                finishMessage.classList.remove('show');
+                finishSe.pause();
+                finishSe.currentTime = 0;
+
+                modeLabel.textContent = "夏休み終了まで";
+
+                keyBuffer = "";
+            }
+        });
+
+        fetchTime().then(() => {
+            updateClock();
+            setInterval(updateClock, 200); 
+        });
+    </script>
+</body>
+</html>

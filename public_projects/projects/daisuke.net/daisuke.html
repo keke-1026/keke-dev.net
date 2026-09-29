@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Daisuke⭐︎ — 年越しキャンバス（ローカル音声）</title>
+<style>
+  /* シンプルなフルスクリーンキャンバス UI */
+  html,body{height:100%;margin:0;background:#05010b;color:#fff;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif}
+  canvas{display:block;width:100%;height:100%;position:fixed;inset:0;z-index:0}
+  .ui{
+    position:fixed;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:10;
+    pointer-events:none;
+  }
+  .panel{
+    pointer-events:auto;
+    background:linear-gradient(180deg,rgba(0,0,0,0.45),rgba(0,0,0,0.2));
+    padding:18px 22px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);text-align:center;backdrop-filter:blur(6px)
+  }
+  #count{font-size:clamp(28px,6vw,72px);font-weight:700;letter-spacing:1px}
+  #sub{color:#cfcbe0;margin-top:8px;font-size:14px}
+  #readyBtn{margin-top:12px;padding:10px 16px;border-radius:10px;border:none;background:#ffd54f;color:#111;font-weight:700;cursor:pointer;font-size:15px;}
+  #hint{position:fixed;left:12px;bottom:12px;font-size:13px;color:#bfb8d9;z-index:11}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .muted-note{font-size:13px;color:#bfb8d9;margin-top:8px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- UI オーバーレイ（ユーザーのタップでオーディオ許可を取るため） -->
+<div class="ui" id="ui">
+  <div class="panel" id="panel" role="dialog" aria-modal="true" aria-live="polite">
+    <div id="count">--:--:--</div>
+    <div id="sub">ページを開いたら <strong>どこでもタップ（クリック）</strong> して準備してください。音声はページと同じフォルダの <strong>daisuke.mp3</strong> を使います。</div>
+    <button id="readyBtn">タップして準備（必須）</button>
+    <div class="muted-note">再生オフセット: <input id="offsetInput" type="number" value="92" style="width:80px;padding:6px;border-radius:6px"/> 秒（曲の年越し箇所までの秒数）</div>
+    <div class="muted-note" style="margin-top:6px">※オート再生はブラウザの制限を受けます。まず必ずタップしてください。</div>
+  </div>
+</div>
+
+<div id="hint">タブを前面にしておいてください。年越しで大きな「Daisuke⭐︎」を表示します。</div>
+
+<!-- ローカル音声ファイルを相対パスで指定 -->
+<audio id="audio" src="daisuke.mp3" preload="auto"></audio>
+
+<script>
+/*
+  Daisuke年越しキャンバス（ローカル音声）
+  使い方：
+   - この HTML と同じフォルダに `daisuke.mp3` を置く
+   - 12/31 23:58 より前にページを開き、画面をタップして「準備」する
+   - オフセット（秒）は必要なら入力で修正（デフォルト 92 秒）
+   - ブラウザの自動再生制約でブロックされる場合、手動で再生してください
+*/
+
+(() => {
+  // --- 要素 ---
+  const canvas = document.getElementById('c');
+  const audio = document.getElementById('audio');
+  const countEl = document.getElementById('count');
+  const panel = document.getElementById('panel');
+  const ui = document.getElementById('ui');
+  const readyBtn = document.getElementById('readyBtn');
+  const offsetInput = document.getElementById('offsetInput');
+
+  // --- canvas 初期化 ---
+  const ctx = canvas.getContext('2d', { alpha: true });
+  let W = canvas.width = innerWidth;
+  let H = canvas.height = innerHeight;
+
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  addEventListener('resize', resize);
+
+  // --- config ---
+  // オフセットは input から取得（秒）
+  function getOffsetSec(){ const v = parseInt(offsetInput.value); return Number.isFinite(v) ? v : 92; }
+
+  const SHOW_DURATION_MS = 9000; // 大きな表示の長さ（ミリ秒）
+
+  // --- 時刻計算ユーティリティ ---
+  function getNextNewYear(now){
+    // 次の1月1日 00:00:00（ローカル）
+    // もし今日が1/1の0:00:00ちょうどなら、その年が対象（ただし普段は年末に使う）
+    const year = now.getFullYear() + (now.getMonth() === 0 && now.getDate() === 1 ? 0 : 1);
+    return new Date(year, 0, 1, 0, 0, 0);
+  }
+
+  function formatHMS(ms){
+    if(ms <= 0) return "--:--:--";
+    const s = Math.floor(ms/1000);
+    const h = String(Math.floor(s/3600)).padStart(2, '0');
+    const m = String(Math.floor((s%3600)/60)).padStart(2, '0');
+    const sec = String(s%60).padStart(2, '0');
+    return `${h}:${m}:${sec}`;
+  }
+
+  // --- 状態 ---
+  let armed = false;         // ユーザー操作で準備済みか
+  let playTimer = null;      // 再生タイマー
+  let showTimer = null;      // 大表示タイマー
+  let shown = false;         // 一度表示したかどうか
+
+  // --- ビジュアル（星・紙吹雪） ---
+  const stars = [];
+  const confetti = [];
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+  function initStars(){
+    stars.length = 0;
+    for(let i=0;i<120;i++) stars.push({ x: rand(0,W), y: rand(0,H), r: rand(0.2,1.8), vx: rand(-0.02,0.02), vy: rand(-0.02,0.02), a: Math.random() });
+  }
+  initStars();
+
+  function spawnConfetti(n){
+    for(let i=0;i<n;i++){
+      confetti.push({
+        x: rand(0,W),
+        y: rand(-H,0),
+        vx: rand(-1.5,1.5),
+        vy: rand(2,6),
+        s: rand(6,14),
+        r: rand(0,Math.PI*2),
+        color: ['#ffd54f','#ff6b6b','#6ee7b7','#9ae6ff','#d6b3ff'][Math.floor(rand(0,5))]
+      });
+    }
+  }
+
+  function updateConfetti(){
+    for(let i=confetti.length-1;i>=0;i--){
+      const p = confetti[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.06;
+      p.r += 0.08;
+      if(p.y > H + 50) confetti.splice(i,1);
+    }
+  }
+
+  // --- メインの描画ループ（常時） ---
+  function drawStars(){
+    for(const s of stars){
+      s.x += s.vx; s.y += s.vy;
+      if(s.x < 0) s.x = W;
+      if(s.x > W) s.x = 0;
+      if(s.y < 0) s.y = H;
+      if(s.y > H) s.y = 0;
+      ctx.beginPath();
+      ctx.globalAlpha = 0.9*s.a;
+      ctx.fillStyle = "#fff";
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.closePath();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawConfetti(){
+    for(const p of confetti){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.7);
+      ctx.restore();
+    }
+  }
+
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    // 背景グラデ
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(5,1,11,0.9)');
+    g.addColorStop(1,'rgba(10,3,30,0.95)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // stars
+    drawStars();
+    updateConfetti();
+    drawConfetti();
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // --- タイマー監視（カウント表示） ---
+  function updateCountdown(){
+    const now = new Date();
+    const ny = getNextNewYear(now);
+    const offsetSec = getOffsetSec();
+    const playAt = new Date(ny.getTime() - offsetSec*1000);
+    const diff = playAt - now;
+    countEl.textContent = formatHMS(diff);
+
+    // 自動タイマーをセットする（ユーザーが準備済みで、まだセットしていない場合）
+    if(armed && !playTimer && diff > 0){
+      // 時間差が大きい場合は setTimeout が信頼できない（ブラウザやスリープでずれる）点に注意しておく。
+      // ここでは単純に setTimeout を使う。精度を上げたい場合は定期チェックで manual 修正する。
+      const untilPlay = diff;
+      playTimer = setTimeout(()=> {
+        startPlayback();
+      }, untilPlay);
+
+      const untilShow = ny - now;
+      showTimer = setTimeout(()=> {
+        showBigD();
+      }, untilShow);
+    }
+
+    // 既に過ぎている場合
+    if(diff <= 0 && !shown){
+      countEl.textContent = "再生時刻を過ぎました（手動で再生してください）";
+    }
+  }
+  setInterval(updateCountdown, 400);
+  updateCountdown();
+
+  // --- ユーザー操作とオーディオ許可（gesture） ---
+  function prepareGesture(){
+    // ブラウザはユーザーアクションなしでの再生を禁止することが多いので、
+    // ここで短い muted 再生→pause を行い、後の自動再生を試みやすくする。
+    audio.muted = true;
+    const p = audio.play();
+    if(p && p.then){
+      p.then(()=> {
+        audio.pause();
+        audio.muted = false;
+        armed = true;
+        hidePanel();
+      }).catch(()=> {
+        // ブロックされても armed フラグは立てておく（setTimeout が動くことを期待）
+        armed = true;
+        hidePanel();
+      });
+    } else {
+      // 古いブラウザ向け
+      try{ audio.pause(); } catch(e){}
+      armed = true;
+      hidePanel();
+    }
+  }
+
+  function hidePanel(){
+    panel.style.display = 'none';
+    ui.style.pointerEvents = 'none';
+    // clear existing timers to re-schedule based on fresh now
+    if(playTimer) { clearTimeout(playTimer); playTimer = null; }
+    if(showTimer) { clearTimeout(showTimer); showTimer = null; }
+    updateCountdown(); // 再スケジュール
+  }
+
+  readyBtn.addEventListener('click', prepareGesture);
+  // ページのどこをクリックしても準備完了（1回だけ）
+  document.addEventListener('click', prepareGesture, { once: true, capture: false });
+
+  // --- 再生 & 表示 実行 ---
+  function startPlayback(){
+    // 再生を試みる
+    audio.currentTime = 0;
+    const p = audio.play();
+    if(p && p.then){
+      p.then(()=> {
+        console.log("再生成功");
+      }).catch((e) => {
+        console.warn("自動再生ブロック", e);
+        // ユーザーに手動再生を促すUIを返す
+        promptManualPlay();
+      });
+    } else {
+      // 直接再生に命令
+      console.log("再生命令送信");
+    }
+  }
+
+  function promptManualPlay(){
+    // panel を復活させ、手動で再生するボタンを表示
+    panel.style.display = 'block';
+    panel.innerHTML = '<div id="count">自動再生がブロックされました。画面をタップして手動で再生してください。</div>' +
+                      '<button id="mp" style="margin-top:12px;padding:10px 14px;border-radius:10px;border:none;background:#ffd54f;color:#111;font-weight:700;">手動で再生する</button>';
+    document.getElementById('mp').addEventListener('click', () => {
+      audio.play().catch(()=> alert('再生に失敗しました。ブラウザの設定を確認してください'));
+      panel.style.display = 'none';
+    });
+  }
+
+  function showBigD(){
+    // 年明けで大きな「Daisuke⭐︎」を表示する
+    shown = true;
+    spawnConfetti(120);
+    const start = performance.now();
+    const duration = SHOW_DURATION_MS;
+    const text = "Daisuke⭐︎";
+    const fontBase = Math.min(W, H) * 0.12;
+
+    function draw(nowTime){
+      const t = nowTime - start;
+      // 半透明で全体を薄く消しておく（フラッシュ効果）
+      ctx.clearRect(0,0,W,H);
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'rgba(5,1,11,0.9)');
+      g.addColorStop(1,'rgba(10,3,30,0.95)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      // 背景の星
+      drawStars();
+
+      // テキスト
+      const alpha = Math.min(1, t / 600);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${Math.floor(fontBase)}px sans-serif`;
+      ctx.shadowColor = "rgba(255,213,79,0.95)";
+      ctx.shadowBlur = 40;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(text, W/2, H/2);
+      ctx.restore();
+
+      // confetti
+      updateConfetti();
+      drawConfetti();
+
+      if(t < duration){
+        requestAnimationFrame(draw);
+      } else {
+        // show 終了後は通常ループに戻る（既に継続的ループがあるので何もしない）
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // --- audio ファイル見つからない時の案内 ---
+  audio.addEventListener('error', () => {
+    panel.style.display = 'block';
+    panel.innerHTML = '<div id="count">音声ファイルが見つかりません。<br>daisuke.mp3 をこの HTML と同じフォルダに置いてください。</div>';
+  });
+
+  // --- タブ非表示時の注意喚起 ---
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState !== 'visible'){
+      // バックグラウンドだと setTimeout が遅延またはスロットリングされる可能性がある
+      // ユーザーに前面にしておくよう警告するのが良い
+      // ここでは小さく note を表示（console でも通知）
+      console.log("タブが非表示です。正確なタイミングを狙うにはタブを前面にしてください。");
+    }
+  });
+
+  // 初期 console メッセージ
+  console.log("Daisuke 年越しキャンバス初期化完了。daisuke.mp3 を同じフォルダに置いてください。");
+})();
+</script>
+</body>
+</html>

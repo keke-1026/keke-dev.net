@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ゆでりんく</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f5f5f5;
+      color: #191919;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      min-height: 100vh;
+      background-color: #ffffff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      animation: fadeIn 0.3s ease;
+      box-sizing: border-box;
+    }
+    .view.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease; z-index: 9999;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .modal-content {
+      background-color: #ffffff; width: 85%; max-width: 340px;
+      border-radius: 24px; padding: 24px; text-align: center;
+      transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+
+    .modal-title { font-size: 18px; font-weight: 700; margin: 0 0 12px 0; }
+    .modal-message { font-size: 14px; color: #666; margin: 0 0 20px 0; white-space: pre-wrap; word-break: break-all; }
+
+    .modal-input-field {
+      width: 100%; border: 1px solid #cccccc; border-radius: 12px;
+      padding: 12px; font-size: 16px; font-family: inherit;
+      box-sizing: border-box; margin-bottom: 20px; outline: none;
+    }
+    .modal-input-field:focus { border-color: #191919; }
+
+    .modal-actions { display: flex; gap: 12px; }
+    .modal-btn {
+      flex: 1; border: none; border-radius: 20px; padding: 12px;
+      font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background-color 0.2s;
+    }
+    .modal-btn.cancel { background-color: #f0f2f5; color: #191919; }
+    .modal-btn.cancel:hover { background-color: #e4e6e9; }
+    .modal-btn.confirm { background-color: #191919; color: #ffffff; }
+    .modal-btn.confirm:hover { background-color: #333333; }
+
+    #home-view {
+      min-height: 100vh; text-align: center; padding: 20px;
+    }
+    #home-view.active {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .home-profile-icon {
+      width: 110px; height: 110px; border-radius: 50%; object-fit: cover;
+      background-color: #f0f2f5; margin: 0 auto 16px auto; display: block;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .home-name { font-size: 24px; font-weight: 700; margin: 0 0 8px 0; }
+    .home-id { font-size: 16px; color: #666666; margin: 0 0 40px 0; }
+
+    .action-buttons { display: flex; justify-content: center; gap: 48px; margin-bottom: 48px; }
+    .action-btn-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; }
+    .round-btn {
+      width: 72px; height: 72px; border-radius: 50%; border: none;
+      background-color: #ffffff; color: #191919; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .action-btn-wrapper:hover .round-btn { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+    .round-btn .material-symbols-outlined { font-size: 32px; }
+    .action-label { font-size: 14px; font-weight: 700; color: #191919; }
+
+    .donation-btn {
+      background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 24px;
+      padding: 10px 24px; font-size: 14px; font-weight: 700; color: #191919;
+      cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s;
+    }
+    .donation-btn:hover { background-color: #f5f5f5; }
+
+    .nav-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px; border-bottom: 1px solid #eeeeee; background-color: #ffffff;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .icon-btn {
+      background: none; border: none; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; padding: 8px; color: #191919; border-radius: 50%;
+    }
+
+    .search-container { padding: 24px 16px; }
+    .input-field {
+      width: 100%; border: 1px solid #cccccc; border-radius: 12px; padding: 14px;
+      font-family: inherit; font-size: 16px; box-sizing: border-box; margin-bottom: 16px; outline: none;
+    }
+    .primary-btn {
+      width: 100%; background-color: #191919; color: #ffffff; border: none; border-radius: 24px;
+      padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
+    }
+
+    #editor-view { padding: 0; background-color: #f0f2f5; position: relative; }
+    
+    .editor-workspace { 
+      display: flex; flex-direction: column; 
+      width: 100%; min-height: 100vh; 
+    }
+
+    .header-image-area {
+      width: 100%; height: 180px; background-color: #e0e0e0;
+      display: flex; align-items: center; justify-content: center; color: #666; cursor: pointer;
+      background-size: cover; background-position: center;
+    }
+
+    .profile-edit-card {
+      flex: 1;
+      background-color: #ffffff; border-radius: 24px 24px 0 0; margin-top: -24px;
+      padding: 32px 16px 120px 16px; position: relative; text-align: center; 
+    }
+
+    .editor-icon {
+      width: 90px; height: 90px; border-radius: 50%; object-fit: cover; background-color: #ffffff;
+      border: 4px solid #ffffff; position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .inline-input {
+      width: 100%; border: 1px dashed transparent; background: transparent; text-align: center;
+      font-family: inherit; outline: none; box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .inline-input:hover, .inline-input:focus { border-color: #cccccc; background-color: #fafafa; }
+    .edit-name-input { font-size: 20px; font-weight: 700; margin-top: 32px; padding: 8px; }
+
+    .blocks-container { margin-top: 24px; text-align: left; }
+    
+    .block-card {
+      background-color: #ffffff; border: 1px solid #eeeeee; border-radius: 12px;
+      padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      position: relative;
+    }
+    .block-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; font-size: 12px; font-weight: 700; color: #666;
+    }
+    .block-delete-btn {
+      background: none; border: none; color: #ff4d4d; cursor: pointer;
+      display: flex; align-items: center; padding: 4px; border-radius: 50%;
+    }
+    
+    .block-input {
+      width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px;
+      box-sizing: border-box; font-family: inherit; font-size: 14px; outline: none; margin-bottom: 8px;
+    }
+    textarea.block-input { resize: vertical; min-height: 80px; }
+
+    .add-block-buttons {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: center;
+    }
+    .add-block-btn {
+      background-color: #f0f2f5; border: none; border-radius: 16px; padding: 8px 16px;
+      font-size: 12px; font-weight: 700; color: #191919; cursor: pointer; display: flex; align-items: center; gap: 4px;
+    }
+    .add-block-btn:hover { background-color: #e4e6e9; }
+
+    .editor-bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 600px; background-color: #ffffff; border-top: 1px solid #eeeeee;
+      display: flex; justify-content: space-around; box-sizing: border-box; z-index: 20;
+    }
+    .nav-bottom-btn {
+      flex: 1; padding: 12px 0; background: none; border: none; color: #191919;
+      display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; cursor: pointer;
+    }
+    .nav-bottom-btn:hover { background-color: #f9f9f9; }
+
+    .unlock-panel {
+      position: fixed; bottom: 62px; left: 50%; transform: translate(-50%, 120%);
+      width: 100%; max-width: 600px; background-color: #ffffff;
+      border-radius: 24px 24px 0 0; padding: 24px; box-sizing: border-box;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 15;
+    }
+    .unlock-panel.active { transform: translate(-50%, 0); }
+    
+    .unlock-panel-title { font-size: 16px; font-weight: 700; margin: 0 0 16px 0; text-align: center; }
+    .unlock-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid #eee;
+    }
+    .unlock-item:last-child { border-bottom: none; }
+    .unlock-info { display: flex; align-items: center; gap: 12px; }
+    .unlock-btn {
+      background-color: #191919; color: #ffffff; border: none; border-radius: 16px;
+      padding: 8px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .unlock-btn.unlocked { background-color: #e0e0e0; color: #666; cursor: default; }
+
+    .panel-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none;
+      transition: opacity 0.3s; z-index: 14;
+    }
+    .panel-backdrop.active { opacity: 1; pointer-events: auto; }
+
+    .viewer-card {
+      background-color: #ffffff; border-radius: 24px 24px 0 0; margin-top: -24px;
+      padding: 32px 16px 16px 16px; position: relative; text-align: center; min-height: 100vh;
+    }
+    .viewer-name { font-size: 20px; font-weight: 700; margin-top: 32px; margin-bottom: 24px; }
+    
+    .viewer-blocks-container { text-align: left; margin-top: 16px; }
+
+    .viewer-link-card {
+      display: flex; align-items: center; width: 100%; padding: 12px; background-color: #ffffff;
+      border: 1px solid #eeeeee; border-radius: 16px; text-decoration: none; color: #191919;
+      box-sizing: border-box; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: background-color 0.2s; gap: 12px;
+    }
+    .viewer-link-card:hover { background-color: #f9f9f9; }
+    .viewer-link-icon {
+      width: 40px; height: 40px; border-radius: 50%; background-color: #f5f5f5;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+    }
+    .viewer-link-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .viewer-link-title { font-weight: 700; flex: 1; text-align: left; }
+
+    .viewer-text-card {
+      width: 100%; padding: 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.6;
+      background-color: transparent; word-break: break-all;
+    }
+
+    .viewer-html-card {
+      width: 100%; margin-bottom: 12px; border: 1px solid #eeeeee; border-radius: 12px; overflow: hidden; background-color: #fafafa;
+    }
+    .html-execute-btn {
+      width: 100%; padding: 16px; background-color: #ffffff; border: none; font-size: 14px; font-weight: 700;
+      color: #1da1f2; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .html-iframe { width: 100%; border: none; display: none; background-color: #ffffff; }
+
+    .viewer-image-card {
+      width: 100%; margin-bottom: 12px; border-radius: 12px; overflow: hidden;
+    }
+    .viewer-image-card img { width: 100%; display: block; }
+  </style>
+</head>
+<body>
+
+  <div id="custom-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modal-title" class="modal-title"></h3>
+      <p id="modal-message" class="modal-message"></p>
+      
+      <div id="modal-input-container" style="display: none;">
+        <input type="text" id="modal-input" class="modal-input-field">
+      </div>
+
+      <div class="modal-actions">
+        <button id="modal-cancel-btn" class="modal-btn cancel">キャンセル</button>
+        <button id="modal-confirm-btn" class="modal-btn confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <div id="home-view" class="view active">
+      <span class="material-symbols-outlined home-profile-icon" id="home-fallback-icon" style="font-size: 80px; color: #999; display: flex; align-items: center; justify-content: center;">account_circle</span>
+      <img id="home-user-icon" class="home-profile-icon" style="display: none;" src="" alt="Profile">
+      
+      <h1 class="home-name" id="home-user-name">Loading...</h1>
+      <p class="home-id" id="home-user-id"></p>
+
+      <div class="action-buttons">
+        <div class="action-btn-wrapper" onclick="switchView('editor-view')">
+          <button class="round-btn"><span class="material-symbols-outlined">edit_square</span></button>
+          <span class="action-label">編集</span>
+        </div>
+        <div class="action-btn-wrapper" onclick="switchView('search-view')">
+          <button class="round-btn"><span class="material-symbols-outlined">search</span></button>
+          <span class="action-label">検索</span>
+        </div>
+      </div>
+
+      <button class="donation-btn" onclick="requestYdPayment(500, '開発者への寄付').then(()=>showModal({type:'alert',title:'感謝',message:'ご支援ありがとうございます！'})).catch(()=>{})">
+        <span class="material-symbols-outlined" style="color: #ffaa00;">volunteer_activism</span> 開発者に寄付する
+      </button>
+    </div>
+
+    <div id="search-view" class="view">
+      <div class="nav-header">
+        <button class="icon-btn" onclick="switchView('home-view')"><span class="material-symbols-outlined">arrow_back</span></button>
+        <span style="font-weight: 700;">他の人のリンクを見る</span>
+        <div style="width: 40px;"></div>
+      </div>
+      <div class="search-container">
+        <input type="text" id="search-input" class="input-field" placeholder="ユーザーID または @カスタムID">
+        <button class="primary-btn" onclick="searchUser()"><span class="material-symbols-outlined">search</span> 検索</button>
+      </div>
+    </div>
+
+    <div id="editor-view" class="view">
+      <div class="nav-header">
+        <button class="icon-btn" onclick="switchView('home-view')"><span class="material-symbols-outlined">close</span></button>
+        <span style="font-weight: 700;">プロフィールを編集</span>
+        <button class="icon-btn" onclick="saveProfile()"><span class="material-symbols-outlined" style="color: #1da1f2;">check</span></button>
+      </div>
+
+      <div class="editor-workspace">
+        <div class="header-image-area" id="editor-header-bg" onclick="handleHeaderClick()">
+          <span class="material-symbols-outlined">add_photo_alternate</span>
+        </div>
+
+        <div class="profile-edit-card">
+          <img id="editor-icon" class="editor-icon" src="" alt="Icon" style="display: none;">
+          <span class="material-symbols-outlined editor-icon" id="editor-fallback-icon" style="font-size: 80px; color: #999; display: flex; align-items: center; justify-content: center;">account_circle</span>
+          
+          <input type="text" id="edit-name" class="inline-input edit-name-input" placeholder="ディスプレイネーム">
+          
+          <div class="blocks-container" id="editor-blocks-container">
+          </div>
+
+          <div class="add-block-buttons">
+            <button class="add-block-btn" onclick="addBlock('text')"><span class="material-symbols-outlined" style="font-size:16px;">notes</span> テキスト</button>
+            <button class="add-block-btn" onclick="addBlock('link')"><span class="material-symbols-outlined" style="font-size:16px;">link</span> リンク</button>
+            <button class="add-block-btn" onclick="addBlock('html')"><span class="material-symbols-outlined" style="font-size:16px;">code</span> HTML埋め込み</button>
+            <button class="add-block-btn" onclick="addBlock('image')"><span class="material-symbols-outlined" style="font-size:16px;">image</span> 写真 (課金)</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-backdrop" class="panel-backdrop" onclick="toggleUnlockPanel(false)"></div>
+
+      <div id="unlock-panel" class="unlock-panel">
+        <h3 class="unlock-panel-title">機能の解放 (買い切り)</h3>
+        
+        <div class="unlock-item">
+          <div class="unlock-info">
+            <span class="material-symbols-outlined" style="color: #666;">image</span>
+            <span style="font-size: 14px; font-weight: 700;">写真追加機能</span>
+          </div>
+          <button id="btn-unlock-photo" class="unlock-btn" onclick="purchaseFeature('photo', 300)">300 YD</button>
+        </div>
+        
+        <div class="unlock-item">
+          <div class="unlock-info">
+            <span class="material-symbols-outlined" style="color: #666;">badge</span>
+            <span style="font-size: 14px; font-weight: 700;">カスタムID</span>
+          </div>
+          <button id="btn-unlock-id" class="unlock-btn" onclick="purchaseFeature('customId', 1000)">1000 YD</button>
+        </div>
+      </div>
+
+      <div class="editor-bottom-nav">
+        <button class="nav-bottom-btn" onclick="toggleUnlockPanel(true)">
+          <span class="material-symbols-outlined">workspace_premium</span>
+          <span>機能解放</span>
+        </button>
+        <button class="nav-bottom-btn" onclick="handleChangeId()">
+          <span class="material-symbols-outlined">id_card</span>
+          <span>ID変更</span>
+        </button>
+        <button class="nav-bottom-btn" onclick="showPreview()">
+          <span class="material-symbols-outlined">preview</span>
+          <span>プレビュー</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="viewer-view" class="view">
+      <div class="nav-header">
+        <button class="icon-btn" id="viewer-back-btn"><span class="material-symbols-outlined">arrow_back</span></button>
+        <span style="font-weight: 700; font-size: 14px;" id="viewer-header-id"></span>
+        <div style="width: 40px;"></div>
+      </div>
+      <div class="header-image-area" id="viewer-header-bg" style="cursor: default; background-size: cover; background-position: center;"></div>
+      <div class="viewer-card">
+        <img id="viewer-icon" class="editor-icon" src="" alt="Icon" style="display: none;">
+        <span class="material-symbols-outlined editor-icon" id="viewer-fallback-icon" style="font-size: 80px; color: #999; display: flex; align-items: center; justify-content: center;">account_circle</span>
+        
+        <div class="viewer-name" id="viewer-name"></div>
+        
+        <div class="viewer-blocks-container" id="viewer-blocks-container">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU", authDomain: "keke-dev.firebaseapp.com", projectId: "keke-dev" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    let currentUserData = null;
+    let userProfileData = {};
+    let isPreviewMode = false;
+    let editBlocksData = [];
+
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
+    const MAX_HTML_SIZE = 5 * 1024 * 1024; // 5MB
+
+    let modalCallback = null;
+    function showModal(options) {
+      document.getElementById('modal-title').textContent = options.title || '通知';
+      document.getElementById('modal-message').textContent = options.message || '';
+      const inputContainer = document.getElementById('modal-input-container');
+      const inputEl = document.getElementById('modal-input');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+
+      if (options.type === 'prompt') {
+        inputContainer.style.display = 'block';
+        inputEl.value = options.defaultValue || ''; inputEl.placeholder = options.placeholder || ''; inputEl.focus();
+      } else {
+        inputContainer.style.display = 'none';
+      }
+      cancelBtn.style.display = options.type === 'alert' ? 'none' : 'block';
+      modalCallback = options.onConfirm || null;
+      document.getElementById('custom-modal').classList.add('active');
+    }
+    function closeModal() { document.getElementById('custom-modal').classList.remove('active'); modalCallback = null; }
+    document.getElementById('modal-confirm-btn').addEventListener('click', () => {
+      const val = document.getElementById('modal-input').value;
+      if (modalCallback) modalCallback(val);
+      closeModal();
+    });
+    document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+    // --- yudetter 決済関数 ---
+    function requestYdPayment(amount, description) {
+      return new Promise((resolve, reject) => {
+        window.parent.postMessage({ type: 'YGS_PAYMENT_REQUEST', amount, description }, '*');
+        const handler = (e) => {
+          if (e.data && e.data.type === 'YGS_PAYMENT_RESPONSE') {
+            window.removeEventListener('message', handler);
+            if (e.data.success) resolve(e.data.transactionId);
+            else reject(new Error(e.data.error || '決済に失敗しました'));
+          }
+        };
+        window.addEventListener('message', handler);
+      });
+    }
+
+    window.switchView = function(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      toggleUnlockPanel(false);
+    };
+
+    async function initApp() {
+      try {
+        const response = await fetch('https://yudetter.com/api/users/me');
+        if (response.ok) {
+          currentUserData = await response.json();
+          await loadMyProfile();
+        }
+      } catch (error) { console.error(error); }
+    }
+
+    async function loadMyProfile() {
+      if (!currentUserData) return;
+      const docRef = doc(db, "profiles", String(currentUserData.id));
+      const snap = await getDoc(docRef);
+      
+      if (snap.exists()) {
+        userProfileData = snap.data();
+      } else {
+        userProfileData = {
+          name: currentUserData.name, iconUrl: currentUserData.icon_url || '',
+          headerImageUrl: '', blocks: [], isPhotoUnlocked: false, isCustomIdUnlocked: false, customId: ''
+        };
+      }
+
+      const displayId = userProfileData.customId ? `@${userProfileData.customId}` : `@${currentUserData.id}`;
+      const displayName = userProfileData.name || currentUserData.name || '名無し';
+
+      document.getElementById('home-user-name').textContent = displayName;
+      document.getElementById('home-user-id').textContent = displayId;
+      
+      if (userProfileData.iconUrl || currentUserData.icon_url) {
+        const url = userProfileData.iconUrl || currentUserData.icon_url;
+        document.getElementById('home-user-icon').src = url; document.getElementById('home-user-icon').style.display = 'block';
+        document.getElementById('home-fallback-icon').style.display = 'none';
+        document.getElementById('editor-icon').src = url; document.getElementById('editor-icon').style.display = 'block';
+        document.getElementById('editor-fallback-icon').style.display = 'none';
+      }
+
+      if (userProfileData.headerImageUrl) {
+        document.getElementById('editor-header-bg').style.backgroundImage = `url(${userProfileData.headerImageUrl})`;
+        document.getElementById('editor-header-bg').innerHTML = '';
+      }
+
+      document.getElementById('edit-name').value = displayName;
+      
+      editBlocksData = userProfileData.blocks || [];
+      if (editBlocksData.length === 0) {
+        editBlocksData.push({ type: 'text', content: '' });
+      }
+      renderEditBlocks();
+      updatePanelUI();
+    }
+
+    function renderEditBlocks() {
+      const container = document.getElementById('editor-blocks-container');
+      container.innerHTML = '';
+      
+      editBlocksData.forEach((block, index) => {
+        const card = document.createElement('div');
+        card.className = 'block-card';
+        
+        let headerLabel = '';
+        let contentHtml = '';
+
+        if (block.type === 'text') {
+          headerLabel = '<span class="material-symbols-outlined" style="font-size:16px;">notes</span> テキスト (HTMLタグ可)';
+          contentHtml = `<textarea class="block-input" onchange="updateBlockData(${index}, 'content', this.value)" placeholder="文章を入力... (scriptタグは保存時に自動削除されます)">${block.content || ''}</textarea>`;
+        } else if (block.type === 'link') {
+          headerLabel = '<span class="material-symbols-outlined" style="font-size:16px;">link</span> リンク';
+          contentHtml = `
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <button class="add-block-btn" style="flex-shrink:0;" onclick="promptLinkImage(${index})">画像設定</button>
+              <input type="text" class="block-input" style="margin-bottom:0;" placeholder="タイトル" value="${block.title || ''}" onchange="updateBlockData(${index}, 'title', this.value)">
+            </div>
+            <input type="url" class="block-input" placeholder="https://..." value="${block.url || ''}" onchange="updateBlockData(${index}, 'url', this.value)">
+            ${block.imageUrl ? `<div style="font-size:10px; color:#1da1f2;">アイコン画像設定済み</div>` : ''}
+          `;
+        } else if (block.type === 'html') {
+          headerLabel = '<span class="material-symbols-outlined" style="font-size:16px;">code</span> HTML埋め込み (上限5MB)';
+          contentHtml = `
+            <input type="text" class="block-input" placeholder="高さ (例: 300px, 100%)" value="${block.height || '300px'}" onchange="updateBlockData(${index}, 'height', this.value)">
+            <textarea class="block-input" onchange="updateBlockData(${index}, 'content', this.value)" placeholder="埋め込み用HTMLコードを入力...">${block.content || ''}</textarea>
+          `;
+        } else if (block.type === 'image') {
+          headerLabel = '<span class="material-symbols-outlined" style="font-size:16px;">image</span> 写真 (1枚10MB迄)';
+          contentHtml = `
+            <button class="add-block-btn" onclick="promptBlockImage(${index})">画像URLを設定</button>
+            ${block.imageUrl ? `<img src="${block.imageUrl}" style="width:100%; margin-top:8px; border-radius:8px;">` : ''}
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="block-header">
+            <div style="display:flex; align-items:center; gap:4px;">${headerLabel}</div>
+            <button class="block-delete-btn" onclick="deleteBlock(${index})"><span class="material-symbols-outlined">delete</span></button>
+          </div>
+          ${contentHtml}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    window.addBlock = function(type) {
+      if (type === 'image' && !userProfileData.isPhotoUnlocked) {
+        return showModal({ type: 'alert', title: '機能制限', message: 'この機能を利用するには、機能解放から「写真追加機能」を解放してください。' });
+      }
+      editBlocksData.push({ type: type });
+      renderEditBlocks();
+    };
+
+    window.deleteBlock = function(index) {
+      if(confirm('このブロックを削除しますか？')) {
+        editBlocksData.splice(index, 1);
+        renderEditBlocks();
+      }
+    };
+
+    window.updateBlockData = function(index, key, value) {
+      if(key === 'content' && editBlocksData[index].type === 'html') {
+        const sizeInBytes = new Blob([value]).size;
+        if(sizeInBytes > MAX_HTML_SIZE) {
+           showModal({type: 'alert', title: 'サイズオーバー', message: 'HTMLファイルのサイズが5MBを超えています。'});
+           return;
+        }
+      }
+      editBlocksData[index][key] = value;
+    };
+
+    window.promptLinkImage = function(index) {
+      showModal({
+        type: 'prompt', title: 'リンク画像設定', message: 'アイコン画像のURLを入力してください。', defaultValue: editBlocksData[index].imageUrl || '', placeholder: 'https://...',
+        onConfirm: (val) => { editBlocksData[index].imageUrl = val; renderEditBlocks(); }
+      });
+    };
+
+    window.promptBlockImage = function(index) {
+      showModal({
+        type: 'prompt', title: '写真設定', message: '画像のURLを入力してください。', defaultValue: editBlocksData[index].imageUrl || '', placeholder: 'https://...',
+        onConfirm: (val) => { editBlocksData[index].imageUrl = val; renderEditBlocks(); }
+      });
+    };
+
+    // --- パネルと課金状態UIの更新 ---
+    window.toggleUnlockPanel = function(show) {
+      const panel = document.getElementById('unlock-panel');
+      const backdrop = document.getElementById('panel-backdrop');
+      if (show) { panel.classList.add('active'); backdrop.classList.add('active'); } 
+      else { panel.classList.remove('active'); backdrop.classList.remove('active'); }
+    };
+
+    function updatePanelUI() {
+      const btnPhoto = document.getElementById('btn-unlock-photo');
+      const btnId = document.getElementById('btn-unlock-id');
+      
+      if(userProfileData.isPhotoUnlocked) { btnPhoto.classList.add('unlocked'); btnPhoto.textContent = '解放済み'; }
+      if(userProfileData.isCustomIdUnlocked) { btnId.classList.add('unlocked'); btnId.textContent = '解放済み'; }
+    }
+
+    // --- 課金処理 ---
+    window.purchaseFeature = async function(featureName, amount) {
+      if(featureName === 'photo' && userProfileData.isPhotoUnlocked) return;
+      if(featureName === 'customId' && userProfileData.isCustomIdUnlocked) return;
+
+      showModal({
+        type: 'confirm', title: '機能の解放', message: `${amount} YD を消費してこの機能を解放しますか？（買い切り）`,
+        onConfirm: async () => {
+          try {
+            await requestYdPayment(amount, `${featureName}機能の解放`);
+            const docRef = doc(db, "profiles", String(currentUserData.id));
+            let updateData = {};
+            if(featureName === 'photo') { updateData.isPhotoUnlocked = true; userProfileData.isPhotoUnlocked = true; }
+            if(featureName === 'customId') { updateData.isCustomIdUnlocked = true; userProfileData.isCustomIdUnlocked = true; }
+
+            await setDoc(docRef, updateData, { merge: true });
+            updatePanelUI();
+            toggleUnlockPanel(false);
+            showModal({ type: 'alert', title: '成功', message: '機能を解放しました！' });
+          } catch (error) {
+            showModal({ type: 'alert', title: 'エラー', message: error.message });
+          }
+        }
+      });
+    };
+
+    // --- ID変更 ---
+    window.handleChangeId = function() {
+      if (!userProfileData.isCustomIdUnlocked) return showModal({ type: 'alert', title: '機能制限', message: 'IDを変更するには「機能解放」からカスタムIDを解放してください。' });
+      showModal({
+        type: 'prompt', title: 'ID変更', message: '新しいカスタムIDを入力してください。', placeholder: 'my_new_id',
+        onConfirm: async (newId) => {
+          if(!newId) return;
+          try {
+            const docRef = doc(db, "profiles", String(currentUserData.id));
+            await setDoc(docRef, { customId: newId }, { merge: true });
+            userProfileData.customId = newId;
+            showModal({ type: 'alert', title: '完了', message: 'IDを変更しました。' });
+          } catch (e) { showModal({ type: 'alert', title: 'エラー', message: 'IDの変更に失敗しました。' }); }
+        }
+      });
+    };
+
+    window.handleHeaderClick = function() {
+      showModal({
+        type: 'prompt', title: 'ヘッダー画像設定', message: '画像のURLを入力してください。',
+        placeholder: 'https://...',
+        onConfirm: (val) => {
+          if(val) {
+            userProfileData.headerImageUrl = val;
+            document.getElementById('editor-header-bg').style.backgroundImage = `url(${val})`;
+            document.getElementById('editor-header-bg').innerHTML = '';
+          }
+        }
+      });
+    };
+
+    function sanitizeTextHTML(str) {
+      if (!str) return '';
+      return str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    }
+
+    window.saveProfile = async function() {
+      if (!currentUserData) return;
+      
+      const sanitizedBlocks = editBlocksData.map(block => {
+        if (block.type === 'text') {
+          return { ...block, content: sanitizeTextHTML(block.content) };
+        }
+        return block;
+      });
+
+      const name = document.getElementById('edit-name').value;
+      try {
+        const docRef = doc(db, "profiles", String(currentUserData.id));
+        const dataToSave = {
+          ...userProfileData, name: name, blocks: sanitizedBlocks, updatedAt: serverTimestamp()
+        };
+        await setDoc(docRef, dataToSave, { merge: true });
+        userProfileData = dataToSave;
+        editBlocksData = sanitizedBlocks;
+        
+        switchView('home-view');
+        showModal({ type: 'alert', title: '完了', message: 'プロフィールを保存しました。' });
+      } catch (error) { showModal({ type: 'alert', title: 'エラー', message: '保存に失敗しました。' }); }
+    };
+
+    window.showPreview = function() {
+      isPreviewMode = true;
+      const previewData = {
+        displayId: userProfileData.customId ? `@${userProfileData.customId}` : `@${currentUserData.id}`,
+        name: document.getElementById('edit-name').value || '名無し',
+        headerImageUrl: userProfileData.headerImageUrl,
+        iconUrl: document.getElementById('editor-icon').src,
+        blocks: editBlocksData.map(b => (b.type === 'text' ? { ...b, content: sanitizeTextHTML(b.content) } : b))
+      };
+      renderViewer(previewData);
+      switchView('viewer-view');
+    };
+
+    document.getElementById('viewer-back-btn').addEventListener('click', () => {
+      if(isPreviewMode) { isPreviewMode = false; switchView('editor-view'); } 
+      else { switchView('search-view'); }
+    });
+
+    window.searchUser = async function() {
+      const input = document.getElementById('search-input').value.trim();
+      if (!input) return;
+      const isCustomId = input.startsWith('@');
+      const searchValue = isCustomId ? input.substring(1) : input;
+      let targetProfile = null;
+
+      try {
+        if (isCustomId) {
+          const q = query(collection(db, "profiles"), where("customId", "==", searchValue));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) { targetProfile = snapshot.docs[0].data(); targetProfile.displayId = `@${targetProfile.customId}`; }
+        } else {
+          const docRef = doc(db, "profiles", searchValue);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) { targetProfile = snap.data(); targetProfile.displayId = `ID: ${searchValue}`; }
+        }
+        if (targetProfile) { isPreviewMode = false; renderViewer(targetProfile); switchView('viewer-view'); } 
+        else { window.open(`https://yudetter.com/users/${searchValue}`, '_blank'); }
+      } catch (error) { console.error(error); }
+    };
+
+    window.executeHtmlIframe = function(btnElement) {
+      const iframe = btnElement.nextElementSibling;
+      const htmlContent = btnElement.getAttribute('data-html');
+      iframe.srcdoc = htmlContent;
+      iframe.style.display = 'block';
+      btnElement.style.display = 'none';
+    };
+
+    function renderViewer(data) {
+      document.getElementById('viewer-header-id').textContent = data.displayId;
+      document.getElementById('viewer-name').textContent = data.name || '名無し';
+      
+      const headerBg = document.getElementById('viewer-header-bg');
+      if(data.headerImageUrl) headerBg.style.backgroundImage = `url(${data.headerImageUrl})`;
+      else headerBg.style.backgroundImage = 'none';
+
+      const iconImg = document.getElementById('viewer-icon');
+      const fallbackIcon = document.getElementById('viewer-fallback-icon');
+      if (data.iconUrl) {
+        iconImg.src = data.iconUrl; iconImg.style.display = 'block'; fallbackIcon.style.display = 'none';
+      } else {
+        iconImg.style.display = 'none'; fallbackIcon.style.display = 'flex';
+      }
+
+      const container = document.getElementById('viewer-blocks-container');
+      container.innerHTML = '';
+
+      if (data.blocks && data.blocks.length > 0) {
+        data.blocks.forEach(block => {
+          if (block.type === 'text') {
+            const div = document.createElement('div');
+            div.className = 'viewer-text-card';
+            div.innerHTML = block.content;
+            container.appendChild(div);
+          } 
+          else if (block.type === 'link') {
+            if(!block.title || !block.url) return;
+            const a = document.createElement('a'); a.href = block.url; a.className = 'viewer-link-card'; a.target = '_blank';
+            const iconDiv = document.createElement('div'); iconDiv.className = 'viewer-link-icon';
+            if (block.imageUrl) {
+              const img = document.createElement('img'); img.src = block.imageUrl; iconDiv.appendChild(img);
+            } else {
+              const span = document.createElement('span'); span.className = 'material-symbols-outlined'; span.textContent = 'link'; iconDiv.appendChild(span);
+            }
+            const titleDiv = document.createElement('div'); titleDiv.className = 'viewer-link-title'; titleDiv.textContent = block.title;
+            a.appendChild(iconDiv); a.appendChild(titleDiv); container.appendChild(a);
+          }
+          else if (block.type === 'html') {
+            if(!block.content) return;
+            const h = block.height || '300px';
+            const safeHtml = block.content.replace(/"/g, '&quot;');
+            const div = document.createElement('div');
+            div.className = 'viewer-html-card';
+            div.innerHTML = `
+              <button class="html-execute-btn" data-html="${safeHtml}" onclick="executeHtmlIframe(this)">
+                <span class="material-symbols-outlined">play_circle</span> 埋め込みコンテンツを実行する
+              </button>
+              <iframe class="html-iframe" style="height: ${h};" sandbox="allow-scripts allow-popups allow-same-origin"></iframe>
+            `;
+            container.appendChild(div);
+          }
+          else if (block.type === 'image') {
+            if(!block.imageUrl) return;
+            const div = document.createElement('div');
+            div.className = 'viewer-image-card';
+            div.innerHTML = `<img src="${block.imageUrl}" alt="Uploaded Image">`;
+            container.appendChild(div);
+          }
+        });
+      }
+    }
+
+    initApp();
+  </script>
+</body>
+</html>

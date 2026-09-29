@@ -1,0 +1,46 @@
+[
+  {
+    "id": "100_ticket",
+    "name": "100連専用チケット",
+    "description": "これを買うと100連ガチャが引けるようになります！(いまなら10%OFF!)",
+    "costItem": "時間短縮カード",
+    "costAmount": 90,
+    "rewardAmount": 1
+  },
+  {
+    "id": "iphone1-to-17promax",
+    "name": "iPhone17promax",
+    "description": "iPhone1を最新機種にアップグレードします！(いまなら10%OFF!)",
+    "costItem": "iPhone1",
+    "costAmount": 100,
+    "rewardAmount": 1,
+    "image": "iphone17promax.png"
+  },
+  {
+    "id": "17promax-to-s26ultra",
+    "name": "GalaxyS26ultra",
+    "description": "iPhone17promaxをGalaxy最新機種にアップグレードします！Android勢歓喜！",
+    "costItem": "iPhone17promax",
+    "costAmount": 10,
+    "rewardAmount": 1,
+    "image": "26ultra.png"
+  },
+  {
+    "id": "donald",
+    "name": "ドナルド",
+    "description": "謎のドナルド×1000でドナルドをゲットしよう!",
+    "costItem": "謎のドナルド",
+    "costAmount": 1000,
+    "rewardAmount": 1,
+    "image": "donald.jpg"
+  },
+  {
+    "id": "donald-to-ticket",
+    "name": "時間短縮カード",
+    "description": "ドナルドで時間短縮カードをゲットしよう!",
+    "costItem": "ドナルド",
+    "costAmount": 1,
+    "rewardAmount": 5000,
+    "image": "donald.jpg"
+  }
+]

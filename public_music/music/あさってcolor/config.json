@@ -1,0 +1,8 @@
+{
+  "title": "あさってcolor",
+  "bpm": 84,
+  "audioUrl": "audio.mp3",
+  "difficulties": [
+    { "name": "Splatoon2", "level": 16.3, "dataFile": "data.json" }
+  ]
+}

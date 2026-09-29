@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>keke-dev プロジェクト一覧</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --border: #e5e7eb; --text: #1f2937; --sub-text: #6b7280; --accent: #3b82f6; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: #ffffff; color: var(--text); margin: 0; padding: 60px 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 60px; }
+        .section-title { font-size: 1.2rem; margin: 40px 0 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; font-weight: 700; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        .card { border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-decoration: none; color: inherit; transition: 0.2s; display: flex; flex-direction: column; gap: 12px; }
+        .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .icon { width: 32px; height: 32px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .title { font-weight: 700; font-size: 1.1rem; }
+        .sub-title { font-size: 0.85rem; color: var(--sub-text); }
+        .url { font-family: monospace; font-size: 0.75rem; color: var(--accent); margin-top: auto; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <header>
+        <h1>keke-dev.net</h1>
+        <p style="color: var(--sub-text)">keke のプロジェクト集</p>
+    </header>
+    </div>
+
+<script>
+    async function loadProjects() {
+        const response = await fetch('projects.json');
+        const data = await response.json();
+        const container = document.getElementById('app');
+
+        data.categories.forEach(cat => {
+            const section = document.createElement('section');
+            section.innerHTML = `<div class="section-title">${cat.name}</div>`;
+            
+            const grid = document.createElement('div');
+            grid.className = 'grid';
+            
+            cat.items.forEach(item => {
+                grid.innerHTML += `
+                    <a href="${item.url}" class="card">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="${item.icon}"></path></svg>
+                        <div>
+                            <div class="title">${item.title}</div>
+                            <div class="sub-title">${item.sub}</div>
+                        </div>
+                        <div class="url">${item.url.replace('https://', '')}</div>
+                    </a>
+                `;
+            });
+            
+            section.appendChild(grid);
+            container.appendChild(section);
+        });
+    }
+    loadProjects();
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HOME</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000000;
+      font-family: 'Noto Sans JP', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #ffffff;
+    }
+    
+    .login-container {
+      text-align: center;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      background-color: #000000;
+      border: 1px solid #333333;
+      color: #ffffff;
+      box-sizing: border-box;
+      font-size: 16px;
+      font-family: 'Noto Sans JP', sans-serif;
+      text-align: center;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: #666666;
+    }
+
+    #message {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #aaaaaa;
+      min-height: 18px;
+      white-space: pre-wrap;
+    }
+
+    #hint-text {
+      display: none;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555555;
+    }
+
+    .help-icon {
+      position: fixed;
+      bottom: 5px;
+      right: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #111111;
+      user-select: none;
+    }
+    
+    .help-icon:hover {
+      color: #333333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <input type="text" id="password" autocomplete="off">
+    <div id="message"></div>
+    <div id="hint-text">なえ...?なえなのか...?</div>
+  </div>
+
+  <span class="material-symbols-outlined help-icon" onclick="toggleHint()">help</span>
+
+  <script>
+    const passwordConfig = {
+      "なえ": {
+        "type": "message",
+        "value": "私の名前はなえ｡このセカイの謎を､解き明かすために､私はここにいる｡どうか｡このセカイを救ってください｡"
+      },
+      "にぶいち時間短縮ガチャ": {
+        "type": "message",
+        "value": "ありがとう｡私は､もっと謎を突き止める｡ミニゲームにいるから､いつでも､見守っててね｡"
+      },
+        "134010263": {
+            "type": "message",
+            "value": "ありがとう｡たすかったよ｡今までこんなふうに扱われたり､たのしくできたことはなかった｡でも､あなたがいてくれたから､私は､ここまでこれた｡また､まってるからね｡"
+        }
+    };
+
+    const passwordInput = document.getElementById('password');
+    const messageEl = document.getElementById('message');
+
+    passwordInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        checkPassword();
+      }
+    });
+
+    function checkPassword() {
+      const input = passwordInput.value;
+      
+      if (passwordConfig.hasOwnProperty(input)) {
+        const config = passwordConfig[input];
+        
+        if (config.type === 'redirect') {
+          messageEl.textContent = ''; 
+          window.location.href = config.value;
+        } else if (config.type === 'message') {
+          messageEl.style.color = '#cccccc';
+          messageEl.textContent = config.value;
+          passwordInput.value = '';
+        }
+      } else {
+        messageEl.style.color = '#555555';
+        messageEl.textContent = '...?';
+        passwordInput.value = ''; 
+      }
+    }
+
+    function toggleHint() {
+      const hint = document.getElementById('hint-text');
+      if (hint.style.display === 'block') {
+        hint.style.display = 'none';
+      } else {
+        hint.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

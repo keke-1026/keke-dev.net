@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>keke-dev.net 作成projects一覧</title>
+  <style>
+    :root{--main:#2d8cff;--bg:#f7fbff;--card:#fff;--text:#0b1220;--sub:#445}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN",Meiryo;background:var(--bg);margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--text)}
+    .wrap{width:100%;max-width:1000px;padding:30px;text-align:center}
+    h1{font-size:24px;margin-bottom:10px}
+    p.desc{font-size:15px;color:var(--sub);margin-bottom:30px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(10,30,80,0.06);padding:20px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;transition:transform 0.2s ease}
+    .card:hover{transform:translateY(-3px)}
+    .title{font-weight:700;font-size:18px;margin-bottom:8px;color:var(--text)}
+    .info{font-size:14px;color:var(--sub);margin-bottom:16px;line-height:1.6}
+    .btn{padding:10px 14px;border:none;border-radius:8px;background:var(--main);color:white;font-size:14px;font-weight:600;cursor:pointer;align-self:flex-start;transition:0.2s}
+    .btn:hover{opacity:0.9}
+    footer{margin-top:30px;font-size:13px;color:#667;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>keke-dev.net 作成projects一覧(旧Ver.)</h1>
+    <p class="desc">このページから各コンテンツへ移動できます。ボタンを押すと対応するページへ移行します。(スマホ非対応がある可能性があります)</p>
+
+    <div class="grid">
+
+      <div class="card"><div><div class="title">九九計算サイト</div><div class="info">PC専用の九九練習サイトです。</div></div><button class="btn" onclick="goPage('kuku')">開く</button></div>
+
+      <div class="card"><div><div class="title">人狼GM専用進行</div><div class="info">ダイソーの人狼を前提に進めていきます。</div></div><button class="btn" onclick="goPage('jinrouGM')">開く</button></div>
+
+      <div class="card"><div><div class="title">神経衰弱1人Ver.</div><div class="info">ペアでそろえていく神経衰弱の1人Ver.</div></div><button class="btn" onclick="goPage('30pea')">開く</button></div>
+
+      <div class="card"><div><div class="title">雷落ちたとこ予測装置</div><div class="info">いろいろな方法で探せます</div></div><button class="btn" onclick="goPage('kaminari')">開く</button></div>
+
+      <div class="card"><div><div class="title">プロセカ失点計算装置</div><div class="info">スマホ音ゲープロセカの失点計算装置</div></div><button class="btn" onclick="goPage('prsksitten')">開く</button></div>
+
+      <div class="card"><div><div class="title">daisuke.net</div><div class="info">daisuke☆です。プリセットで鳴らしたり、時間で鳴らせます。くわしくはGO!</div></div><button class="btn" onclick="goPage('daisuke.net/index')">開く</button></div>
+
+      <div class="card"><div><div class="title">keke.clock</div><div class="info">オンライン不要の世界時計 keke.clockです。多分覚えてないけど自分の機種のスマホを頼りにもしていたかも｡(ソースコード見て解析してくれ)</div></div><button class="btn" onclick="goPage('keke.clock')">開く</button></div>
+
+      <div class="card"><div><div class="title">night walk</div><div class="info">night walk という謎のゲームです。ストーリー版もあるよ</div></div><button class="btn" onclick="goPage('nightwalk/nightwalk')">開く</button></div>
+
+      <div class="card"><div><div class="title">グミ沢の大脱出</div><div class="info">night walkを元にしたストーリーがあるverです。</div></div><button class="btn" onclick="goPage('nightwalk/Gumizawa.ver/gumizawa.exit')">開く</button></div>
+
+      <div class="card"><div><div class="title">おみくじくん</div><div class="info">今日の占いみたいなもんです☆</div></div><button class="btn" onclick="goPage('omikuji')">開く</button></div>
+
+      <div class="card"><div><div class="title">flightradar24modoki</div><div class="info">最初のページにもある､飛行機の緊急事態状態をAPIで取得→表示させるサイトです｡普通にバグあるかも</div></div><button class="btn" onclick="goPage('flightradar24modoki')">開く</button></div>
+
+      <div class="card"><div><div class="title">space(宇宙)</div><div class="info">宇宙みたいな空間で遊べます 暇つぶしにはいいです</div></div><button class="btn" onclick="goPage('space')">開く</button></div>
+
+      <div class="card"><div><div class="title">UUID-art</div><div class="info">UUIDを使って絵を作ります｡暇なら試してみてね!!</div></div><button class="btn" onclick="goPage('uuid-game/uuid-art/art')">開く</button></div>
+
+      <div class="card"><div><div class="title">UUID-rpg</div><div class="info">UUIDを使ってRPGのキャラの体力などを作ります｡暇なら試してみてね!!</div></div><button class="btn" onclick="goPage('uuid-game/uuid-rpg/rpg')">開く</button></div>
+
+      <div class="card"><div><div class="title">まだないよぉ</div><div class="info">まだないよぉ</div></div><button class="btn" onclick="goPage('project/index')">開く</button></div>
+
+      <div class="card"><div><div class="title">まだないよぉ</div><div class="info">作品を作ったらここに乗ります!!まだ待っててね!!</div></div><button class="btn" onclick="goPage('project/index')">開く</button></div>
+    </div>
+  
+    <footer>© keke — keke-dev.net v.Old:domain</footer>
+  </div>
+
+  <script>
+    function goPage(page){
+      window.location.href = `projects/${page}.html`;
+    }
+
+  </script>
+
+</body>
+</html>

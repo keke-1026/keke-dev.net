@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>九九クイズ — コードプリセットVer</title>
+  <style>
+    :root{--text:#000;--bg:#fff;--muted:#666}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',Segoe UI,Roboto,Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:18px auto;padding:16px;background:var(--bg);border-radius:10px}
+    header{display:flex;align-items:center;gap:12px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:6px 0 12px;color:var(--muted)}
+
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+    input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;background:#fff;color:var(--text);width:120px}
+    /* チェックボックス周りの見た目を少し整えました */
+    label.inline{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;border:1px solid #f0f0f0;background:#fbfbfb;font-size:14px}
+    label.inline input[type=checkbox]{width:18px;height:18px;accent-color:#000;margin:0}
+
+    button{background:#fff;color:var(--text);padding:8px 12px;border-radius:8px;border:1px solid #ddd;cursor:pointer}
+    button.primary{border-width:2px}
+
+    .stage{min-height:520px;border:1px solid #eee;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:12px}
+    .centerArea{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+    .qaWrap{display:flex;align-items:center;justify-content:center;gap:28px;width:100%}
+    .questionBox{background:transparent;text-align:center;padding:28px;border-radius:12px;min-width:560px;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+    .bigq{font-size:18vmin;font-weight:900;line-height:1;color:var(--text);font-family: 'Yu Gothic','Hiragino Kaku Gothic ProN',sans-serif}
+    .reading{margin-top:12px;font-size:4vmin;color:var(--text)}
+
+    .infoPanel{min-width:260px;border-radius:12px;padding:18px;border:1px solid #eee;background:#fff;box-shadow:0 8px 20px rgba(0,0,0,0.04)}
+    .infoRow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #f0f0f0}
+    .infoRow:last-child{border-bottom:0}
+    .infoLabel{color:var(--muted);font-size:15px}
+    .infoValue{font-size:16px;font-weight:700}
+
+    .hidden{display:none}
+    .result{padding:12px;border-radius:8px;border:1px solid #eee;background:#fff}
+
+    footer{margin-top:12px;font-size:13px;color:var(--muted)}
+
+    @media(max-width:1200px){ .wrap{padding:12px} .questionBox{min-width:420px;min-height:260px} .bigq{font-size:16vmin} .reading{font-size:4vmin} .infoPanel{min-width:200px} }
+    @media(max-width:760px){ .qaWrap{flex-direction:column-reverse} .infoPanel{width:100%} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header id="hdr"><h1>九九クイズ — コードプリセットVer</h1></header>
+    <p class="lead" id="lead">読み（式の上に出る文章）はコード内のプリセットで定義します。編集はコードを直接書き換えて行ってください。</p>
+
+    <div class="controls" id="startControls">
+      <label>問題数
+        <input id="totalQuestions" type="number" min="1" max="500" value="20">
+      </label>
+      <label class="inline"><input type="checkbox" id="noDupCheckbox"> 重複なし（81まで有効）</label>
+      <button id="startBtn" class="primary">スタート</button>
+    </div>
+
+    <section class="stage" id="stage">
+      <div class="centerArea">
+        <div class="qaWrap">
+          <div class="questionBox" id="questionBox">
+            <div class="bigq" id="question">準備中</div>
+            <div class="reading" id="reading">設定してスタートを押してください</div>
+          </div>
+
+          <aside class="infoPanel hidden" id="infoPanel">
+            <div class="infoRow"><div class="infoLabel">経過</div><div class="infoValue" id="infoTime">0.0 秒</div></div>
+            <div class="infoRow"><div class="infoLabel">正解</div><div class="infoValue" id="infoCorrect">0</div></div>
+            <div class="infoRow"><div class="infoLabel">不正解</div><div class="infoValue" id="infoWrong">0</div></div>
+            <div class="infoRow"><div class="infoLabel">現在 / 全問</div><div class="infoValue" id="infoProgress">0 / 0</div></div>
+            <div style="margin-top:12px;font-size:13px;color:var(--muted)">操作：↑ 正解　↓ 不正解</div>
+          </aside>
+        </div>
+      </div>
+
+      <div id="resultArea" class="hidden"><div class="result" id="resultBox"></div><div style="margin-top:8px;display:flex;gap:8px"><button id="restartBtn">最初の画面へ戻る</button></div></div>
+    </section>
+
+    <footer id="ftr">この仕組みは、九九が完全にわかる人が操作を担当してください</footer>
+  </main>
+
+  <script>
+    // ---------- ここを編集してください（コード側プリセット） ----------
+    // フォーマット: ['1×1', '1x1', 'いんいちがいち'] の配列を要素に持つリスト
+    // 左は表示用の式（見た目）、中央は内部キー（必須）、右が表示する読みです。
+    const PRESET_LIST = [
+      ['1×1','1x1','いんいち'], ['1×2','1x2','いんに'], ['1×3','1x3','いんさん'], ['1×4','1x4','いんし'], ['1×5','1x5','いんご'], ['1×6','1x6','いんろく'], ['1×7','1x7','いんしち'], ['1×8','1x8','いんはち'], ['1×9','1x9','いんく'],
+      ['2×1','2x1','にいち'], ['2×2','2x2','ににん'], ['2×3','2x3','にさん'], ['2×4','2x4','にし'], ['2×5','2x5','にご'], ['2×6','2x6','にろく'], ['2×7','2x7','にしち'], ['2×8','2x8','にはち'], ['2×9','2x9','にく'],
+      ['3×1','3x1','さんいち'], ['3×2','3x2','さんに'], ['3×3','3x3','さざん'], ['3×4','3x4','さんし'], ['3×5','3x5','さんご'], ['3×6','3x6','さぶろく'], ['3×7','3x7','さんしち'], ['3×8','3x8','さんぱ'], ['3×9','3x9','さんく'],
+      ['4×1','4x1','しいち'], ['4×2','4x2','しに'], ['4×3','4x3','しさん'], ['4×4','4x4','しし'], ['4×5','4x5','しご'], ['4×6','4x6','しろく'], ['4×7','4x7','ししち'], ['4×8','4x8','しは'], ['4×9','4x9','しく'],
+      ['5×1','5x1','ごいち'], ['5×2','5x2','ごに'], ['5×3','5x3','ごさん'], ['5×4','5x4','ごし'], ['5×5','5x5','ごご'], ['5×6','5x6','ごろく'], ['5×7','5x7','ごしち'], ['5×8','5x8','ごは'], ['5×9','5x9','ごっく'],
+      ['6×1','6x1','ろくいち'], ['6×2','6x2','ろくに'], ['6×3','6x3','ろくさん'], ['6×4','6x4','ろくし'], ['6×5','6x5','ろくご'], ['6×6','6x6','ろくろく'], ['6×7','6x7','ろくしち'], ['6×8','6x8','ろくは'], ['6×9','6x9','ろっく'],
+      ['7×1','7x1','しちいち'], ['7×2','7x2','しちに'], ['7×3','7x3','しちさん'], ['7×4','7x4','しちしうは'], ['7×5','7x5','しちご'], ['7×6','7x6','しちろく'], ['7×7','7x7','しちしち'], ['7×8','7x8','しちは'], ['7×9','7x9','しちく'],
+      ['8×1','8x1','はちいち'], ['8×2','8x2','はちに'], ['8×3','8x3','はちさん'], ['8×4','8x4','はちし'], ['8×5','8x5','はちご'], ['8×6','8x6','はちろく'], ['8×7','8x7','はちしち'], ['8×8','8x8','はっぱ'], ['8×9','8x9','はっく'],
+      ['9×1','9x1','くいち'], ['9×2','9x2','くに'], ['9×3','9x3','くさん'], ['9×4','9x4','くし'], ['9×5','9x5','くご'], ['9×6','9x6','くろく'], ['9×7','9x7','くしち'], ['9×8','9x8','くはち'], ['9×9','9x9','くく']
+    ];
+    // --------------------------------------------------------------------
+
+    // UI 要素
+    const startControls = document.getElementById('startControls');
+    const totalInput = document.getElementById('totalQuestions');
+    const noDupCheckbox = document.getElementById('noDupCheckbox');
+    const startBtn = document.getElementById('startBtn');
+
+    const questionEl = document.getElementById('question');
+    const readingEl = document.getElementById('reading');
+    const infoPanel = document.getElementById('infoPanel');
+    const infoTime = document.getElementById('infoTime');
+    const infoCorrect = document.getElementById('infoCorrect');
+    const infoWrong = document.getElementById('infoWrong');
+    const infoProgress = document.getElementById('infoProgress');
+    const resultArea = document.getElementById('resultArea');
+    const resultBox = document.getElementById('resultBox');
+    const restartBtn = document.getElementById('restartBtn');
+
+    // 状態
+    let totalProblems = 20;
+    let answered = 0, correct = 0, wrong = 0;
+    let currentPair = null;
+    let startTime = 0;
+    let infoTimer = null;
+    const mistakes = {};
+
+    // 重複なし用キュー
+    let useNoDup = false;
+    let uniqueQueue = null;
+    let uniqueIndex = 0;
+
+    // 構造をキー→読み のマップに変換
+    const PRESET_READINGS = (function(){
+      const m = {};
+      PRESET_LIST.forEach(item=>{ const key = item[1]; m[key] = item[2] || ''; });
+      return m;
+    })();
+
+    function buildUniqueQueue(){
+      // 全キーをシャッフルしてキューにする
+      uniqueQueue = PRESET_LIST.map(item=>item[1]);
+      for(let i=uniqueQueue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [uniqueQueue[i],uniqueQueue[j]]=[uniqueQueue[j],uniqueQueue[i]]; }
+      uniqueIndex = 0;
+    }
+
+    function makeQuestion(){
+      let a,b, key;
+      if(useNoDup && uniqueQueue && uniqueIndex < uniqueQueue.length){
+        key = uniqueQueue[uniqueIndex];
+        const parts = key.split('x').map(Number);
+        a = parts[0]; b = parts[1];
+      } else {
+        a = Math.floor(Math.random()*9) + 1;
+        b = Math.floor(Math.random()*9) + 1;
+        key = `${a}x${b}`;
+      }
+      currentPair = [a,b];
+      questionEl.textContent = `${a} × ${b}`;
+      // 表示はコード側プリセットの読みを使う
+      readingEl.textContent = PRESET_READINGS[key] || `${a}かける${b}は？`;
+      updateSideInfo();
+    }
+
+    function updateSideInfo(){
+      infoCorrect.textContent = String(correct);
+      infoWrong.textContent = String(wrong);
+      infoProgress.textContent = `${Math.min(answered+1,totalProblems)} / ${totalProblems}`;
+    }
+
+    function playCorrectSound(){
+      // 正解の短い効果音（高めのサイン波）
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = 880; // 高い音
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const now = ctx.currentTime;
+        g.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        o.start(now);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        o.stop(now + 0.35);
+      }catch(e){ console.warn('Audio not available (correct)', e); }
+    }
+
+    function playWrongSound(){
+      // 不正解の効果音（低めのノイズに近い音）
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.value = 150;
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const now = ctx.currentTime;
+        g.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        o.start(now);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+        o.stop(now + 0.7);
+      }catch(e){ console.warn('Audio not available (wrong)', e); }
+    }
+
+    function startInfoTimer(){ if(infoTimer) clearInterval(infoTimer); infoPanel.classList.remove('hidden'); infoTimer=setInterval(()=>{ const elapsed=(Date.now()-startTime)/1000; infoTime.textContent = `${elapsed.toFixed(1)} 秒`; },100); }
+    function stopInfoTimer(){ if(infoTimer) clearInterval(infoTimer); infoTimer=null; }
+
+    function startQuiz(){
+      totalProblems = Math.max(1, parseInt(totalInput.value)||20);
+      answered=0; correct=0; wrong=0; for(const k in mistakes) delete mistakes[k];
+
+      // 重複なしの初期化
+      useNoDup = !!noDupCheckbox.checked;
+      if(useNoDup){ buildUniqueQueue(); if(totalProblems>uniqueQueue.length){ totalProblems = uniqueQueue.length; totalInput.value = totalProblems; } }
+
+      // 設定UIを隠す（問題と右の情報だけ表示）
+      document.getElementById('hdr').classList.add('hidden');
+      document.getElementById('lead').classList.add('hidden');
+      startControls.classList.add('hidden');
+      document.getElementById('ftr').classList.add('hidden');
+
+      makeQuestion(); startTime = Date.now(); updateSideInfo(); startInfoTimer(); window.scrollTo(0,0);
+    }
+
+    function endQuiz(){
+      const elapsedMs = Date.now()-startTime; stopInfoTimer();
+      let worst=null, worstCount=0; for(const k in mistakes){ if(mistakes[k]>worstCount){ worst=k; worstCount=mistakes[k]; } }
+
+      // 結果表示（ベスト更新/ローカルストレージ関連の機能を削除）
+      resultBox.innerHTML = `終了！<br>問題数：<strong>${totalProblems}</strong><br>かかった時間：<strong>${(elapsedMs/1000).toFixed(1)}</strong> 秒<br>正解：<strong>${correct}</strong>　不正解：<strong>${wrong}</strong>` + (worst?`<br>一番間違えた問題：<span class="mist">${worst.replace('x',' × ')}</span>（${worstCount} 回）`:'');
+
+      // UI戻す
+      document.getElementById('hdr').classList.remove('hidden');
+      document.getElementById('lead').classList.remove('hidden');
+      startControls.classList.remove('hidden');
+      document.getElementById('ftr').classList.remove('hidden');
+
+      questionEl.textContent='完了'; readingEl.textContent='結果を確認してください。最初の画面へは「最初の画面へ戻る」を押してください。'; resultArea.classList.remove('hidden'); updateSideInfo();
+    }
+
+    function markCorrect(){
+      // 正解時に効果音を鳴らす（音のみ追加、挙動は変更しない）
+      try{ playCorrectSound(); }catch(e){ /* ignore */ }
+      correct++; answered++;
+      if(useNoDup){ uniqueIndex++; }
+      if(answered>=totalProblems){ endQuiz(); return; }
+      makeQuestion(); updateSideInfo();
+    }
+
+    function markWrong(){
+      // 不正解時はその問題を繰り返す（正解になるまで進めない）
+      wrong++;
+      if(currentPair){ const key = `${currentPair[0]}x${currentPair[1]}`; mistakes[key] = (mistakes[key]||0) + 1; }
+      try{ playWrongSound(); }catch(e){ /* ignore */ }
+      // ここで answered は増やさない。次の問題には進まず同じ問題を続けます。
+      updateSideInfo();
+    }
+
+    // キー処理
+    window.addEventListener('keydown',(e)=>{
+      if(startControls.classList.contains('hidden')){
+        if(e.key === 'ArrowUp'){
+          e.preventDefault(); markCorrect();
+        } else if(e.key === 'ArrowDown'){
+          e.preventDefault(); markWrong();
+        }
+      }
+    });
+
+    // ボタン
+    startBtn.addEventListener('click',()=>{ startQuiz(); });
+    restartBtn.addEventListener('click',()=>{ resultArea.classList.add('hidden'); questionEl.textContent='準備中'; readingEl.textContent='設定してスタートを押してください'; answered=0; correct=0; wrong=0; updateSideInfo(); });
+
+    // --- 軽い自己診断テストを追加（起動時） ---
+    (function runSelfTests(){
+      try{
+        console.group('九九クイズ self-test');
+        console.assert(Array.isArray(PRESET_LIST), 'PRESET_LIST is array');
+        console.assert(PRESET_LIST.length === 81, `PRESET_LIST length expected 81 but got ${PRESET_LIST.length}`);
+        const keys = Object.keys(PRESET_READINGS||{}).length;
+        console.assert(keys === 81, `PRESET_READINGS keys expected 81 but got ${keys}`);
+        console.log('sample', PRESET_LIST[0]);
+        console.groupEnd();
+      }catch(e){ console.warn('self-test error', e); }
+    })();
+
+    // 初期表示
+    updateSideInfo();
+  </script>
+</body>
+</html>

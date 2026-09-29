@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ke2-chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark-mode');
+    </script>
+    <style>
+        :root {
+            --bg-sidebar: #f5f5f5; --bg-main: #ffffff; --text-main: #333333; --text-sub: #777777;
+            --border-color: #eeeeee; --btn-bg: #4285f4; --btn-text: #ffffff; --input-bg: #f9f9f9;
+            --danger: #ef4444; --online: #22c55e; --offline: #71717a; --overlay: rgba(255, 255, 255, 0.7);
+        }
+        html.dark-mode {
+            --bg-sidebar: #202225; --bg-main: #36393f; --text-main: #dcddde; --text-sub: #8e9297;
+            --border-color: #2b2d31; --btn-bg: #5865f2; --btn-text: #ffffff; --input-bg: #383a40;
+            --overlay: rgba(0, 0, 0, 0.7);
+        }
+        body {
+            margin: 0; font-family: 'Noto Sans JP', sans-serif; font-weight: 300;
+            display: flex; height: 100vh; background-color: var(--bg-main); color: var(--text-main);
+            transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease; overflow: hidden;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+        .sidebar {
+            width: 72px; background-color: var(--bg-sidebar); display: flex; flex-direction: column; align-items: center; padding: 12px 0; border-right: 1px solid var(--border-color); overflow-y: auto; gap: 12px; flex-shrink: 0; transition: background-color 0.4s ease, border-color 0.4s ease; animation: slideInLeft 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .server-icon {
+            width: 48px; height: 48px; min-height: 48px; border-radius: 50%; background-color: var(--bg-main); display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; font-size: 1.2em; font-weight: 400; overflow: hidden; color: var(--text-main); animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+        }
+        .server-icon.animate-pop { animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+        .server-icon:hover { border-radius: 16px; background-color: var(--btn-bg); color: var(--btn-text); transform: scale(1.05) translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .server-icon.active { border-radius: 16px; background-color: var(--btn-bg); color: var(--btn-text); transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .server-icon.active::before { content: ''; position: absolute; left: -20px; top: 50%; transform: translateY(-50%); width: 8px; height: 32px; background-color: var(--btn-bg); border-radius: 4px; animation: slideInIndicator 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .server-icon img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+        .server-icon:hover img { transform: scale(1.1); }
+        .server-add-btn { background-color: transparent; color: var(--btn-bg); border: 1px dashed var(--btn-bg); }
+        .server-add-btn:hover { background-color: var(--btn-bg); color: var(--btn-text); border-style: solid; transform: rotate(90deg); }
+        .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 300px; }
+        .header { height: 56px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0; transition: border-color 0.4s ease; animation: slideDown 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        .message { display: flex; gap: 12px; position: relative; padding: 8px 12px; border-radius: 12px; transition: background-color 0.2s ease, transform 0.2s ease; animation: slideUpFade 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+        .message:hover { background-color: var(--input-bg); transform: translateX(4px); }
+        .user-icon { width: 40px; height: 40px; border-radius: 50%; background-color: var(--bg-sidebar); object-fit: cover; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .message:hover .user-icon { transform: scale(1.1); }
+        .message-content { flex: 1; min-width: 0; }
+        .user-name { font-weight: 400; font-size: 0.9em; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .msg-time { font-size: 0.75em; color: var(--text-sub); font-weight: 300; opacity: 0; transition: opacity 0.2s ease; }
+        .message:hover .msg-time { opacity: 1; }
+        .text { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .attached-media { max-width: 300px; max-height: 300px; border-radius: 12px; margin-top: 8px; display: block; object-fit: contain; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .attached-media:hover { transform: scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .attached-audio { margin-top: 8px; display: block; outline: none; max-width: 100%; }
+        .attached-file-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--input-bg); border-radius: 8px; color: var(--text-main); text-decoration: none; margin-top: 8px; border: 1px solid var(--border-color); transition: background-color 0.2s; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+        .attached-file-link:hover { background-color: var(--border-color); }
+        .attached-file-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .input-area { padding: 0 16px 16px 16px; display: flex; flex-direction: column; position: relative; animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+        .file-preview-container { display: none; padding: 12px; background-color: var(--input-bg); border-radius: 12px 12px 0 0; border: 1px solid var(--border-color); border-bottom: none; animation: slideUpFade 0.3s ease forwards; }
+        .file-preview-wrapper { position: relative; display: inline-block; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 100%; }
+        .preview-media { max-height: 150px; max-width: 100%; border-radius: 8px; }
+        .remove-file-btn { position: absolute; top: -8px; right: -8px; background: var(--danger); color: white; border-radius: 50%; cursor: pointer; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s; z-index: 2; }
+        .remove-file-btn:hover { transform: scale(1.2) rotate(90deg); background-color: #b91c1c; }
+        .input-box { display: flex; background-color: var(--input-bg); border-radius: 9999px; padding: 8px 20px; align-items: center; gap: 12px; border: 1px solid var(--border-color); transition: border-color 0.3s ease, box-shadow 0.3s ease, border-radius 0.3s ease; }
+        .input-box:focus-within { border-color: var(--btn-bg); box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2); }
+        .input-box.with-preview { border-radius: 0 0 24px 24px; }
+        input[type="text"] { flex: 1; background: transparent; border: none; color: var(--text-main); font-family: inherit; font-size: 1em; outline: none; }
+        .icon-button { cursor: pointer; color: var(--text-sub); user-select: none; transition: color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .icon-button:hover { color: var(--text-main); transform: scale(1.15) translateY(-1px); }
+        .icon-button:active { transform: scale(0.95); }
+        .icon-button.danger:hover { color: var(--danger); }
+        .sending-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay); display: none; justify-content: center; align-items: center; border-radius: 24px; z-index: 5; color: var(--btn-bg); font-weight: 400; backdrop-filter: blur(2px); animation: fadeIn 0.2s ease forwards; }
+        .user-profile-panel { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; padding: 8px 12px; border-radius: 12px; cursor: pointer; transition: background-color 0.2s, transform 0.2s; margin-right: -12px; }
+        .user-profile-panel:hover { background-color: var(--input-bg); transform: translateX(-4px); }
+        .profile-my-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .user-profile-panel:hover .profile-my-icon { transform: scale(1.1) rotate(5deg); }
+        .profile-my-name { font-size: 0.9em; color: var(--text-sub); transition: color 0.2s; }
+        .user-profile-panel:hover .profile-my-name { color: var(--text-main); }
+        .logout-btn-wrap { padding-left: 8px; border-left: 1px solid var(--border-color); display: flex; align-items: center; }
+        .members-area { width: 240px; background-color: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; flex-shrink: 0; transition: background-color 0.4s ease, border-color 0.4s ease; animation: slideInRight 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .member-category { font-size: 0.8em; font-weight: 400; color: var(--text-sub); margin-bottom: 8px; margin-top: 16px; animation: fadeIn 0.5s ease backwards; }
+        .member-category:first-child { margin-top: 0; }
+        .member-item { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; transition: background-color 0.2s ease, transform 0.2s ease; cursor: default; animation: slideLeftFade 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+        .member-item:hover { background-color: var(--input-bg); transform: translateX(-4px); }
+        .member-item.offline { opacity: 0.6; filter: grayscale(50%); transition: all 0.3s ease; }
+        .member-item.offline:hover { opacity: 0.9; filter: grayscale(0%); }
+        .member-icon-wrapper { position: relative; }
+        .member-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; transition: transform 0.3s ease; }
+        .member-item:hover .member-icon { transform: scale(1.1); }
+        .status-dot { position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg-sidebar); transition: border-color 0.4s ease; }
+        .status-online { background-color: var(--online); animation: pulseOnline 2s infinite; }
+        .status-offline { background-color: var(--offline); }
+        .member-name { font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; transition: color 0.2s ease;}
+        .member-item:hover .member-name { color: var(--text-main); }
+        .owner-crown { color: #eab308; font-size: 1.2em; display: flex; align-items: center; animation: float 3s ease-in-out infinite; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--overlay); display: none; backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease, visibility 0.3s; visibility: hidden; }
+        .modal-overlay.show { display: flex; opacity: 1; visibility: visible; }
+        .modal-content { background-color: var(--bg-main); padding: 32px; border-radius: 24px; width: 320px; max-width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 16px; position: relative; transform: scale(0.9) translateY(20px); opacity: 0; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal-overlay.show .modal-content { transform: scale(1) translateY(0); opacity: 1; }
+        #login-modal { z-index: 1500; }
+        #alert-modal { z-index: 2000; }
+        .modal-title { margin: 0; font-weight: 400; font-size: 1.2em; text-align: center; }
+        .modal-input { width: 100%; padding: 12px 16px; border-radius: 9999px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); box-sizing: border-box; outline: none; font-family: inherit; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        .modal-input:focus { border-color: var(--btn-bg); box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.15); }
+        .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 9999px; cursor: pointer; font-family: inherit; font-size: 1em; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; overflow: hidden; }
+        .modal-btn::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255,255,255,0.2); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.3s ease, height 0.3s ease; }
+        .modal-btn:active::after { width: 200px; height: 200px; opacity: 0; transition: 0s; }
+        .modal-btn.primary { background-color: var(--btn-bg); color: var(--btn-text); }
+        .modal-btn.primary:hover { background-color: #3b76e2; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(66,133,244,0.3); }
+        .modal-btn.primary:active { transform: translateY(0); }
+        .modal-btn.secondary { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .modal-btn.secondary:hover { background-color: var(--input-bg); transform: translateY(-2px); }
+        .icon-upload { width: 80px; height: 80px; border-radius: 50%; background-color: var(--input-bg); border: 2px dashed var(--border-color); margin: 0 auto; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s ease; }
+        .icon-upload img { width: 100%; height: 100%; object-fit: cover; display: none; transition: transform 0.3s ease; }
+        .icon-upload:hover { border-color: var(--btn-bg); transform: scale(1.05); }
+        .icon-upload:hover img { transform: scale(1.1); }
+        .icon-upload:hover .material-symbols-outlined { color: var(--btn-bg); transform: scale(1.2); }
+        .icon-upload .material-symbols-outlined { transition: all 0.3s ease; color: var(--text-sub); }
+        .divider-text { text-align:center; font-size:0.8em; color:var(--text-sub); border-bottom: 1px solid var(--border-color); line-height: 0.1em; margin: 10px 0; }
+        .divider-text span { background:var(--bg-main); padding:0 10px; transition: background-color 0.4s ease; }
+        .id-badge { font-size: 0.7em; color: var(--text-sub); background: var(--input-bg); padding: 2px 8px; border-radius: 12px; cursor: pointer; transition: all 0.2s; margin-left: 12px; border: 1px solid var(--border-color); user-select: none; }
+        .id-badge:hover { background: var(--border-color); transform: translateY(-1px); color: var(--text-main); }
+        .id-badge:active { transform: scale(0.95); }
+        .hidden { display: none !important; }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideLeftFade { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.5); } 70% { transform: scale(1.1); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInIndicator { from { left: -30px; } to { left: -16px; } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-3px); } 100% { transform: translateY(0px); } }
+        @keyframes pulseOnline { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+    </style>
+</head>
+<body>
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">ke2-chat</h2>
+            <input type="email" id="email-input" class="modal-input" placeholder="メールアドレス">
+            <input type="password" id="password-input" class="modal-input" placeholder="パスワード">
+            <button id="email-login-btn" class="modal-btn primary">ログイン</button>
+            <button id="email-signup-btn" class="modal-btn secondary">新規登録</button>
+            <div class="divider-text"><span>または</span></div>
+            <div id="google-button-container" style="display: flex; justify-content: center;"></div>
+        </div>
+    </div>
+
+    <div id="edit-profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">プロフィールを編集</h3>
+            <div class="icon-upload" id="edit-profile-icon-btn" title="アイコンを変更">
+                <span class="material-symbols-outlined" id="edit-profile-icon-placeholder">person</span>
+                <img id="edit-profile-icon-preview" src="">
+                <input type="file" id="edit-profile-icon-input" class="hidden" accept="image/*">
+            </div>
+            <input type="text" id="edit-profile-name" class="modal-input" placeholder="表示名">
+            <div style="display:flex; gap:8px; margin-top: 8px;">
+                <button onclick="hideModal('edit-profile-modal')" class="modal-btn secondary">キャンセル</button>
+                <button id="edit-profile-submit" class="modal-btn primary">保存</button>
+            </div>
+            <div id="profile-saving-overlay" class="sending-overlay" style="border-radius: 24px;">保存中...</div>
+        </div>
+    </div>
+
+    <div id="add-server-modal" class="modal-overlay">
+        <div class="modal-content" style="gap: 20px;">
+            <h3 class="modal-title" style="margin-bottom: 0;">サーバーを追加</h3>
+            <div>
+                <div style="font-size: 0.85em; margin-bottom: 8px; color: var(--text-sub); font-weight: 400;">既存のサーバーに参加</div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="join-public-id" class="modal-input" placeholder="公開IDを入力">
+                    <button id="join-server-btn" class="modal-btn primary" style="width: 80px; padding: 12px 0;">参加</button>
+                </div>
+            </div>
+            <div class="divider-text"><span>または</span></div>
+            <div>
+                <div style="font-size: 0.85em; margin-bottom: 8px; color: var(--text-sub); font-weight: 400;">新しくサーバーを作成</div>
+                <div class="icon-upload" id="new-server-icon-btn" title="アイコンを設定">
+                    <span class="material-symbols-outlined" id="new-server-icon-placeholder">add_photo_alternate</span>
+                    <img id="new-server-icon-preview" src="">
+                    <input type="file" id="new-server-icon-input" class="hidden" accept="image/*">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                    <input type="text" id="new-server-name" class="modal-input" placeholder="サーバー名">
+                    <div style="display:flex; gap:8px; margin-top: 4px;">
+                        <button onclick="hideModal('add-server-modal')" class="modal-btn secondary">閉じる</button>
+                        <button id="create-server-submit" class="modal-btn primary">作成</button>
+                    </div>
+                </div>
+            </div>
+            <div id="server-creating-overlay" class="sending-overlay" style="border-radius: 24px;">処理中...</div>
+        </div>
+    </div>
+
+    <div id="alert-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="alert-title" class="modal-title">確認</h3>
+            <p id="alert-message" style="text-align:center; font-size:0.9em; margin:0; line-height: 1.5;"></p>
+            <input type="text" id="alert-input" class="modal-input hidden" placeholder="">
+            <div style="display:flex; gap:8px;">
+                <button id="alert-cancel-btn" class="modal-btn secondary">キャンセル</button>
+                <button id="alert-ok-btn" class="modal-btn primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar" id="server-list"></div>
+
+    <div class="chat-area">
+        <div class="header">
+            <div style="display:flex; flex-direction:column; justify-content:center;">
+                <div style="display:flex; align-items:center; gap:8px; font-weight: 400; font-size: 1.1em;">
+                    <span class="material-symbols-outlined" style="animation: popIn 0.5s ease backwards; animation-delay: 0.2s;">tag</span>
+                    <span id="current-server-name" style="animation: slideLeftFade 0.5s ease backwards; animation-delay: 0.3s;">読込中...</span>
+                    <span id="current-server-id" class="id-badge" title="クリックしてコピー" style="animation: slideLeftFade 0.5s ease backwards; animation-delay: 0.4s;"></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="delete-server-btn" class="material-symbols-outlined icon-button danger hidden" title="サーバーを削除">delete_forever</span>
+                <span id="theme-toggle" class="material-symbols-outlined icon-button" title="テーマ切替">dark_mode</span>
+            </div>
+        </div>
+        <div id="messages-container" class="messages"></div>
+        <div class="input-area">
+            <div id="file-preview-container" class="file-preview-container">
+                <div class="file-preview-wrapper" id="file-preview-wrapper">
+                    <span id="remove-file-btn" class="material-symbols-outlined remove-file-btn">close</span>
+                </div>
+            </div>
+            <div id="input-box-wrapper" class="input-box">
+                <div id="sending-overlay" class="sending-overlay">
+                    <span class="material-symbols-outlined" style="animation: float 1s infinite; margin-right: 8px;">cloud_upload</span>
+                    送信中...
+                </div>
+                <input type="file" id="file-input" class="hidden">
+                <span id="attach-btn" class="material-symbols-outlined icon-button">add_circle</span>
+                <input type="text" id="message-input" placeholder="メッセージを送信">
+                <span id="send-btn" class="material-symbols-outlined icon-button">send</span>
+            </div>
+            <div id="user-profile-panel" class="user-profile-panel hidden" title="プロフィールを編集">
+                <img id="my-profile-icon" class="profile-my-icon" src="">
+                <span id="my-profile-name" class="profile-my-name"></span>
+                <div class="logout-btn-wrap">
+                    <span id="logout-btn" class="material-symbols-outlined icon-button" title="ログアウト">logout</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="members-area">
+        <div class="member-category" style="animation-delay: 0.1s;">オンライン — <span id="online-count">0</span></div>
+        <div id="online-list"></div>
+        <div class="member-category" style="animation-delay: 0.2s;">オフライン — <span id="offline-count">0</span></div>
+        <div id="offline-list"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, addDoc, onSnapshot, query, orderBy, where, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4SxpL41fFiJOL6OgeHhikJWi4zbRkifw",
+            authDomain: "ke2-chat.firebaseapp.com",
+            projectId: "ke2-chat",
+            storageBucket: "ke2-chat.firebasestorage.app",
+            messagingSenderId: "373997369801",
+            appId: "1:373997369801:web:dc63ade6e302e3c1c9d018"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const WORKER_URL = "https://ke2-chat.keikeiy1026-e69.workers.dev";
+
+        let currentUser = null;
+        let currentSid = null;
+        let selectedFile = null;
+        let serverIconFile = null;
+        let profileIconFile = null;
+        let unsubscribeMessages = null;
+        let unsubscribeMembers = null;
+        let userJoinedServers = [];
+
+        const serverListDiv = document.getElementById('server-list');
+        const onlineList = document.getElementById('online-list');
+        const offlineList = document.getElementById('offline-list');
+        const deleteServerBtn = document.getElementById('delete-server-btn');
+        const myProfileName = document.getElementById('my-profile-name');
+        const myProfileIcon = document.getElementById('my-profile-icon');
+
+        function showModal(modalId) { document.getElementById(modalId).classList.add('show'); }
+        function hideModal(modalId) { document.getElementById(modalId).classList.remove('show'); }
+        window.hideModal = hideModal;
+
+        function customAlert(title, message, isInput = false, placeholder = "") {
+            return new Promise((resolve) => {
+                document.getElementById('alert-title').textContent = title;
+                document.getElementById('alert-message').textContent = message;
+                const input = document.getElementById('alert-input');
+                const cancelBtn = document.getElementById('alert-cancel-btn');
+                const okBtn = document.getElementById('alert-ok-btn');
+                
+                if (isInput) { input.classList.remove('hidden'); input.value = ""; input.placeholder = placeholder; }
+                else { input.classList.add('hidden'); }
+
+                showModal('alert-modal');
+                const cleanUp = () => { hideModal('alert-modal'); cancelBtn.onclick = null; okBtn.onclick = null; };
+                cancelBtn.onclick = () => { cleanUp(); resolve(null); };
+                okBtn.onclick = () => { cleanUp(); resolve(isInput ? input.value : true); };
+            });
+        }
+
+        async function uploadFileToR2(file) {
+            const fileName = encodeURIComponent(Date.now() + "_" + file.name);
+            const uploadUrl = `${WORKER_URL}/${fileName}`;
+            try {
+                const response = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream' } });
+                if (response.ok) return `https://ke2chat-cdn.ke2.jp/${fileName}`;
+                throw new Error();
+            } catch (error) { return null; }
+        }
+
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: "131535510066-um5darfs91egdaseanl0grv0aiqrv2lb.apps.googleusercontent.com",
+                callback: (res) => signInWithCredential(auth, GoogleAuthProvider.credential(res.credential)).catch(e => customAlert("エラー", e.message))
+            });
+            google.accounts.id.renderButton(document.getElementById("google-button-container"), { theme: "outline", size: "large", shape: "pill", width: "100%" });
+        };
+        document.getElementById('email-login-btn').addEventListener('click', () => {
+            document.getElementById('email-login-btn').style.opacity = '0.5';
+            signInWithEmailAndPassword(auth, document.getElementById('email-input').value, document.getElementById('password-input').value)
+                .catch(e => { customAlert("エラー", e.message); document.getElementById('email-login-btn').style.opacity = '1';});
+        });
+        document.getElementById('email-signup-btn').addEventListener('click', () => {
+             document.getElementById('email-signup-btn').style.opacity = '0.5';
+             createUserWithEmailAndPassword(auth, document.getElementById('email-input').value, document.getElementById('password-input').value)
+                .catch(e => { customAlert("エラー", e.message); document.getElementById('email-signup-btn').style.opacity = '1'; });
+        });
+        document.getElementById('logout-btn').addEventListener('click', (e) => { e.stopPropagation(); setUserOffline(); signOut(auth); });
+
+        async function setUserOnline() {
+            if(!currentUser) return;
+            const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '匿名');
+            await setDoc(doc(db, "users", currentUser.uid), {
+                status: "online", lastActive: serverTimestamp(), displayName: displayName, photoURL: currentUser.photoURL || null
+            }, { merge: true });
+        }
+        function setUserOffline() {
+            if(!currentUser) return;
+            updateDoc(doc(db, "users", currentUser.uid), { status: "offline" }).catch(()=>{});
+        }
+        window.addEventListener('beforeunload', setUserOffline);
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible') setUserOnline();
+            else setUserOffline();
+        });
+
+        document.getElementById('theme-toggle').addEventListener('click', function() {
+            const htmlEl = document.documentElement;
+            htmlEl.classList.toggle('dark-mode');
+            localStorage.setItem('theme', htmlEl.classList.contains('dark-mode') ? 'dark' : 'light');
+            this.style.transform = 'rotate(180deg)';
+            setTimeout(() => this.style.transform = 'none', 300);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                hideModal('login-modal');
+                document.getElementById('user-profile-panel').classList.remove('hidden');
+                myProfileName.textContent = user.displayName || (user.email ? user.email.split('@')[0] : '匿名');
+                myProfileIcon.src = user.photoURL || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZWVlIi8+PC9zdmc+';
+                await setUserOnline();
+                await initializeUserAndServer();
+            } else {
+                currentUser = null;
+                showModal('login-modal');
+                document.getElementById('user-profile-panel').classList.add('hidden');
+                document.getElementById('email-login-btn').style.opacity = '1';
+                document.getElementById('email-signup-btn').style.opacity = '1';
+            }
+        });
+
+        const profileIconInput = document.getElementById('edit-profile-icon-input');
+        const profileIconPreview = document.getElementById('edit-profile-icon-preview');
+        const profileIconPlaceholder = document.getElementById('edit-profile-icon-placeholder');
+        
+        document.getElementById('user-profile-panel').addEventListener('click', () => {
+            if(!currentUser) return;
+            document.getElementById('edit-profile-name').value = myProfileName.textContent;
+            profileIconFile = null; profileIconInput.value = "";
+            if(currentUser.photoURL) {
+                profileIconPreview.src = currentUser.photoURL; profileIconPreview.style.display = 'block'; profileIconPlaceholder.style.display = 'none';
+            } else {
+                profileIconPreview.style.display = 'none'; profileIconPlaceholder.style.display = 'block';
+            }
+            showModal('edit-profile-modal');
+        });
+        document.getElementById('edit-profile-icon-btn').addEventListener('click', () => profileIconInput.click());
+        profileIconInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                profileIconFile = e.target.files[0];
+                const r = new FileReader();
+                r.onload = ev => { profileIconPreview.src = ev.target.result; profileIconPreview.style.display = 'block'; profileIconPlaceholder.style.display = 'none'; };
+                r.readAsDataURL(profileIconFile);
+            }
+        });
+        document.getElementById('edit-profile-submit').addEventListener('click', async () => {
+            const newName = document.getElementById('edit-profile-name').value.trim();
+            if (!newName) return customAlert("エラー", "名前を入力してください。");
+            document.getElementById('profile-saving-overlay').style.display = 'flex';
+            let photoUrl = currentUser.photoURL;
+            if (profileIconFile) {
+                const uploadedUrl = await uploadFileToR2(profileIconFile);
+                if (uploadedUrl) photoUrl = uploadedUrl;
+                else { document.getElementById('profile-saving-overlay').style.display = 'none'; return customAlert("エラー", "アイコンのアップロードに失敗しました"); }
+            }
+            try {
+                await updateProfile(auth.currentUser, { displayName: newName, photoURL: photoUrl });
+                await updateDoc(doc(db, "users", currentUser.uid), { displayName: newName, photoURL: photoUrl });
+                currentUser = auth.currentUser; myProfileName.textContent = newName; if(photoUrl) myProfileIcon.src = photoUrl;
+                hideModal('edit-profile-modal');
+            } catch(e) { customAlert("エラー", "プロフィールの更新に失敗しました。"); }
+            document.getElementById('profile-saving-overlay').style.display = 'none';
+        });
+
+        async function initializeUserAndServer() {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists() || !userSnap.data().joinedServers) {
+                await setDoc(userRef, { joinedServers: ["public_room"] }, { merge: true });
+                userJoinedServers = ["public_room"];
+            } else {
+                userJoinedServers = userSnap.data().joinedServers;
+            }
+            const lastSid = localStorage.getItem('lastSid') || "public_room";
+            const sidToLoad = userJoinedServers.includes(lastSid) ? lastSid : "public_room";
+            await checkAndLoadServer(sidToLoad);
+            renderSidebar();
+        }
+
+        async function checkAndLoadServer(sid) {
+            if (sid === "public_room") {
+                const pSnap = await getDoc(doc(db, "servers", "public_room"));
+                if (!pSnap.exists()) await setDoc(doc(db, "servers", "public_room"), { name: "公開サーバー", publicId: "public_room", ownerUid: "system" });
+            }
+            const serverSnap = await getDoc(doc(db, "servers", sid));
+            if (!serverSnap.exists()) {
+                await customAlert("エラー", "サーバーが存在しません。");
+                switchServer("public_room");
+                return;
+            }
+            const sData = serverSnap.data();
+
+            if (!userJoinedServers.includes(sid)) {
+                await updateDoc(doc(db, "users", currentUser.uid), { joinedServers: arrayUnion(sid) });
+                userJoinedServers.push(sid);
+                renderSidebar();
+            }
+
+            currentSid = sid;
+            const nameEl = document.getElementById('current-server-name');
+            const idEl = document.getElementById('current-server-id');
+            nameEl.textContent = sData.name;
+            
+            if(sData.publicId && sid !== "public_room") {
+                idEl.textContent = `ID: ${sData.publicId}`;
+                idEl.style.display = 'inline-block';
+                idEl.onclick = () => {
+                    navigator.clipboard.writeText(sData.publicId);
+                    customAlert("コピー完了", "公開IDをクリップボードにコピーしました。");
+                };
+            } else {
+                idEl.style.display = 'none';
+            }
+            
+            nameEl.style.animation = 'none'; nameEl.offsetHeight; nameEl.style.animation = 'slideLeftFade 0.4s ease forwards';
+            idEl.style.animation = 'none'; idEl.offsetHeight; idEl.style.animation = 'slideLeftFade 0.4s ease forwards';
+            localStorage.setItem('lastSid', sid);
+            
+            if (sid !== "public_room" && sData.ownerUid === currentUser.uid) {
+                deleteServerBtn.classList.remove('hidden');
+                deleteServerBtn.style.animation = 'popIn 0.3s ease forwards';
+            } else {
+                deleteServerBtn.classList.add('hidden');
+            }
+            loadMessages();
+            loadMembers(sData.ownerUid);
+        }
+
+        window.switchServer = async function(sid) {
+            if (currentSid === sid) return;
+            messagesContainer.style.opacity = '0';
+            setTimeout(async () => {
+                await checkAndLoadServer(sid);
+                renderSidebar();
+                messagesContainer.style.opacity = '1';
+            }, 200);
+        };
+
+        async function renderSidebar() {
+            serverListDiv.innerHTML = '';
+            let delay = 0;
+            for (const sid of userJoinedServers) {
+                const sSnap = await getDoc(doc(db, "servers", sid));
+                if (!sSnap.exists()) continue;
+                const sData = sSnap.data();
+                const div = document.createElement('div');
+                div.className = 'server-icon animate-pop' + (sid === currentSid ? ' active' : '');
+                div.style.animationDelay = `${delay}s`;
+                div.title = sData.name;
+                div.onclick = () => switchServer(sid);
+
+                if (sData.iconUrl) {
+                    const img = document.createElement('img');
+                    img.src = sData.iconUrl; div.appendChild(img);
+                } else {
+                    div.textContent = sData.name.charAt(0);
+                }
+                serverListDiv.appendChild(div);
+                delay += 0.05;
+            }
+
+            const addBtn = document.createElement('div');
+            addBtn.className = 'server-icon server-add-btn animate-pop';
+            addBtn.style.animationDelay = `${delay}s`;
+            addBtn.title = 'サーバーを追加';
+            addBtn.innerHTML = '<span class="material-symbols-outlined">add</span>';
+            addBtn.onclick = () => {
+                document.getElementById('join-public-id').value = '';
+                document.getElementById('new-server-name').value = '';
+                serverIconFile = null;
+                document.getElementById('new-server-icon-input').value = "";
+                document.getElementById('new-server-icon-preview').style.display = 'none';
+                document.getElementById('new-server-icon-placeholder').style.display = 'block';
+                showModal('add-server-modal');
+            };
+            serverListDiv.appendChild(addBtn);
+        }
+
+        deleteServerBtn.addEventListener('click', async () => {
+            if (currentSid === "public_room") return;
+            const res = await customAlert("サーバー削除", "本当にこのサーバーを削除しますか？\n参加者全員が見られなくなり、復元できません。");
+            if (res) {
+                try {
+                    await deleteDoc(doc(db, "servers", currentSid));
+                    await updateDoc(doc(db, "users", currentUser.uid), { joinedServers: arrayRemove(currentSid) });
+                    const index = userJoinedServers.indexOf(currentSid);
+                    if (index > -1) userJoinedServers.splice(index, 1);
+                    await customAlert("完了", "サーバーを削除しました。");
+                    switchServer("public_room");
+                } catch(e) { customAlert("エラー", "サーバーの削除に失敗しました。"); }
+            }
+        });
+
+        document.getElementById('join-server-btn').addEventListener('click', async () => {
+            const publicId = document.getElementById('join-public-id').value.trim();
+            if (!publicId) return customAlert("エラー", "公開IDを入力してください。");
+            document.getElementById('server-creating-overlay').style.display = 'flex';
+            try {
+                const q = query(collection(db, "servers"), where("publicId", "==", publicId));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    document.getElementById('server-creating-overlay').style.display = 'none';
+                    return customAlert("エラー", "指定された公開IDのサーバーは見つかりませんでした。");
+                }
+                const sid = querySnapshot.docs[0].id;
+                if (userJoinedServers.includes(sid)) {
+                    document.getElementById('server-creating-overlay').style.display = 'none';
+                    hideModal('add-server-modal');
+                    switchServer(sid);
+                    return;
+                }
+                await updateDoc(doc(db, "users", currentUser.uid), { joinedServers: arrayUnion(sid) });
+                userJoinedServers.push(sid);
+                hideModal('add-server-modal');
+                switchServer(sid);
+            } catch(e) { customAlert("エラー", "参加処理に失敗しました。"); }
+            document.getElementById('server-creating-overlay').style.display = 'none';
+        });
+
+        const iconInput = document.getElementById('new-server-icon-input');
+        const iconPreview = document.getElementById('new-server-icon-preview');
+        const iconPlaceholder = document.getElementById('new-server-icon-placeholder');
+        
+        document.getElementById('new-server-icon-btn').addEventListener('click', () => iconInput.click());
+        iconInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                serverIconFile = e.target.files[0];
+                const r = new FileReader();
+                r.onload = ev => {
+                    iconPreview.src = ev.target.result; iconPreview.style.display = 'block'; iconPlaceholder.style.display = 'none';
+                    iconPreview.style.animation = 'none'; iconPreview.offsetHeight; iconPreview.style.animation = 'popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                };
+                r.readAsDataURL(serverIconFile);
+            }
+        });
+
+        document.getElementById('create-server-submit').addEventListener('click', async () => {
+            const name = document.getElementById('new-server-name').value.trim();
+            if (!name) return customAlert("エラー", "サーバー名を入力してください。");
+            document.getElementById('server-creating-overlay').style.display = 'flex';
+            
+            const publicId = Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+            let iconUrl = null;
+            if (serverIconFile) {
+                iconUrl = await uploadFileToR2(serverIconFile);
+                if (!iconUrl) {
+                    document.getElementById('server-creating-overlay').style.display = 'none';
+                    return customAlert("エラー", "アイコンのアップロードに失敗しました");
+                }
+            }
+            try {
+                const docRef = await addDoc(collection(db, "servers"), { name, publicId, ownerUid: currentUser.uid, iconUrl: iconUrl });
+                await updateDoc(doc(db, "users", currentUser.uid), { joinedServers: arrayUnion(docRef.id) });
+                userJoinedServers.push(docRef.id);
+                hideModal('add-server-modal');
+                switchServer(docRef.id);
+            } catch(e) { customAlert("エラー", "作成に失敗しました。"); }
+            document.getElementById('server-creating-overlay').style.display = 'none';
+        });
+
+        function loadMembers(ownerUid) {
+            if (unsubscribeMembers) unsubscribeMembers();
+            const q = query(collection(db, "users"), where("joinedServers", "array-contains", currentSid));
+            unsubscribeMembers = onSnapshot(q, (snapshot) => {
+                onlineList.innerHTML = ''; offlineList.innerHTML = '';
+                let onCount = 0, offCount = 0, delayOn = 0.1, delayOff = 0.1;
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    const isOwner = d.id === ownerUid;
+                    const isOnline = data.status === 'online';
+                    const item = document.createElement('div');
+                    item.className = 'member-item' + (isOnline ? '' : ' offline');
+                    item.style.animationDelay = `${isOnline ? delayOn : delayOff}s`;
+                    const iconWrap = document.createElement('div');
+                    iconWrap.className = 'member-icon-wrapper';
+                    const icon = document.createElement('img');
+                    icon.className = 'member-icon';
+                    icon.src = data.photoURL || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZWVlIi8+PC9zdmc+';
+                    const dot = document.createElement('div');
+                    dot.className = 'status-dot ' + (isOnline ? 'status-online' : 'status-offline');
+                    iconWrap.appendChild(icon); iconWrap.appendChild(dot);
+                    const nameSpan = document.createElement('div');
+                    nameSpan.className = 'member-name';
+                    nameSpan.textContent = data.displayName || '匿名';
+                    item.appendChild(iconWrap); item.appendChild(nameSpan);
+                    if (isOwner) {
+                        const crown = document.createElement('span');
+                        crown.className = 'material-symbols-outlined owner-crown';
+                        crown.textContent = 'star'; crown.title = "サーバー主";
+                        item.appendChild(crown);
+                    }
+                    if (isOnline) { onlineList.appendChild(item); onCount++; delayOn+=0.05; }
+                    else { offlineList.appendChild(item); offCount++; delayOff+=0.05; }
+                });
+                document.getElementById('online-count').textContent = onCount; document.getElementById('offline-count').textContent = offCount;
+            });
+        }
+
+        const messageInput = document.getElementById('message-input');
+        const fileInput = document.getElementById('file-input');
+        const filePreviewContainer = document.getElementById('file-preview-container');
+        const filePreviewWrapper = document.getElementById('file-preview-wrapper');
+        const removeFileBtn = document.getElementById('remove-file-btn');
+        const inputBoxWrapper = document.getElementById('input-box-wrapper');
+        const sendingOverlay = document.getElementById('sending-overlay');
+        const messagesContainer = document.getElementById('messages-container');
+
+        document.getElementById('attach-btn').addEventListener('click', () => fileInput.click());
+        removeFileBtn.addEventListener('click', () => {
+            selectedFile = null; fileInput.value = "";
+            filePreviewContainer.style.display = 'none'; inputBoxWrapper.classList.remove('with-preview');
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    Array.from(filePreviewWrapper.children).forEach(child => { if (child !== removeFileBtn) filePreviewWrapper.removeChild(child); });
+                    if (selectedFile.type.startsWith('image/')) {
+                        const img = document.createElement('img'); img.className = 'preview-media'; img.src = ev.target.result; filePreviewWrapper.insertBefore(img, removeFileBtn);
+                    } else if (selectedFile.type.startsWith('video/')) {
+                        const vid = document.createElement('video'); vid.className = 'preview-media'; vid.src = ev.target.result; vid.controls = true; filePreviewWrapper.insertBefore(vid, removeFileBtn);
+                    } else if (selectedFile.type.startsWith('audio/')) {
+                        const aud = document.createElement('audio'); aud.src = ev.target.result; aud.controls = true; aud.style.marginTop = '12px'; filePreviewWrapper.insertBefore(aud, removeFileBtn);
+                    } else {
+                        const docPreview = document.createElement('div'); docPreview.style.padding = '16px'; docPreview.style.textAlign = 'center'; docPreview.style.color = 'var(--text-main)';
+                        docPreview.innerHTML = `<span class="material-symbols-outlined" style="font-size:32px;">insert_drive_file</span><div style="font-size:0.9em; margin-top:4px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${selectedFile.name}</div>`;
+                        filePreviewWrapper.insertBefore(docPreview, removeFileBtn);
+                    }
+                    filePreviewContainer.style.display = 'block'; inputBoxWrapper.classList.add('with-preview');
+                };
+                r.readAsDataURL(selectedFile);
+            }
+        });
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text && !selectedFile) {
+                const btn = document.getElementById('send-btn');
+                btn.style.transform = 'translateX(5px)';
+                setTimeout(()=>btn.style.transform = 'translateX(-5px)', 50);
+                setTimeout(()=>btn.style.transform = 'translateX(5px)', 100);
+                setTimeout(()=>btn.style.transform = 'none', 150);
+                return;
+            }
+            sendingOverlay.style.display = 'flex';
+            const file = selectedFile; selectedFile = null; messageInput.value = ''; fileInput.value = "";
+            filePreviewContainer.style.display = 'none'; inputBoxWrapper.classList.remove('with-preview');
+
+            let fileUrl = null, fileType = null, fileName = null;
+            if (file) {
+                fileUrl = await uploadFileToR2(file);
+                if (!fileUrl) { sendingOverlay.style.display = 'none'; return customAlert("エラー", "ファイルのアップロードに失敗しました"); }
+                fileType = file.type || 'application/octet-stream'; fileName = file.name;
+            }
+            try {
+                let displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '匿名');
+                await addDoc(collection(db, "servers", currentSid, "messages"), {
+                    text, fileUrl, fileType, fileName, uid: currentUser.uid, displayName, photoURL: currentUser.photoURL, createdAt: serverTimestamp()
+                });
+            } catch (error) { customAlert("エラー", "送信に失敗しました"); }
+            sendingOverlay.style.display = 'none';
+        }
+
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        function loadMessages() {
+            if (unsubscribeMessages) unsubscribeMessages();
+            const q = query(collection(db, "servers", currentSid, "messages"), orderBy("createdAt", "asc"));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                const wasAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 100;
+                messagesContainer.innerHTML = '';
+                let delay = 0;
+                snapshot.forEach((doc) => {
+                    const msgDiv = createMessageElement(doc.id, doc.data());
+                    if (snapshot.docChanges().length > 1) { msgDiv.style.animationDelay = `${delay}s`; delay += 0.05; }
+                    messagesContainer.appendChild(msgDiv);
+                });
+                if (wasAtBottom || snapshot.docChanges().length > 1) {
+                    setTimeout(() => { messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' }); }, 50);
+                }
+            });
+        }
+
+        function createMessageElement(msgId, data) {
+            const msgDiv = document.createElement('div'); msgDiv.className = 'message';
+            const iconImg = document.createElement('img'); iconImg.className = 'user-icon'; iconImg.src = data.photoURL || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZWVlIi8+PC9zdmc+';
+            const contentDiv = document.createElement('div'); contentDiv.className = 'message-content';
+            const nameDiv = document.createElement('div'); nameDiv.className = 'user-name';
+            const timeStr = data.createdAt ? new Date(data.createdAt.toMillis()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '送信中...';
+            nameDiv.innerHTML = `<span>${data.displayName}</span> <span class="msg-time">${timeStr}</span>`;
+            const textDiv = document.createElement('div'); textDiv.className = 'text'; textDiv.textContent = data.text || '';
+            contentDiv.appendChild(nameDiv); if (data.text) contentDiv.appendChild(textDiv);
+            const url = data.fileUrl || data.imageUrl;
+            if (url) {
+                const type = data.fileType || (data.imageUrl ? 'image/jpeg' : '');
+                const name = data.fileName || '添付ファイル';
+                if (type.startsWith('image/')) {
+                    const img = document.createElement('img'); img.className = 'attached-media'; img.src = url; contentDiv.appendChild(img);
+                } else if (type.startsWith('video/')) {
+                    const vid = document.createElement('video'); vid.className = 'attached-media'; vid.src = url; vid.controls = true; contentDiv.appendChild(vid);
+                } else if (type.startsWith('audio/')) {
+                    const aud = document.createElement('audio'); aud.className = 'attached-audio'; aud.src = url; aud.controls = true; contentDiv.appendChild(aud);
+                } else {
+                    const link = document.createElement('a'); link.className = 'attached-file-link'; link.href = url; link.target = '_blank';
+                    link.innerHTML = `<span class="material-symbols-outlined">insert_drive_file</span><span class="attached-file-name">${name}</span>`;
+                    contentDiv.appendChild(link);
+                }
+            }
+            msgDiv.appendChild(iconImg); msgDiv.appendChild(contentDiv); return msgDiv;
+        }
+    </script>
+</body>
+</html>

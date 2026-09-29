@@ -1,0 +1,292 @@
+/* 全体設定 */
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #f0f4f8; /* 薄いブルーグレー */
+    margin: 0;
+    padding: 0;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ヘッダー */
+header {
+    background-color: #0067c0; /* コンビニ風ブルー */
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* メインコンテンツエリア */
+main {
+    flex: 1;
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 共通ボックススタイル */
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* 大きなボタン */
+.menu-btn {
+    display: block;
+    width: 100%;
+    padding: 20px;
+    margin: 10px 0;
+    background-color: white;
+    border: 2px solid #0067c0;
+    border-radius: 8px;
+    color: #0067c0;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.menu-btn:hover {
+    background-color: #eef6ff;
+}
+
+.menu-btn.primary {
+    background-color: #0067c0;
+    color: white;
+}
+
+.menu-btn.primary:hover {
+    background-color: #00509e;
+}
+
+/* 入力フォーム */
+input[type="text"] {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.5rem;
+    text-align: center;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    letter-spacing: 2px;
+}
+
+/* 戻るボタンなど */
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #666;
+    text-decoration: none;
+}
+
+/* 結果画像 */
+.preview-img {
+    max-width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+/* --- index.html を豪華にするための追加スタイル --- */
+
+/* メイン部分の強調 */
+.hero-section {
+    border-top: 5px solid #0067c0; /* アクセントカラー */
+    padding-bottom: 40px;
+}
+
+.hero-text {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+/* 入力欄とボタンを近づける */
+.input-group {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.input-group input {
+    margin-bottom: 10px;
+}
+
+/* 使い方ステップ表示 */
+.steps-container {
+    margin-top: 30px;
+    text-align: center;
+    width: 100%;
+    color: #555;
+}
+
+.steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.step-item {
+    background: white;
+    padding: 15px 10px;
+    border-radius: 8px;
+    width: 80px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.step-num {
+    display: block;
+    background: #0067c0;
+    color: white;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    margin: 0 auto 5px auto;
+}
+
+.step-arrow {
+    color: #ccc;
+    font-weight: bold;
+}
+
+/* フッター */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 0.8rem;
+    margin-top: auto; /* 画面下部に押し出し */
+}
+
+/* --- 既存のコードの下に追加してください --- */
+
+/* 自作モーダル（ポップアップ）のスタイル */
+.modal-overlay {
+    display: none; /* 最初は隠しておく */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* 半透明の黒背景 */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-box {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 90%;
+    width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-box {
+    transform: translateY(0);
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.modal-message {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.modal-btn {
+    background-color: #0067c0;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.modal-btn:hover {
+    background-color: #00509e;
+}
+
+/* エラー用（赤くしたい時など） */
+.modal-btn.error {
+    background-color: #d9534f;
+}
+
+/* style.css の .menu-btn 部分 */
+
+.menu-btn {
+    display: block;
+    width: 100%;
+    
+    /* ▼▼ これを追加！ ▼▼ */
+    box-sizing: border-box; 
+    
+    padding: 20px;
+    margin: 10px 0;
+    background-color: white;
+    border: 2px solid #0067c0;
+    border-radius: 8px;
+    color: #0067c0;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.2s;
+    text-align: center; /* 文字を中央揃えに */
+    cursor: pointer;    /* カーソルを指マークに */
+}
+
+/* IDの表示をカッコよく見やすくする */
+.id-badge {
+    background: #eef6ff;           /* 薄い青背景 */
+    color: #0067c0;                /* 文字は濃い青 */
+    padding: 4px 10px;
+    border-radius: 4px;
+    
+    /* ▼▼ ここがポイント ▼▼ */
+    font-family: "Consolas", "Monaco", "Courier New", monospace; /* 等幅フォント（コード用） */
+    font-size: 1.1rem;             /* 文字を少し大きく */
+    font-weight: bold;             /* 太字 */
+    letter-spacing: 2px;           /* 文字の間隔を空ける */
+    border: 1px solid #cce5ff;
+}

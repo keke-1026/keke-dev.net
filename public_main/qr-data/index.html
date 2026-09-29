@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Speed QR Sender (Limit Break)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-family: inherit;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+        }
+        .settings-box {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            text-align: right;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-family: inherit;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:hover { background-color: #1557b0; }
+        button.stop-btn {
+            background-color: #d32f2f;
+        }
+        button.stop-btn:hover { background-color: #b71c1c; }
+        
+        #qr-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 320px;
+            margin-top: 20px;
+        }
+        #status {
+            font-weight: bold;
+            font-size: 20px;
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+    </style>
+    <!-- QRCode.js の読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>送信機 (Limit Break Sender)</h1>
+        <textarea id="inputText" placeholder="ここに送信したい長文を入力してください..."></textarea>
+        
+        <div class="settings-box">
+            <div>
+                <label for="fpsInput" style="font-weight: bold;">FPS: </label>
+                <input type="number" id="fpsInput" min="1" value="10">
+            </div>
+            <div>
+                <label for="chunkInput" style="font-weight: bold;">1枚の文字数: </label>
+                <input type="number" id="chunkInput" min="50" max="1000" value="300">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button id="startBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="white"><path d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/></svg>
+                送信開始
+            </button>
+            <button id="stopBtn" class="stop-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="white"><path d="M320-640h320v320H320v-320ZM480-80q-83 0-156-31.5T197-197q-54-54-84.5-127T80-480q0-83 31.5-156T197-763q54-54 127-84.5T480-800q83 0 156 31.5T763-763q54 54 84.5 127T800-480q0 83-31.5 156T763-197q-54 54-127 84.5T480-80Z"/></svg>
+                停止・消去
+            </button>
+        </div>
+
+        <div id="status">待機中</div>
+        <div id="qr-container"></div>
+    </div>
+
+    <script>
+        let timer = null;
+        let qrGenerator = null;
+        
+        let chunks = [];
+        let total = 0;
+        let currentIndex = 0;
+        let isSending = false;
+
+        const fpsInput = document.getElementById('fpsInput');
+        const chunkInput = document.getElementById('chunkInput');
+        const statusDiv = document.getElementById('status');
+        const qrContainer = document.getElementById('qr-container');
+
+        // 停止・消去を実行する関数
+        function stopAndClear() {
+            if (timer) clearInterval(timer);
+            timer = null;
+            isSending = false;
+            qrContainer.innerHTML = ''; // QRコードを完全に消去
+            statusDiv.innerText = '停止しました (消去完了)';
+            statusDiv.style.color = '#333333';
+        }
+
+        // 送信ループ
+        function startLoop() {
+            if (timer) clearInterval(timer);
+            
+            let currentFps = parseInt(fpsInput.value, 10);
+            if (isNaN(currentFps) || currentFps < 1) currentFps = 10;
+            
+            timer = setInterval(() => {
+                // 全フレームを回り切ったら自動停止＆消去
+                if (currentIndex >= total) {
+                    stopAndClear();
+                    statusDiv.innerText = '全データの送信が完了しました (自動消去)';
+                    statusDiv.style.color = '#1a73e8';
+                    return;
+                }
+
+                const payload = `${total}/${currentIndex}:${chunks[currentIndex]}`;
+                qrGenerator.clear();
+                qrGenerator.makeCode(payload);
+                
+                statusDiv.innerText = `送信中... (${currentIndex + 1}/${total}) - ${currentFps}fps`;
+                statusDiv.style.color = '#d32f2f';
+                
+                currentIndex++;
+            }, 1000 / currentFps);
+        }
+
+        // 送信開始ボタン
+        document.getElementById('startBtn').addEventListener('click', () => {
+            const text = document.getElementById('inputText').value;
+            if (!text) {
+                alert('テキストを入力してください');
+                return;
+            }
+
+            qrContainer.innerHTML = '';
+            
+            // 限界まで文字を詰め込むため、大きめのサイズ（300x300）で生成
+            qrGenerator = new QRCode(qrContainer, {
+                width: 300,
+                height: 300,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+
+            const chunkSize = parseInt(chunkInput.value, 10) || 300;
+
+            // データを分割
+            chunks = [];
+            for (let i = 0; i < text.length; i += chunkSize) {
+                chunks.push(text.substring(i, i + chunkSize));
+            }
+            total = chunks.length;
+            currentIndex = 0;
+            isSending = true;
+            
+            startLoop();
+        });
+
+        // 停止ボタン
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            stopAndClear();
+        });
+    </script>
+</body>
+</html>

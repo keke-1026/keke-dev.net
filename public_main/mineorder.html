@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SHOP</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    /* 数量ボタンのアクティブエフェクト */
+    .qty-btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="text-gray-800 antialiased relative">
+
+  <div id="tosView" class="flex flex-col min-h-screen w-full px-6 py-10 sm:max-w-md sm:mx-auto justify-center">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 w-full flex flex-col gap-6">
+      <div class="flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-900"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      </div>
+      <h2 class="text-xl font-bold text-gray-900 text-center tracking-wider">利用規約</h2>
+      
+      <div class="bg-gray-50 rounded-2xl p-5 h-48 overflow-y-auto text-sm text-gray-600 space-y-3 font-medium">
+        <p>1. 本ショップでの注文は、サーバー内でのアイテム引き渡しを前提とします。</p>
+        <p>2. 注文完了後、指定のチェスト等に代金をお支払いください。</p>
+        <p>3. 虚偽の注文や、代金の未払いなどの迷惑行為があった場合、今後の利用をお断りする場合があります。</p>
+        <p>4. 在庫切れの場合、注文がキャンセルされることがあります。</p>
+      </div>
+
+      <button id="agreeTosBtn" type="button" class="w-full bg-gray-900 text-white font-bold py-4 rounded-3xl hover:bg-gray-800 transition-all">同意して進む</button>
+    </div>
+  </div>
+
+  <div id="shopView" class="hidden flex-col min-h-screen w-full px-6 py-10 sm:max-w-md sm:mx-auto">
+    
+    <div class="text-center mb-8">
+      <div class="flex justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-900">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-widest">SHOP</h1>
+    </div>
+
+    <div class="flex gap-2 mb-8 bg-gray-50 p-1 rounded-2xl">
+      <button id="tabShop" class="flex-1 py-3 bg-white text-gray-900 font-bold rounded-xl shadow-sm transition-all text-sm">注文する</button>
+      <button id="tabSearch" class="flex-1 py-3 text-gray-500 font-bold rounded-xl transition-all text-sm">注文検索</button>
+    </div>
+
+    <form id="orderForm" class="flex-1 flex flex-col space-y-8">
+      <div>
+        <label for="playerSelect" class="block text-sm font-bold text-gray-900 mb-3 ml-1">名前 (選択)</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <select id="playerSelect" required class="w-full pl-14 pr-5 py-4 bg-gray-50 border-none rounded-3xl focus:ring-2 focus:ring-gray-200 outline-none transition-all text-base appearance-none font-bold text-gray-900">
+            <option value="" disabled selected>名前を選択してください</option>
+            </select>
+          <div class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1">
+        <div class="flex items-center justify-between mb-3 ml-1">
+          <label class="text-sm font-bold text-gray-900">商品</label>
+          <span class="text-xs text-green-500 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>リアルタイム在庫</span>
+        </div>
+        <div class="space-y-3" id="itemGrid">
+          <div class="text-center text-sm text-gray-400 py-4">読み込み中...</div>
+        </div>
+      </div>
+
+      <div class="pt-2 pb-6">
+        <button type="submit" id="submitBtn" class="w-full bg-gray-900 text-white font-bold py-4 rounded-3xl hover:bg-gray-800 transition-all flex justify-center items-center gap-2 shadow-lg shadow-gray-200">
+          <span>注文を確認する</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+        <div id="messageArea" class="hidden text-center text-sm font-bold mt-6 p-4 rounded-2xl break-words"></div>
+      </div>
+    </form>
+
+    <div id="searchSection" class="hidden flex-1 flex flex-col space-y-6">
+      <div>
+        <label class="block text-sm font-bold text-gray-900 mb-3 ml-1">注文IDで検索</label>
+        <div class="relative">
+          <input type="text" id="searchOrderId" placeholder="IDを入力" class="w-full pl-5 pr-14 py-4 bg-gray-50 border-none rounded-3xl focus:ring-2 focus:ring-gray-200 outline-none transition-all text-base font-mono">
+          <button id="searchBtn" type="button" class="absolute inset-y-2 right-2 px-4 bg-gray-900 text-white rounded-2xl font-bold transition-transform active:scale-95 flex items-center justify-center">
+            検索
+          </button>
+        </div>
+      </div>
+      <div id="searchResultArea" class="hidden">
+        </div>
+    </div>
+  </div>
+
+  <div id="adminView" class="hidden flex flex-col min-h-screen w-full bg-gray-50">
+    <div class="bg-white px-6 py-6 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+      <h1 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-900"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        管理画面
+      </h1>
+      <span class="text-xs font-bold text-green-500 bg-green-50 px-3 py-1.5 rounded-full flex items-center gap-1">
+        <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> リアルタイム同期中
+      </span>
+    </div>
+
+    <div class="flex-1 p-6 max-w-3xl w-full mx-auto">
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <button id="tabAdminOrders" class="shrink-0 px-6 py-3 bg-gray-900 text-white font-bold rounded-2xl transition-colors">注文</button>
+        <button id="tabAdminItems" class="shrink-0 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors">商品</button>
+        <button id="tabAdminUsers" class="shrink-0 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors">ユーザー</button>
+      </div>
+
+      <div id="adminOrdersSection"><div id="adminList" class="space-y-4 pb-20"></div></div>
+
+      <div id="adminItemsSection" class="hidden pb-20">
+        <button id="openAddItemModalBtn" class="w-full mb-6 py-4 bg-white border-2 border-dashed border-gray-300 text-gray-600 font-bold rounded-3xl hover:bg-gray-50 flex justify-center items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          新規商品を追加
+        </button>
+        <div id="adminItemList" class="space-y-4"></div>
+      </div>
+
+      <div id="adminUsersSection" class="hidden pb-20">
+        <form id="addUserForm" class="flex gap-2 mb-6">
+          <input type="text" id="newUserName" required placeholder="追加するユーザー名" class="flex-1 px-5 py-4 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-gray-200 font-bold text-sm">
+          <button type="submit" class="px-6 bg-gray-900 text-white font-bold rounded-2xl">追加</button>
+        </form>
+        <div id="adminUserList" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-6 transition-opacity opacity-0">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="confirmModalInner">
+      <h3 class="text-lg font-bold text-gray-900 text-center mb-4">注文内容の確認</h3>
+      <div class="text-sm text-gray-700 mb-8 bg-gray-50 p-4 rounded-2xl" id="confirmItemList"></div>
+      <div class="flex gap-3">
+        <button type="button" id="cancelOrderBtn" class="flex-1 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-2xl">キャンセル</button>
+        <button type="button" id="executeOrderBtn" class="flex-1 py-3.5 bg-gray-900 text-white font-bold rounded-2xl">確定する</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="itemModal" class="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-6 transition-opacity opacity-0">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="itemModalInner">
+      <h3 class="text-lg font-bold text-gray-900 text-center mb-6" id="itemModalTitle">商品</h3>
+      <form id="itemEditForm" class="space-y-4">
+        <input type="hidden" id="editItemId">
+        <div>
+          <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">商品名</label>
+          <input type="text" id="editItemName" required class="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none font-medium">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">価格 (説明)</label>
+          <input type="text" id="editItemPrice" required class="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none font-medium">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">在庫数</label>
+          <input type="number" id="editItemStock" required min="0" class="w-full px-5 py-3.5 bg-gray-50 border-none rounded-2xl outline-none font-medium">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="closeModals()" class="flex-1 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-2xl">キャンセル</button>
+          <button type="submit" id="saveItemBtn" class="flex-1 py-3.5 bg-gray-900 text-white font-bold rounded-2xl">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="completeModal" class="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm hidden flex items-center justify-center p-6 transition-opacity opacity-0">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform" id="completeModalInner">
+      <h3 class="text-lg font-bold text-gray-900 text-center mb-4">配達完了メッセージ</h3>
+      <input type="hidden" id="completeOrderId">
+      <textarea id="completeMessageInput" rows="3" placeholder="例: 指定のチェストに納品しました！" class="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-gray-200 font-medium text-sm mb-6 resize-none"></textarea>
+      <div class="flex gap-3">
+        <button type="button" onclick="closeModals()" class="flex-1 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-2xl">キャンセル</button>
+        <button type="button" id="saveCompleteBtn" class="flex-1 py-3.5 bg-green-500 text-white font-bold rounded-2xl">完了にする</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, where, orderBy, doc, getDocs, updateDoc, deleteDoc, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+      authDomain: "keke-dev.firebaseapp.com",
+      databaseURL: "https://keke-dev-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "keke-dev",
+      storageBucket: "keke-dev.firebasestorage.app",
+      messagingSenderId: "131535510066",
+      appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+      measurementId: "G-EGS7LE2Z44"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ================= URLパラメータ・画面の初期化 =================
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('admin') === 'true';
+
+    const tosView = document.getElementById('tosView');
+    const shopView = document.getElementById('shopView');
+    const adminView = document.getElementById('adminView');
+
+    if (isAdmin) {
+      document.body.classList.add('bg-gray-50');
+      tosView.classList.add('hidden');
+      shopView.classList.add('hidden');
+      adminView.classList.remove('hidden');
+    } else {
+      if (localStorage.getItem('agreedTos') === 'true') {
+        tosView.classList.add('hidden');
+        shopView.classList.remove('hidden');
+        shopView.classList.add('flex');
+      } else {
+        tosView.classList.remove('hidden');
+      }
+      document.getElementById('agreeTosBtn').addEventListener('click', () => {
+        localStorage.setItem('agreedTos', 'true');
+        tosView.classList.add('hidden');
+        shopView.classList.remove('hidden');
+        shopView.classList.add('flex');
+      });
+    }
+
+    // ショップ内のタブ切り替え（注文／検索）
+    const tabShop = document.getElementById('tabShop');
+    const tabSearch = document.getElementById('tabSearch');
+    const orderForm = document.getElementById('orderForm');
+    const searchSection = document.getElementById('searchSection');
+
+    tabShop.addEventListener('click', () => {
+      tabShop.className = 'flex-1 py-3 bg-white text-gray-900 font-bold rounded-xl shadow-sm transition-all text-sm';
+      tabSearch.className = 'flex-1 py-3 text-gray-500 font-bold rounded-xl transition-all text-sm';
+      orderForm.classList.remove('hidden');
+      orderForm.classList.add('flex');
+      searchSection.classList.add('hidden');
+      searchSection.classList.remove('flex');
+    });
+
+    tabSearch.addEventListener('click', () => {
+      tabSearch.className = 'flex-1 py-3 bg-white text-gray-900 font-bold rounded-xl shadow-sm transition-all text-sm';
+      tabShop.className = 'flex-1 py-3 text-gray-500 font-bold rounded-xl transition-all text-sm';
+      searchSection.classList.remove('hidden');
+      searchSection.classList.add('flex');
+      orderForm.classList.add('hidden');
+      orderForm.classList.remove('flex');
+    });
+
+    // ================= ユーザー（プレイヤー）の読み込み =================
+    const playerSelect = document.getElementById('playerSelect');
+    const adminUserList = document.getElementById('adminUserList');
+    let loadedUsers = [];
+
+    onSnapshot(collection(db, "players"), (snapshot) => {
+      loadedUsers = [];
+      playerSelect.innerHTML = '<option value="" disabled selected>名前を選択してください</option>';
+      adminUserList.innerHTML = '';
+      
+      if(snapshot.empty) {
+        adminUserList.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">登録されたユーザーはいません</div>';
+      }
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        loadedUsers.push({ id: docSnap.id, name: data.name });
+        
+        // ショップ用セレクトボックス
+        const option = document.createElement('option');
+        option.value = data.name;
+        option.textContent = data.name;
+        playerSelect.appendChild(option);
+
+        // 管理画面用リスト
+        if(isAdmin) {
+          const userDiv = document.createElement('div');
+          userDiv.className = 'flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm';
+          userDiv.innerHTML = `
+            <span class="font-bold text-gray-900">${data.name}</span>
+            <button onclick="deleteUser('${docSnap.id}')" class="text-red-500 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100">削除</button>
+          `;
+          adminUserList.appendChild(userDiv);
+        }
+      });
+    });
+
+    // ================= カートと商品のリアルタイム管理 =================
+    const itemGrid = document.getElementById('itemGrid');
+    const adminItemList = document.getElementById('adminItemList');
+    let loadedItems = [];
+    let cart = {}; // { itemId: quantity }
+
+    window.updateCart = (itemId, change) => {
+      const item = loadedItems.find(i => i.id === itemId);
+      if(!item) return;
+      const currentVal = cart[itemId] || 0;
+      let newVal = currentVal + change;
+      if(newVal < 0) newVal = 0;
+      if(newVal > item.stock) newVal = item.stock; // 在庫以上はカートに入れない
+      cart[itemId] = newVal;
+      
+      const qtySpan = document.getElementById(`qty-${itemId}`);
+      if(qtySpan) qtySpan.textContent = newVal;
+    };
+
+    onSnapshot(query(collection(db, "items"), orderBy("createdAt", "asc")), (snapshot) => {
+      loadedItems = [];
+      snapshot.forEach(d => loadedItems.push({ id: d.id, ...d.data() }));
+      renderShopItems();
+      if (isAdmin) renderAdminItems();
+    });
+
+    function renderShopItems() {
+      if (!itemGrid) return;
+      itemGrid.innerHTML = '';
+      if (loadedItems.length === 0) {
+        itemGrid.innerHTML = '<div class="text-center text-sm font-bold text-gray-400 py-8 border-2 border-dashed border-gray-200 rounded-3xl">現在販売中の商品はありません</div>';
+        return;
+      }
+
+      loadedItems.forEach(item => {
+        const stockCount = item.stock !== undefined ? parseInt(item.stock, 10) : 0;
+        const isOutOfStock = stockCount <= 0;
+
+        // 在庫変動に合わせてカートの最大値を調整
+        if(cart[item.id] > stockCount) cart[item.id] = stockCount;
+        const currentQty = cart[item.id] || 0;
+
+        const card = document.createElement('div');
+        card.className = `flex items-center justify-between p-5 bg-gray-50 border-2 rounded-3xl transition-all ${currentQty > 0 ? 'border-gray-900 bg-white shadow-md' : 'border-transparent'}`;
+        
+        card.innerHTML = `
+          <div class="flex-1">
+            <div class="font-bold text-sm text-gray-900 mb-1">${item.name}</div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 font-bold">${item.price}</span>
+              <span class="text-[10px] ${isOutOfStock ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} px-2 py-0.5 rounded-full font-bold">
+                ${isOutOfStock ? '在庫なし' : `残り${stockCount}個`}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 bg-white p-1 rounded-2xl border border-gray-200 shadow-sm ${isOutOfStock ? 'opacity-50 pointer-events-none' : ''}">
+            <button type="button" onclick="updateCart('${item.id}', -1)" class="qty-btn w-8 h-8 flex items-center justify-center bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-gray-200 transition-transform">－</button>
+            <span id="qty-${item.id}" class="w-4 text-center font-bold text-sm text-gray-900">${currentQty}</span>
+            <button type="button" onclick="updateCart('${item.id}', 1)" class="qty-btn w-8 h-8 flex items-center justify-center bg-gray-900 rounded-xl text-white font-bold hover:bg-gray-800 transition-transform">＋</button>
+          </div>
+        `;
+        itemGrid.appendChild(card);
+      });
+    }
+
+    // ================= 複数商品のトランザクション注文 =================
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmModalInner = document.getElementById('confirmModalInner');
+    const confirmItemList = document.getElementById('confirmItemList');
+    const messageArea = document.getElementById('messageArea');
+
+    window.closeModals = () => {
+      document.querySelectorAll('.fixed.z-50').forEach(modal => {
+        modal.classList.remove('opacity-100');
+        modal.children[0].classList.remove('scale-100');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+      });
+    };
+
+    orderForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const orderItems = loadedItems.filter(i => cart[i.id] > 0).map(i => ({
+        id: i.id,
+        name: i.name,
+        qty: cart[i.id]
+      }));
+
+      if (orderItems.length === 0) {
+        messageArea.classList.remove('hidden', 'bg-gray-100', 'text-gray-900');
+        messageArea.classList.add('bg-red-50', 'text-red-600');
+        messageArea.textContent = 'カートに商品が入っていません。';
+        return;
+      }
+
+      confirmItemList.innerHTML = orderItems.map(i => `<div class="flex justify-between border-b border-gray-200 py-2 last:border-0"><span class="font-bold">${i.name}</span><span class="font-bold">${i.qty} 個</span></div>`).join('');
+      
+      confirmModal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        confirmModal.classList.add('opacity-100');
+        confirmModalInner.classList.add('scale-100');
+      });
+    });
+
+    document.getElementById('cancelOrderBtn').addEventListener('click', closeModals);
+
+    document.getElementById('executeOrderBtn').addEventListener('click', async () => {
+      closeModals();
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '処理中...';
+      submitBtn.classList.add('opacity-50');
+
+      const playerName = playerSelect.value;
+      const orderId = crypto.randomUUID();
+      
+      const orderItems = loadedItems.filter(i => cart[i.id] > 0).map(i => ({
+        item_id: i.id,
+        item_name: i.name,
+        quantity: cart[i.id]
+      }));
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const reads = [];
+          // まとめてドキュメントを読み込む
+          for (let item of orderItems) {
+            const ref = doc(db, "items", item.item_id);
+            reads.push({ ref: ref, snap: await transaction.get(ref), reqQty: item.quantity, name: item.item_name });
+          }
+
+          // 在庫チェック
+          for (let r of reads) {
+            if (!r.snap.exists()) throw new Error(`NOT_FOUND_${r.name}`);
+            if (r.snap.data().stock < r.reqQty) throw new Error(`STOCK_${r.name}`);
+          }
+
+          // 在庫減算
+          for (let r of reads) {
+            transaction.update(r.ref, { stock: r.snap.data().stock - r.reqQty });
+          }
+
+          // 注文登録
+          const newOrderRef = doc(collection(db, "orders"));
+          transaction.set(newOrderRef, {
+            order_id: orderId,
+            name: playerName,
+            items: orderItems,
+            status: "未受付",
+            completion_message: "",
+            createdAt: serverTimestamp()
+          });
+        });
+
+        messageArea.classList.remove('hidden', 'bg-red-50', 'text-red-600');
+        messageArea.classList.add('bg-gray-100', 'text-gray-900');
+        messageArea.innerHTML = `注文が完了しました。<br><span class="text-xs text-gray-500 font-normal mt-2 block break-all font-mono bg-white p-2 rounded-lg border border-gray-200">注文ID: ${orderId}</span><p class="text-xs text-gray-500 mt-2 font-normal">※状況確認のためIDをコピーしてください</p>`;
+        
+        cart = {}; // カートリセット
+        playerSelect.value = "";
+        renderShopItems();
+
+      } catch (error) {
+        messageArea.classList.remove('hidden', 'bg-gray-100', 'text-gray-900');
+        messageArea.classList.add('bg-red-50', 'text-red-600');
+        if (error.message.startsWith("STOCK_")) {
+          const name = error.message.replace("STOCK_", "");
+          messageArea.textContent = `${name} の在庫が不足しています。`;
+        } else {
+          messageArea.textContent = '通信エラーが発生しました。';
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>注文を確認する</span><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+        submitBtn.classList.remove('opacity-50');
+      }
+    });
+
+    // ================= 注文検索機能 =================
+    const searchBtn = document.getElementById('searchBtn');
+    const searchOrderId = document.getElementById('searchOrderId');
+    const searchResultArea = document.getElementById('searchResultArea');
+
+    searchBtn.addEventListener('click', async () => {
+      const targetId = searchOrderId.value.trim();
+      if (!targetId) return;
+      
+      searchBtn.innerHTML = '...';
+      searchResultArea.classList.remove('hidden');
+      searchResultArea.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">検索中...</div>';
+
+      try {
+        const q = query(collection(db, "orders"), where("order_id", "==", targetId));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+          searchResultArea.innerHTML = '<div class="bg-red-50 text-red-500 p-4 rounded-2xl text-sm font-bold text-center">注文が見つかりませんでした</div>';
+          return;
+        }
+
+        const data = snapshot.docs[0].data();
+        let statusColor = 'bg-gray-100 text-gray-600';
+        if (data.status === '受付完了') statusColor = 'bg-green-100 text-green-700';
+        if (data.status === '保留') statusColor = 'bg-yellow-100 text-yellow-700';
+        if (data.status === '拒否') statusColor = 'bg-red-100 text-red-700';
+
+        let itemsHtml = (data.items || []).map(i => `<li class="flex justify-between border-b border-gray-100 py-1.5 last:border-0"><span class="font-bold text-gray-700">${i.item_name}</span><span class="font-bold text-gray-900">${i.quantity}個</span></li>`).join('');
+        
+        let msgHtml = '';
+        if (data.completion_message && data.status === '受付完了') {
+          msgHtml = `
+            <div class="mt-4 p-4 bg-green-50 border border-green-100 rounded-2xl relative">
+              <span class="absolute -top-3 left-4 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">店主より</span>
+              <p class="text-sm font-bold text-green-800 whitespace-pre-wrap">${data.completion_message}</p>
+            </div>
+          `;
+        }
+
+        searchResultArea.innerHTML = `
+          <div class="bg-white border border-gray-200 p-5 rounded-3xl shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-bold text-gray-900">${data.name} さんの注文</span>
+              <span class="px-3 py-1 text-xs font-bold rounded-xl ${statusColor}">${data.status}</span>
+            </div>
+            <ul class="text-sm bg-gray-50 p-3 rounded-2xl mb-2">
+              ${itemsHtml}
+            </ul>
+            ${msgHtml}
+          </div>
+        `;
+      } catch (error) {
+        searchResultArea.innerHTML = '<div class="bg-red-50 text-red-500 p-4 rounded-2xl text-sm font-bold text-center">エラーが発生しました</div>';
+      } finally {
+        searchBtn.innerHTML = '検索';
+      }
+    });
+
+    // ================= 管理画面ロジック =================
+    const tabs = {
+      orders: document.getElementById('tabAdminOrders'),
+      items: document.getElementById('tabAdminItems'),
+      users: document.getElementById('tabAdminUsers')
+    };
+    const sections = {
+      orders: document.getElementById('adminOrdersSection'),
+      items: document.getElementById('adminItemsSection'),
+      users: document.getElementById('adminUsersSection')
+    };
+
+    function switchAdminTab(target) {
+      Object.keys(tabs).forEach(k => {
+        if(k === target) {
+          tabs[k].className = 'shrink-0 px-6 py-3 bg-gray-900 text-white font-bold rounded-2xl transition-colors';
+          sections[k].classList.remove('hidden');
+        } else {
+          tabs[k].className = 'shrink-0 px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors';
+          sections[k].classList.add('hidden');
+        }
+      });
+    }
+
+    if (isAdmin) {
+      tabs.orders.addEventListener('click', () => switchAdminTab('orders'));
+      tabs.items.addEventListener('click', () => switchAdminTab('items'));
+      tabs.users.addEventListener('click', () => switchAdminTab('users'));
+
+      // 注文監視
+      onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snapshot) => {
+        const adminList = document.getElementById('adminList');
+        adminList.innerHTML = '';
+        if (snapshot.empty) {
+          adminList.innerHTML = '<div class="text-center text-sm font-bold text-gray-400 py-10">注文履歴がありません</div>';
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const docId = docSnap.id;
+          
+          let statusColor = 'bg-gray-100 text-gray-600';
+          if (data.status === '受付完了') statusColor = 'bg-green-100 text-green-700';
+          if (data.status === '保留') statusColor = 'bg-yellow-100 text-yellow-700';
+          if (data.status === '拒否') statusColor = 'bg-red-100 text-red-700';
+
+          const itemsText = (data.items || []).map(i => `${i.item_name}×${i.quantity}`).join(' / ');
+          let dStr = '日時不明';
+          if(data.createdAt) {
+            const d = data.createdAt.toDate();
+            dStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          }
+
+          const card = document.createElement('div');
+          card.className = 'bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4 relative overflow-hidden';
+          if(data.completion_message && data.status === '受付完了') {
+             card.classList.add('border-green-200');
+          }
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-bold text-gray-900 text-lg">${data.name}</span>
+                <span class="px-3 py-1 text-xs font-bold rounded-xl ${statusColor}">${data.status}</span>
+              </div>
+              <div class="text-sm font-bold text-gray-700 mb-1 leading-relaxed">${itemsText}</div>
+              <div class="text-[10px] text-gray-400 font-mono break-all mb-1">${data.order_id || 'IDなし'}</div>
+              <div class="text-[10px] text-gray-400">${dStr}</div>
+              ${data.completion_message ? `<div class="mt-2 text-xs font-bold text-green-700 bg-green-50 p-2 rounded-lg break-words">✉️ ${data.completion_message}</div>` : ''}
+            </div>
+            <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-50">
+              <button onclick="openCompleteModal('${docId}')" class="flex-1 py-2.5 bg-green-50 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors text-green-700">完了にする</button>
+              <button onclick="updateOrderStatus('${docId}', '保留')" class="flex-1 py-2.5 bg-gray-50 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors text-gray-700">保留</button>
+              <button onclick="updateOrderStatus('${docId}', '拒否')" class="flex-1 py-2.5 bg-gray-50 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors text-gray-700">拒否</button>
+              <button onclick="deleteOrderLog('${docId}')" class="px-4 py-2 bg-red-50 rounded-xl text-xs font-bold text-red-600 hover:bg-red-100 transition-colors flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          `;
+          adminList.appendChild(card);
+        });
+      });
+    }
+
+    // ユーザー追加処理
+    document.getElementById('addUserForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById('newUserName');
+      const name = nameInput.value.trim();
+      if(!name) return;
+      try {
+        await addDoc(collection(db, "players"), { name: name });
+        nameInput.value = '';
+      } catch(e) { alert("ユーザー追加失敗"); }
+    });
+
+    window.deleteUser = async (id) => {
+      if(confirm('ユーザーを削除しますか？')) {
+        await deleteDoc(doc(db, "players", id));
+      }
+    }
+
+    // 注文ステータス更新
+    window.updateOrderStatus = async (docId, newStatus) => {
+      try { await updateDoc(doc(db, "orders", docId), { status: newStatus }); } 
+      catch (error) { alert('エラーが発生しました。'); }
+    };
+    window.deleteOrderLog = async (docId) => {
+      if (confirm('注文ログを削除しますか？')) await deleteDoc(doc(db, "orders", docId));
+    };
+
+    // 完了メッセージ入力モーダル
+    const completeModal = document.getElementById('completeModal');
+    const completeModalInner = document.getElementById('completeModalInner');
+    
+    window.openCompleteModal = (docId) => {
+      document.getElementById('completeOrderId').value = docId;
+      document.getElementById('completeMessageInput').value = '';
+      completeModal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        completeModal.classList.add('opacity-100');
+        completeModalInner.classList.add('scale-100');
+      });
+    };
+
+    document.getElementById('saveCompleteBtn')?.addEventListener('click', async () => {
+      const docId = document.getElementById('completeOrderId').value;
+      const msg = document.getElementById('completeMessageInput').value.trim();
+      closeModals();
+      try {
+        await updateDoc(doc(db, "orders", docId), { 
+          status: '受付完了',
+          completion_message: msg
+        });
+      } catch (error) { alert('更新エラー'); }
+    });
+
+    // --- 商品管理用 ---
+    const itemModal = document.getElementById('itemModal');
+    const itemModalInner = document.getElementById('itemModalInner');
+    const itemEditForm = document.getElementById('itemEditForm');
+    
+    function renderAdminItems() {
+      if (!adminItemList) return;
+      adminItemList.innerHTML = '';
+      if (loadedItems.length === 0) {
+        adminItemList.innerHTML = '<div class="text-center text-sm font-bold text-gray-400 py-10">商品がありません</div>';
+        return;
+      }
+      loadedItems.forEach(item => {
+        const stock = item.stock !== undefined ? parseInt(item.stock, 10) : 0;
+        const card = document.createElement('div');
+        card.className = 'bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between gap-4';
+        card.innerHTML = `
+          <div class="flex-1">
+            <div class="font-bold text-gray-900 mb-1">${item.name}</div>
+            <div class="text-xs font-bold text-gray-500">${item.price} | 在庫: ${stock}個</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openEditItemModal('${item.id}', '${item.name}', '${item.price}', ${stock})" class="px-4 py-2.5 bg-gray-100 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-200">編集</button>
+            <button onclick="deleteShopItem('${item.id}')" class="px-4 py-2.5 bg-red-50 rounded-xl text-xs font-bold text-red-600 hover:bg-red-100">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        `;
+        adminItemList.appendChild(card);
+      });
+    }
+
+    document.getElementById('openAddItemModalBtn')?.addEventListener('click', () => {
+      document.getElementById('itemModalTitle').textContent = '商品の追加';
+      document.getElementById('editItemId').value = '';
+      itemEditForm.reset();
+      document.getElementById('editItemStock').value = 0;
+      itemModal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        itemModal.classList.add('opacity-100');
+        itemModalInner.classList.add('scale-100');
+      });
+    });
+
+    window.openEditItemModal = (id, name, price, stock) => {
+      document.getElementById('itemModalTitle').textContent = '商品の編集';
+      document.getElementById('editItemId').value = id;
+      document.getElementById('editItemName').value = name;
+      document.getElementById('editItemPrice').value = price;
+      document.getElementById('editItemStock').value = stock;
+      itemModal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        itemModal.classList.add('opacity-100');
+        itemModalInner.classList.add('scale-100');
+      });
+    };
+
+    if (itemEditForm) {
+      itemEditForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editItemId').value;
+        const data = {
+          name: document.getElementById('editItemName').value,
+          price: document.getElementById('editItemPrice').value,
+          stock: parseInt(document.getElementById('editItemStock').value, 10) || 0
+        };
+        closeModals();
+        try {
+          if (id) await updateDoc(doc(db, "items", id), data);
+          else await addDoc(collection(db, "items"), { ...data, createdAt: serverTimestamp() });
+        } catch (error) { alert('保存失敗'); }
+      });
+    }
+
+    window.deleteShopItem = async (docId) => {
+      if (confirm('商品を削除しますか？')) await deleteDoc(doc(db, "items", docId));
+    };
+  </script>
+</body>
+</html>

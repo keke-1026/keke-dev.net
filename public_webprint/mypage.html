@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイページ</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- マイページ専用スタイル --- */
+        body { 
+            background-color: #f4f7f6; 
+            /* 全体を読みやすいフォントに */
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        .hidden { display: none !important; }
+        
+        /* ログイン画面 */
+        #login-screen {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+        }
+
+        /* ヘッダー周り */
+        .user-header {
+            background: white; padding: 15px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-icon { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
+        
+        .icon-btn {
+            background: none; border: none; cursor: pointer; color: #999; padding: 5px;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .icon-btn:hover { color: #0067c0; background: #f0f8ff; border-radius: 50%; }
+        .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        .header-actions { display: flex; gap: 10px; }
+        .btn-sm {
+            padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; text-decoration: none; cursor: pointer; border: 1px solid transparent;
+        }
+        .btn-outline { background: white; border-color: #ccc; color: #555; }
+        .btn-outline-red { background: white; border-color: #d9534f; color: #d9534f; }
+        
+        /* コンテンツリスト */
+        .content-list { padding: 20px; padding-bottom: 80px; max-width: 600px; margin: 0 auto; }
+        .content-item {
+            background: white; border-radius: 10px; padding: 15px;
+            margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-start; /* 上揃えに変更 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: opacity 0.3s;
+        }
+        .content-item.private { opacity: 0.7; background: #f9f9f9; }
+        .content-item.expired { border-left: 5px solid #d9534f; background: #fff0f0; }
+
+        .content-thumb { 
+            width: 70px; height: 70px; background: #eee; border-radius: 6px; object-fit: cover; 
+            cursor: zoom-in; transition: transform 0.2s; flex-shrink: 0;
+        }
+        .content-thumb:hover { transform: scale(1.05); }
+
+        .content-details { flex: 1; min-width: 0; padding-top: 2px; }
+        .content-title { font-weight: bold; display: block; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
+        
+        .content-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.8rem; color: #666; align-items: center; }
+        
+        /* IDバッジはあえて等幅フォントのままにする（見間違い防止） */
+        .id-badge { 
+            background: #eef6ff; color: #0067c0; padding: 2px 8px; border-radius: 4px; 
+            font-family: "Consolas", "Monaco", monospace; font-weight: bold; letter-spacing: 1px;
+            border: 1px solid #cce5ff; font-size: 0.9rem;
+        }
+        
+        /* ステータスバッジ */
+        .status-badge { padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: bold; }
+        .status-badge.dl { color: #0067c0; background: #f0f8ff; }
+        .status-badge.expire { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .status-badge.expired { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+        /* 説明文のプレビュー */
+        .content-desc-preview {
+            font-size: 0.75rem; color: #999; margin-top: 8px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .action-area { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; padding-top: 5px; }
+
+        .status-switch { text-align: center; width: 50px; cursor: pointer; }
+        .switch-label { font-size: 0.6rem; display: block; margin-bottom: 2px; color: #999; }
+        .toggle-body {
+            width: 40px; height: 20px; background: #ccc; border-radius: 20px; position: relative; transition: 0.3s; margin: 0 auto;
+        }
+        .toggle-knob {
+            width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .status-switch.active .toggle-body { background: #28a745; }
+        .status-switch.active .toggle-knob { left: 22px; }
+        .status-switch.active .switch-label { color: #28a745; }
+
+        .item-btns { display: flex; gap: 5px; }
+        .mini-btn { color: #ccc; cursor: pointer; transition: 0.2s; padding: 5px; border-radius: 50%; border: none; background: none; }
+        .mini-btn:hover { background: #f0f0f0; color: #555; }
+        .mini-btn.delete:hover { color: #d9534f; background: #ffeeee; }
+        .mini-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .fab {
+            position: fixed; bottom: 25px; right: 25px;
+            background: #0067c0; color: white; width: 60px; height: 60px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; box-shadow: 0 4px 15px rgba(0,103,192,0.4);
+            cursor: pointer; border: none; z-index: 200;
+        }
+
+        .file-select-area {
+            border: 2px dashed #ccc; padding: 20px; text-align: center;
+            border-radius: 8px; cursor: pointer; transition: 0.3s; background: #fafafa;
+            margin-bottom: 15px; color: #666; display: block;
+        }
+        .file-select-area:hover { border-color: #0067c0; background: #eef6ff; color: #0067c0; }
+        input[type="file"] { display: none; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box { 
+            background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: left; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title { font-weight: bold; margin-bottom: 15px; font-size: 1.1rem; text-align: center; }
+        .modal-msg { color: #666; font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5; text-align: center; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 0.85rem; color: #333; margin-bottom: 5px; font-weight: bold; }
+        .form-input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-family: 'Noto Sans JP', sans-serif; }
+        .form-textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; height: 80px; resize: none; font-family: 'Noto Sans JP', sans-serif; }
+        .form-row { display: flex; align-items: center; gap: 10px; }
+        .form-note { font-size: 0.75rem; color: #999; margin-top: 3px; }
+
+        .preview-box { background: transparent; box-shadow: none; max-width: 100%; text-align: center; }
+        .preview-img-full { max-width: 90vw; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <h2>クリエイターログイン</h2>
+        <p style="color:#666; margin-bottom:20px;">Googleアカウントでログインして<br>作品を管理・投稿しましょう</p>
+        <button id="google-login-btn" class="menu-btn primary" style="width: auto;">
+            Googleでログイン
+        </button>
+        <br>
+        <a href="home.html" style="color:#999; font-size:0.9rem; text-decoration:none;">トップページへ戻る</a>
+    </div>
+
+    <div id="dashboard" class="hidden">
+        <div class="user-header">
+            <div class="user-info">
+                <img id="user-icon" src="" class="user-icon">
+                <div>
+                    <span id="user-name" style="font-weight:bold; font-size:0.9rem;">User</span>
+                    <button id="open-settings" class="icon-btn" title="アカウント設定">
+                        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="home.html" class="btn-sm btn-outline">検索画面へ</a>
+                <button id="logout-btn" class="btn-sm btn-outline-red">ログアウト</button>
+            </div>
+        </div>
+
+        <div class="content-list">
+            <h3 style="font-size:1.1rem; margin-bottom:15px;">アップロードした作品</h3>
+            <div id="my-contents">
+                <p style="text-align:center; color:#999; margin-top:30px;">読み込み中...</p>
+            </div>
+        </div>
+
+        <button class="fab" id="open-upload-modal">＋</button>
+    </div>
+
+    <div id="upload-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">新規投稿</div>
+            
+            <label for="upload-file" class="file-select-area" id="file-label">
+                <div style="font-size:2rem; margin-bottom:5px;">📷</div>
+                <span id="file-name-display">クリックして画像を選択</span>
+            </label>
+            <input type="file" id="upload-file" accept="image/*">
+
+            <div class="form-group">
+                <label class="form-label">タイトル</label>
+                <input type="text" id="upload-title" class="form-input" placeholder="">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">詳細・備考 (ダウンロード画面に表示)</label>
+                <textarea id="upload-desc" class="form-textarea" placeholder="例: 無断転載は禁止です。個人利用の範囲で楽しんでください。"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">有効期限 (日数)</label>
+                <div class="form-row">
+                    <input type="number" id="upload-expire" class="form-input" value="7" min="1" max="90" style="width:80px; text-align:center;">
+                    <span>日後まで有効</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">ダウンロード回数制限</label>
+                <div style="margin-bottom:8px;">
+                    <input type="checkbox" id="upload-unlimited" checked>
+                    <label for="upload-unlimited">無制限にする</label>
+                </div>
+                <div class="form-row" id="upload-limit-input-area" style="display:none; opacity:0.5;">
+                    <input type="number" id="upload-limit" class="form-input" value="10" min="1" disabled style="width:80px; text-align:center;">
+                    <span>回まで</span>
+                </div>
+            </div>
+            
+            <button id="do-upload-btn" class="menu-btn primary">アップロード開始</button>
+            <button id="close-upload-modal" class="menu-btn" style="background:#f0f0f0; color:#333; margin-top:10px;">キャンセル</button>
+        </div>
+    </div>
+
+    <div id="edit-settings-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">作品情報の編集</div>
+            
+            <div class="form-group">
+                <label class="form-label">タイトル</label>
+                <input type="text" id="edit-title-input" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">詳細・備考</label>
+                <textarea id="edit-desc-input" class="form-textarea"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">ダウンロード制限</label>
+                <div style="margin-bottom:8px;">
+                    <input type="checkbox" id="edit-unlimited">
+                    <label for="edit-unlimited">無制限にする</label>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="edit-limit-input" class="form-input" min="1" style="width:80px; text-align:center;">
+                    <span>回まで</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="background:#f9f9f9; padding:10px; border-radius:6px;">
+                <label class="form-label">有効期限の延長・短縮</label>
+                <p class="form-note" style="margin-bottom:5px;">現在から何日後まで有効にするか再設定します</p>
+                <div class="form-row">
+                    <input type="number" id="edit-expire-input" class="form-input" min="1" max="90" value="7" style="width:80px; text-align:center;">
+                    <span>日後に変更</span>
+                </div>
+            </div>
+
+            <button id="save-settings-btn" class="menu-btn primary">変更を保存</button>
+            <button id="close-edit-modal" class="menu-btn" style="background:#f0f0f0; color:#333; margin-top:10px;">キャンセル</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">アカウント設定</div>
+            
+            <div class="form-group">
+                <label class="form-label">表示名</label>
+                <input type="text" id="new-name-input" class="form-input" style="text-align:center;">
+                <p class="form-note">ダウンロード画面に表示されます</p>
+            </div>
+
+            <div class="form-group" style="border-top:1px solid #eee; padding-top:15px;">
+                <label class="form-label">デフォルトの備考 (オフセット)</label>
+                <p class="form-note" style="margin-bottom:8px;">ここに入力した文章は、次回からアップロード時に自動で入力されます。</p>
+                <textarea id="preset-desc-input" class="form-textarea" placeholder="例: 二次配布禁止。個人利用のみ可。"></textarea>
+            </div>
+
+            <button id="save-name-btn" class="menu-btn primary">保存する</button>
+            <button id="close-settings-modal" class="menu-btn" style="background:#f0f0f0; color:#333; margin-top:10px;">キャンセル</button>
+        </div>
+    </div>
+
+    <div id="msg-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div id="msg-title" class="modal-title">タイトル</div>
+            <div id="msg-body" class="modal-msg">メッセージ</div>
+            <button id="msg-close" class="menu-btn primary" style="padding:10px;">OK</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" style="color:#d9534f;">削除の確認</div>
+            <p class="modal-msg">本当にこの作品を削除しますか？<br>この操作は取り消せません。</p>
+            <button id="confirm-delete-btn" class="menu-btn primary" style="background:#d9534f; margin-bottom:10px;">削除する</button>
+            <button id="cancel-delete-btn" class="menu-btn" style="background:#f0f0f0; color:#333;">キャンセル</button>
+        </div>
+    </div>
+
+    <div id="preview-modal" class="modal-overlay">
+        <div class="preview-box">
+            <img id="preview-img-full" src="" class="preview-img-full">
+            <div style="text-align:center; margin-top:10px;">
+                <button id="close-preview" style="background:rgba(255,255,255,0.8); border:none; padding:10px 20px; border-radius:20px; cursor:pointer;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        window.addEventListener('error', function(e) { console.error("Global Error:", e.message); });
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, serverTimestamp, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjQWOa8y2UWgL81HvmEv_yiTCtTbk4cxU",
+            authDomain: "print.keke-dev.net",
+            projectId: "keke-dev",
+            storageBucket: "keke-dev.firebasestorage.app",
+            messagingSenderId: "131535510066",
+            appId: "1:131535510066:web:8f8b7fac5aef71aca23a2b",
+            measurementId: "G-EGS7LE2Z44"
+        };
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dcgytcnqu/image/upload";
+        const CLOUDINARY_PRESET = "printimage";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // ログイン処理
+        const loginBtn = document.getElementById('google-login-btn');
+        if(loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                signInWithPopup(auth, provider).catch((error) => { alert("Login Error: " + error.message); });
+            });
+        }
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('user-name').textContent = user.displayName || "User";
+                document.getElementById('user-icon').src = user.photoURL;
+                loadMyContents(user.uid);
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+            }
+        });
+
+        // モーダル
+        function showMsg(title, body) {
+            document.getElementById('msg-title').textContent = title;
+            document.getElementById('msg-body').innerHTML = body.replace(/\n/g, '<br>');
+            document.getElementById('msg-modal').classList.add('active');
+        }
+        document.getElementById('msg-close').addEventListener('click', () => document.getElementById('msg-modal').classList.remove('active'));
+
+        // アップロードUI
+        const uploadUnlimitedCheck = document.getElementById('upload-unlimited');
+        const uploadLimitInputArea = document.getElementById('upload-limit-input-area');
+        const uploadLimitInput = document.getElementById('upload-limit');
+        if(uploadUnlimitedCheck) {
+            uploadUnlimitedCheck.addEventListener('change', (e) => {
+                if(e.target.checked) {
+                    uploadLimitInputArea.style.display = 'none'; uploadLimitInput.disabled = true;
+                } else {
+                    uploadLimitInputArea.style.display = 'flex'; uploadLimitInput.disabled = false;
+                }
+            });
+        }
+
+        const fileInput = document.getElementById('upload-file');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        if(fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if(e.target.files.length > 0) {
+                    fileNameDisplay.textContent = e.target.files[0].name;
+                    document.getElementById('file-label').style.borderColor = "#0067c0";
+                    document.getElementById('file-label').style.background = "#eef6ff";
+                }
+            });
+        }
+
+        // --- アカウント設定 & オフセット機能 ---
+        const settingsModal = document.getElementById('settings-modal');
+        document.getElementById('open-settings').addEventListener('click', () => {
+            if(auth.currentUser) {
+                document.getElementById('new-name-input').value = auth.currentUser.displayName || "";
+                
+                // localStorageからオフセット(定型文)を読み込む
+                const savedPreset = localStorage.getItem('desc_preset_' + auth.currentUser.uid);
+                document.getElementById('preset-desc-input').value = savedPreset || "";
+                
+                settingsModal.classList.add('active');
+            }
+        });
+        document.getElementById('close-settings-modal').addEventListener('click', () => settingsModal.classList.remove('active'));
+        
+        document.getElementById('save-name-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('save-name-btn');
+            const newName = document.getElementById('new-name-input').value.trim();
+            const newPreset = document.getElementById('preset-desc-input').value;
+
+            if(!newName) return;
+            btn.textContent = "保存中...";
+            try {
+                // 名前更新
+                await updateProfile(auth.currentUser, { displayName: newName });
+                document.getElementById('user-name').textContent = newName;
+                
+                // オフセット保存 (localStorageに保存して、次回アップロード時に使う)
+                localStorage.setItem('desc_preset_' + auth.currentUser.uid, newPreset);
+
+                settingsModal.classList.remove('active');
+                showMsg("完了", "設定を保存しました！");
+            } catch(e) { console.error(e); showMsg("エラー", "変更に失敗しました"); } 
+            finally { btn.textContent = "保存する"; }
+        });
+
+        // プレビュー・削除
+        const previewModal = document.getElementById('preview-modal');
+        const previewImgFull = document.getElementById('preview-img-full');
+        document.getElementById('close-preview').addEventListener('click', () => previewModal.classList.remove('active'));
+        previewModal.addEventListener('click', (e) => { if(e.target === previewModal) previewModal.classList.remove('active'); });
+
+        let deleteTargetId = null;
+        const confirmModal = document.getElementById('confirm-modal');
+        document.getElementById('cancel-delete-btn').addEventListener('click', () => { confirmModal.classList.remove('active'); deleteTargetId = null; });
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if(!deleteTargetId) return;
+            confirmModal.classList.remove('active');
+            try {
+                await deleteDoc(doc(db, "contents", deleteTargetId));
+                showMsg("削除完了", "作品を削除しました。");
+                loadMyContents(auth.currentUser.uid);
+            } catch(e) { console.error(e); showMsg("エラー", "削除に失敗しました。"); }
+        });
+
+        // --- 編集機能 ---
+        let editTargetId = null;
+        const editSettingsModal = document.getElementById('edit-settings-modal');
+        const editTitleInput = document.getElementById('edit-title-input');
+        const editDescInput = document.getElementById('edit-desc-input'); // 備考欄
+        const editUnlimitedCheck = document.getElementById('edit-unlimited');
+        const editLimitInput = document.getElementById('edit-limit-input');
+        const editExpireInput = document.getElementById('edit-expire-input');
+
+        if(editUnlimitedCheck) {
+            editUnlimitedCheck.addEventListener('change', (e) => { editLimitInput.disabled = e.target.checked; });
+        }
+        document.getElementById('close-edit-modal').addEventListener('click', () => editSettingsModal.classList.remove('active'));
+        
+        document.getElementById('save-settings-btn').addEventListener('click', async () => {
+            if(!editTargetId) return;
+            const newTitle = editTitleInput.value.trim();
+            if(!newTitle) { showMsg("エラー", "タイトルを入力してください"); return; }
+            
+            const expireDays = parseInt(editExpireInput.value) || 7;
+            const expireDate = new Date();
+            expireDate.setDate(expireDate.getDate() + expireDays);
+            const dlLimit = editUnlimitedCheck.checked ? null : (parseInt(editLimitInput.value) || 10);
+            
+            // 備考欄も保存
+            const newDesc = editDescInput.value;
+
+            const btn = document.getElementById('save-settings-btn');
+            btn.textContent = "保存中...";
+            try {
+                await updateDoc(doc(db, "contents", editTargetId), { 
+                    title: newTitle,
+                    description: newDesc, // 保存
+                    expireAt: Timestamp.fromDate(expireDate),
+                    dlLimit: dlLimit
+                });
+                editSettingsModal.classList.remove('active');
+                showMsg("完了", "設定を変更しました。");
+                loadMyContents(auth.currentUser.uid);
+            } catch(e) { console.error(e); showMsg("エラー", "変更に失敗しました。"); } 
+            finally { btn.textContent = "変更を保存"; }
+        });
+
+        // コンテンツ一覧
+        async function loadMyContents(uid) {
+            const myContents = document.getElementById('my-contents');
+            myContents.innerHTML = '';
+            
+            const q = query(collection(db, "contents"), where("ownerId", "==", uid), orderBy("createdAt", "desc"));
+            try {
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    myContents.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">まだ投稿がありません。</p>';
+                    return;
+                }
+                const now = new Date();
+                querySnapshot.forEach((docSnapshot) => {
+                    const data = docSnapshot.data();
+                    const isPublic = (data.isPublic !== false);
+                    const dlCount = data.dlCount || 0;
+                    
+                    let expireText = "無期限";
+                    let isExpired = false;
+                    if(data.expireAt) {
+                        const expDate = data.expireAt.toDate();
+                        const diffTime = expDate - now;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if(diffTime < 0) { expireText = "期限切れ"; isExpired = true; } 
+                        else { expireText = `あと${diffDays}日`; }
+                    }
+
+                    // DL表示 (アイコンに戻す)
+                    let dlText = `⬇ ${dlCount}`;
+                    let isLimitReached = false;
+                    if(data.dlLimit) {
+                        dlText = `⬇ ${dlCount} / ${data.dlLimit}`;
+                        if(dlCount >= data.dlLimit) isLimitReached = true;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = `content-item ${isPublic ? '' : 'private'} ${isExpired ? 'expired' : ''}`;
+                    
+                    // 説明文のプレビュー作成
+                    const descPreview = data.description ? `<div class="content-desc-preview">${data.description}</div>` : '';
+
+                    div.innerHTML = `
+                        <img src="${data.url}" class="content-thumb" title="クリックで拡大">
+                        <div class="content-details">
+                            <span class="content-title">${data.title}</span>
+                            <div class="content-meta">
+                                <span class="id-badge">${docSnapshot.id}</span>
+                                <span class="status-badge dl ${isLimitReached ? 'limit' : ''}">${dlText}</span>
+                                <span class="status-badge ${isExpired ? 'expired' : 'expire'}">${expireText}</span>
+                            </div>
+                            ${descPreview}
+                        </div>
+                        <div class="action-area">
+                            <div class="status-switch ${isPublic ? 'active' : ''}">
+                                <span class="switch-label">${isPublic ? '公開中' : '停止中'}</span>
+                                <div class="toggle-body"><div class="toggle-knob"></div></div>
+                            </div>
+                            <div class="item-btns">
+                                <button class="mini-btn edit" title="編集">
+                                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                </button>
+                                <button class="mini-btn delete" title="削除">
+                                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    div.querySelector('.content-thumb').addEventListener('click', () => { previewImgFull.src = data.url; previewModal.classList.add('active'); });
+                    
+                    const switchEl = div.querySelector('.status-switch');
+                    switchEl.addEventListener('click', async () => {
+                        const newStatus = !switchEl.classList.contains('active');
+                        if(newStatus) { switchEl.classList.add('active'); div.classList.remove('private'); switchEl.querySelector('.switch-label').textContent = '公開中'; }
+                        else { switchEl.classList.remove('active'); div.classList.add('private'); switchEl.querySelector('.switch-label').textContent = '停止中'; }
+                        await updateDoc(doc(db, "contents", docSnapshot.id), { isPublic: newStatus });
+                    });
+
+                    div.querySelector('.mini-btn.edit').addEventListener('click', () => {
+                        editTargetId = docSnapshot.id;
+                        editTitleInput.value = data.title;
+                        editDescInput.value = data.description || ""; // 備考もセット
+
+                        if(data.dlLimit) { editUnlimitedCheck.checked = false; editLimitInput.disabled = false; editLimitInput.value = data.dlLimit; } 
+                        else { editUnlimitedCheck.checked = true; editLimitInput.disabled = true; }
+                        editExpireInput.value = 7;
+                        editSettingsModal.classList.add('active');
+                    });
+
+                    div.querySelector('.mini-btn.delete').addEventListener('click', () => { deleteTargetId = docSnapshot.id; confirmModal.classList.add('active'); });
+                    myContents.appendChild(div);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // アップロード処理
+        const uploadModal = document.getElementById('upload-modal');
+        document.getElementById('open-upload-modal').addEventListener('click', () => {
+            uploadModal.classList.add('active');
+            fileNameDisplay.textContent = "クリックして画像を選択";
+            document.getElementById('file-label').style.borderColor = "#ccc";
+            document.getElementById('file-label').style.background = "#fafafa";
+            document.getElementById('upload-unlimited').checked = true;
+            uploadLimitInputArea.style.display = 'none';
+
+            // ★ オフセット（デフォルト備考）を読み込んでセットする
+            const savedPreset = localStorage.getItem('desc_preset_' + auth.currentUser.uid);
+            if(savedPreset) {
+                document.getElementById('upload-desc').value = savedPreset;
+            } else {
+                document.getElementById('upload-desc').value = "";
+            }
+        });
+        document.getElementById('close-upload-modal').addEventListener('click', () => uploadModal.classList.remove('active'));
+
+        document.getElementById('do-upload-btn').addEventListener('click', async () => {
+            const titleInput = document.getElementById('upload-title');
+            const descInput = document.getElementById('upload-desc');
+            const file = fileInput.files[0];
+            const expireInput = document.getElementById('upload-expire');
+            const btn = document.getElementById('do-upload-btn');
+
+            if (!file || !titleInput.value) { showMsg("エラー", "タイトルと画像を選択してください"); return; }
+            
+            let expireDays = parseInt(expireInput.value) || 7;
+            if(expireDays > 90) expireDays = 90;
+            if(expireDays < 1) expireDays = 1;
+            const expireDate = new Date();
+            expireDate.setDate(expireDate.getDate() + expireDays);
+            const dlLimit = uploadUnlimitedCheck.checked ? null : (parseInt(uploadLimitInput.value) || 10);
+
+            btn.textContent = "アップロード中..."; btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_PRESET);
+                const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+                const json = await res.json();
+                if (!json.secure_url) throw new Error('Upload failed');
+
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; 
+                let contentId = "";
+                for (let i = 0; i < 5; i++) { contentId += chars.charAt(Math.floor(Math.random() * chars.length)); }
+
+                await setDoc(doc(db, "contents", contentId), {
+                    title: titleInput.value,
+                    description: descInput.value, // 備考保存
+                    url: json.secure_url,
+                    ownerId: auth.currentUser.uid,
+                    creatorName: auth.currentUser.displayName,
+                    createdAt: serverTimestamp(),
+                    dlCount: 0,
+                    isPublic: true,
+                    expireAt: Timestamp.fromDate(expireDate),
+                    dlLimit: dlLimit
+                });
+
+                uploadModal.classList.remove('active');
+                showMsg("投稿完了", `以下のIDが発行されました<br><br><span class="id-badge" style="font-size:1.5rem; display:inline-block; margin:10px 0;">${contentId}</span><br><br>作品リストに追加されました。`);
+                
+                loadMyContents(auth.currentUser.uid);
+                titleInput.value = ""; fileInput.value = "";
+
+            } catch (err) { console.error(err); showMsg("エラー", "アップロード失敗: " + err.message); } 
+            finally { btn.textContent = "アップロード開始"; btn.disabled = false; }
+        });
+    </script>
+</body>
+</html>

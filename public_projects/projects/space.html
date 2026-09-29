@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>space</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #0ff;
+            font-family: 'Courier New', sans-serif;
+            font-size: 20px;
+            pointer-events: none;
+            text-shadow: 0 0 5px #0ff;
+        }
+    </style>
+</head>
+<body>
+<div id="hud">SPEED: <span id="speedVal">0</span> km/s</div>
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const speedDisplay = document.getElementById('speedVal');
+
+    let width, height;
+    let stars = [];
+    const STAR_COUNT = 1000;
+    
+    // 速度制御
+    let speed = 2;
+    let targetSpeed = 2;
+    let isWarping = false;
+
+    // マウス視点移動用
+    let mouseX = 0;
+    let mouseY = 0;
+
+    class Star {
+        constructor() {
+            this.init(true);
+        }
+
+        init(randomZ) {
+            // -1000 から 1000 の範囲でランダム配置
+            this.x = (Math.random() - 0.5) * 2000;
+            this.y = (Math.random() - 0.5) * 2000;
+            // 奥行き (randomZがtrueなら画面奥全体に散らす、falseなら一番奥に生成)
+            this.z = randomZ ? Math.random() * 2000 : 2000;
+            
+            // 星の最後尾（軌跡描画用）
+            this.pz = this.z;
+        }
+
+        update() {
+            // 星を手前に移動させる
+            this.z -= speed;
+
+            // 視点移動効果（マウスと逆方向に少しずらす）
+            // 簡易的な実装として座標自体はいじらず描画で調整
+        
+            // 画面後ろ（z < 1）に行ったら奥（z=2000）に戻す
+            if (this.z < 1) {
+                this.init(false);
+                this.pz = this.z;
+            }
+        }
+
+        draw() {
+            // 遠近法投影 (Perspective Projection)
+            // 画面中心を原点(0,0)とする
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // マウスによる視点ズレ
+            const offsetX = (mouseX - cx) * 0.5;
+            const offsetY = (mouseY - cy) * 0.5;
+
+            // 現在位置の投影座標
+            const sx = (this.x / this.z) * 500 + cx + offsetX;
+            const sy = (this.y / this.z) * 500 + cy + offsetY;
+
+            // 1フレーム前の位置の投影座標（軌跡用）
+            // 速度が速いときは軌跡を長く見せるためにzを補正
+            const prevZ = this.z + (speed * 0.5); 
+            const px = (this.x / prevZ) * 500 + cx + offsetX;
+            const py = (this.y / prevZ) * 500 + cy + offsetY;
+
+            // 星の大きさ（近いほど大きい）
+            const r = (1 - this.z / 2000) * 3;
+
+            // 描画
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(sx, sy);
+            
+            // 色と太さ
+            // ワープ中は青白く、通常は白
+            const alpha = (1 - this.z / 2000);
+            if (speed > 50) {
+                ctx.strokeStyle = `rgba(100, 200, 255, ${alpha})`;
+                ctx.lineWidth = r;
+            } else {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.lineWidth = r * 0.5;
+            }
+            
+            ctx.stroke();
+            
+            // 現在位置の更新
+            this.pz = this.z;
+        }
+    }
+
+    function init() {
+        resize();
+        stars = [];
+        for (let i = 0; i < STAR_COUNT; i++) {
+            stars.push(new Star());
+        }
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        mouseX = width / 2;
+        mouseY = height / 2;
+    }
+
+    function animate() {
+        // 背景クリア（少し残像を残すとスピード感が出るが、今回はクリアにする）
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
+
+        // 速度の滑らかな変化
+        // クリック中は targetSpeed=100、離すと targetSpeed=2
+        targetSpeed = isWarping ? 150 : 5;
+        // 徐々に加速・減速 (Linear interpolation)
+        speed += (targetSpeed - speed) * 0.05;
+
+        // UI更新
+        speedDisplay.innerText = Math.floor(speed * 100);
+
+        stars.forEach(star => {
+            star.update();
+            star.draw();
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resize);
+
+    // マウス位置取得
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    // ワープ開始
+    const startWarp = () => isWarping = true;
+    const endWarp = () => isWarping = false;
+
+    window.addEventListener('mousedown', startWarp);
+    window.addEventListener('mouseup', endWarp);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); startWarp(); }, {passive: false});
+    window.addEventListener('touchend', endWarp);
+
+    init();
+    animate();
+
+</script>
+</body>
+</html>

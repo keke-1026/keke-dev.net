@@ -1,0 +1,254 @@
+<!--
+keke.clock — single-file world clock
+Save this file as `keke.clock.html` and open in a browser (or host on GitHub Pages / Netlify).
+Features:
+ - Live updating clocks for multiple timezones
+ - Add from a list or type any IANA timezone (e.g. "Asia/Tokyo", "Europe/London")
+ - Searchable suggestions, add/remove clocks
+ - 12/24 hour toggle
+ - Shows date, time, weekday and timezone name (e.g. GMT+9 / JST)
+
+Notes:
+ - Uses Intl API (works in modern browsers).
+ - If you want analog faces, more styling, or persistent syncing across devices, tell me and I can add.
+-->
+
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>keke.clock — 世界時計</title>
+  <style>
+    :root{ --bg:#ffffff; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; --glass: rgba(0,0,0,0.03); }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); min-height:100vh; color:#0b1220} 
+    header{display:flex;align-items:center;justify-content:space-between;padding:20px;max-width:1100px;margin:0 auto}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:12px;align-items:center}
+    .search{display:flex;gap:8px;background:var(--glass);padding:8px;border-radius:10px;align-items:center}
+    input[type="search"]{background:transparent;border:0;outline:0;color:inherit;font-size:14px}
+    button{background:transparent;border:1px solid rgba(0,0,0,0.06);color:inherit;padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.primary{background:linear-gradient(90deg,var(--accent), #7dd3fc);border:0;color:#02142a}
+    .wrap{max-width:1100px;margin:20px auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .card{background:linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));padding:16px;border-radius:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06);border:1px solid rgba(0,0,0,0.03)}
+    .time{font-size:28px;font-weight:700;letter-spacing:0.5px}
+    .small{font-size:13px;color:var(--muted);margin-top:6px}
+    .tz-row{display:flex;justify-content:space-between;align-items:center}
+    .actions{display:flex;gap:8px}
+    .remove{background:transparent;border:0;color:#ff7b7b;font-weight:700;cursor:pointer}
+    .hint{max-width:1100px;margin:8px auto;color:var(--muted);font-size:13px;padding:0 20px}
+    footer{max-width:1100px;margin:24px auto;color:var(--muted);padding:0 20px}
+    .list{max-height:180px;overflow:auto;background:var(--card);border-radius:8px;padding:8px;margin-top:8px}
+    .list button{display:block;width:100%;text-align:left;padding:6px;border-radius:6px;border:0;background:transparent}
+    .controls .toggle{display:flex;gap:8px;align-items:center}
+    @media (max-width:520px){header{padding:12px} .hint, footer{padding:0 12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>keke.clock — Web世界時計</h1>
+    <div class="controls">
+      <div class="search" role="search">
+        <input id="tzSearch" type="search" placeholder="タイムゾーンを検索または直接入力 (例: Asia/Tokyo)" autocomplete="off">
+        <button id="addBtn" class="primary">追加</button>
+      </div>
+      <div class="toggle">
+        <label style="font-size:13px;color:var(--muted);">24時間</label>
+        <input id="hourToggle" type="checkbox" checked>
+      </div>
+      <button id="shareBtn">共有リンク生成</button>
+    </div>
+  </header>
+
+  <div class="hint">主要な IANA タイムゾーン名（例: <code>Asia/Tokyo</code>）を使用してください。ブラウザのIntlが利用できれば動作します。</div>
+
+  <div class="wrap" id="clockWrap"></div>
+
+  <div class="list" id="suggestions" style="display:none"></div>
+
+  <footer>
+    <div class="small">機能: 追加 / 削除、24時間切替。</div>
+  </footer>
+
+  <script>
+    // --- common timezone suggestions ---
+    const COMMON = [
+      'UTC','Europe/London','Europe/Paris','Europe/Berlin','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Sao_Paulo','Asia/Tokyo','Asia/Shanghai','Asia/Hong_Kong','Asia/Singapore','Asia/Kolkata','Asia/Dubai','Australia/Sydney','Pacific/Auckland','Africa/Cairo'
+    ];
+
+    const wrap = document.getElementById('clockWrap');
+    const search = document.getElementById('tzSearch');
+    const addBtn = document.getElementById('addBtn');
+    const suggestionsEl = document.getElementById('suggestions');
+    const hourToggle = document.getElementById('hourToggle');
+
+    let clocks = []; // {id, tz, label, el, interval}
+
+    function fmtParts(timeZone){
+      const now = new Date();
+      // get formatted time parts
+      const timeFmt = new Intl.DateTimeFormat('ja-JP', {timeZone, hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: !hourToggle.checked});
+      const dateFmt = new Intl.DateTimeFormat('ja-JP', {timeZone, year:'numeric', month:'short', day:'2-digit', weekday:'short'});
+      const tzNameParts = new Intl.DateTimeFormat('en-US', {timeZone, timeZoneName: 'short'}).formatToParts(now);
+      const tzName = tzNameParts.find(p => p.type === 'timeZoneName')?.value || '';
+      return {
+        time: timeFmt.format(now),
+        date: dateFmt.format(now),
+        tzName
+      }
+    }
+
+    function makeCard(tz){
+      const id = Math.random().toString(36).slice(2,9);
+      const card = document.createElement('div'); card.className='card';
+      const top = document.createElement('div'); top.className='tz-row';
+      const title = document.createElement('div'); title.innerHTML = `<strong>${tz}</strong>`;
+      const actions = document.createElement('div'); actions.className='actions';
+      const remove = document.createElement('button'); remove.className='remove'; remove.textContent='削除';
+      actions.appendChild(remove);
+      top.appendChild(title); top.appendChild(actions);
+
+      const timeEl = document.createElement('div'); timeEl.className='time'; timeEl.textContent='--:--:--';
+      const dateEl = document.createElement('div'); dateEl.className='small'; dateEl.textContent='';
+      const tzinfo = document.createElement('div'); tzinfo.className='small'; tzinfo.textContent='';
+
+      card.appendChild(top); card.appendChild(timeEl); card.appendChild(dateEl); card.appendChild(tzinfo);
+
+      remove.addEventListener('click', ()=>{
+        removeClock(id);
+      });
+
+      wrap.prepend(card);
+
+      const clockObj = {id, tz, el: {card, timeEl, dateEl, tzinfo}, interval: null};
+      startClock(clockObj);
+      clocks.push(clockObj);
+      saveState();
+    }
+
+    function startClock(clock){
+      if(clock.interval) clearInterval(clock.interval);
+      function tick(){
+        try{
+          const p = fmtParts(clock.tz);
+          clock.el.timeEl.textContent = p.time;
+          clock.el.dateEl.textContent = p.date;
+          clock.el.tzinfo.textContent = p.tzName;
+        }catch(e){
+          clock.el.timeEl.textContent = '— 無効なタイムゾーン —';
+          clock.el.dateEl.textContent = '';
+          clock.el.tzinfo.textContent = '';
+        }
+      }
+      tick();
+      clock.interval = setInterval(tick, 1000);
+    }
+
+    function removeClock(id){
+      const idx = clocks.findIndex(c=>c.id===id);
+      if(idx===-1) return;
+      const c = clocks[idx];
+      clearInterval(c.interval);
+      c.el.card.remove();
+      clocks.splice(idx,1);
+      saveState();
+    }
+
+    function addFromInput(){
+      const v = search.value.trim();
+      if(!v) return;
+      // prevent duplicates
+      if(clocks.some(c=>c.tz.toLowerCase()===v.toLowerCase())){ alert('すでに追加されています'); return; }
+      makeCard(v);
+      search.value=''; suggestionsEl.style.display='none';
+    }
+
+    addBtn.addEventListener('click', addFromInput);
+    search.addEventListener('keydown', (e)=>{ if(e.key==='Enter') addFromInput(); });
+
+    search.addEventListener('input', ()=>{
+      const q = search.value.trim().toLowerCase();
+      if(!q){ suggestionsEl.style.display='none'; return; }
+      const matches = COMMON.filter(tz => tz.toLowerCase().includes(q)).slice(0,20);
+      renderSuggestions(matches);
+    });
+
+    function renderSuggestions(list){
+      suggestionsEl.innerHTML='';
+      if(list.length===0){ suggestionsEl.style.display='none'; return; }
+      list.forEach(tz=>{
+        const btn = document.createElement('button'); btn.textContent = tz;
+        btn.addEventListener('click', ()=>{ search.value = tz; suggestionsEl.style.display='none'; });
+        suggestionsEl.appendChild(btn);
+      });
+      suggestionsEl.style.display='block';
+    }
+
+    hourToggle.addEventListener('change', ()=>{
+      // restart all clocks to change hour12 option
+      clocks.forEach(c=> startClock(c));
+      localStorage.setItem('keke.clock.hour24', hourToggle.checked? '1':'0');
+    });
+
+    function saveState(){
+      const state = clocks.map(c=>c.tz);
+      localStorage.setItem('keke.clock.zones', JSON.stringify(state));
+    }
+
+    function loadState(){
+      const params = new URLSearchParams(location.search);
+      const zonesParam = params.get('zones');
+      let arr;
+      if(zonesParam){
+        try{
+          // zonesParam is a single encoded string like: encodeURIComponent('Asia/Tokyo,Europe/London')
+          // decode once, then split on commas.
+          const decoded = decodeURIComponent(zonesParam);
+          arr = decoded.split(',').filter(Boolean);
+        }catch(e){ arr = null; }
+      }
+      if(!arr){
+        const t = localStorage.getItem('keke.clock.zones');
+        arr = t ? JSON.parse(t) : ['Asia/Tokyo','Europe/London','America/New_York'];
+      }
+      arr.forEach(tz => { try{ makeCard(tz);}catch(e){console.warn(e);} });
+      const hour24 = localStorage.getItem('keke.clock.hour24');
+      if(hour24) hourToggle.checked = hour24==='1';
+    }
+
+
+    // share helper: build a shareable URL from current zones
+    function buildShareURL(){
+      // Use the current page's origin+pathname so the generated link points to the same hosted file
+      // (avoid hardcoding a domain/file that might not exist on the host).
+      const base = location.origin + location.pathname;
+      const zones = clocks.map(c=>c.tz);
+      if(!zones || zones.length===0) return base;
+      // join with commas, then encode once. On load we decode once and split on commas.
+      const q = encodeURIComponent(zones.join(','));
+      return `${base}?zones=${q}`;
+    }
+
+
+    const shareBtn = document.getElementById('shareBtn');
+    if(shareBtn){
+      shareBtn.addEventListener('click', ()=>{
+        const url = buildShareURL();
+        if(navigator.clipboard && window.isSecureContext){
+          navigator.clipboard.writeText(url).then(()=>{ alert('共有リンクをコピーしました: ' + url); }).catch(()=>{ prompt('共有リンク (コピーしてください):', url); });
+        }else{
+          prompt('共有リンク (コピーしてください):', url);
+        }
+      });
+    }
+
+    // init
+    loadState();
+
+    // keyboard shortcut: focus search with /
+    window.addEventListener('keydown', (e)=>{ if(e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); search.focus(); } });
+
+  </script>
+</body>
+</html>

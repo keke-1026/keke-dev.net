@@ -1,0 +1,8 @@
+{
+  "title": "おどれグロッケンシュピール",
+  "bpm": 120,
+  "audioUrl": "audio.mp3",
+  "difficulties": [
+    { "name": "HARD", "level": 6, "dataFile": "data.json" }
+  ]
+}

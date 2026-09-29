@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カステラくんの素材</title>
+    <!-- Google Fonts の読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS (スタイリング用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 全体のフォント設定 */
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+        }
+
+        /* 集中線の背景エフェクト (CSSグラデーションで表現) */
+        .focus-lines-bg {
+            background: repeating-conic-gradient(
+                from 0deg,
+                transparent 0deg 4deg,
+                rgba(0, 0, 0, 0.05) 4deg 5deg,
+                transparent 5deg 9deg,
+                rgba(0, 0, 0, 0.08) 9deg 11deg
+            );
+            animation: spin 40s linear infinite;
+        }
+
+        /* 集中線の回転アニメーション */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 素材がポップアップする際のアニメーション */
+        .animate-pop-in {
+            animation: pop-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ボタンのクリック時の沈み込み */
+        .btn-active:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center overflow-hidden">
+
+    <!-- メインコンテンツ -->
+    <main class="flex flex-col items-center justify-center z-10 w-full max-w-md px-4">
+        
+        <!-- メインのボタン -->
+        <button id="action-btn" class="btn-active bg-gray-900 text-white font-bold py-6 px-12 rounded-full shadow-lg hover:bg-gray-700 transition-all text-xl w-full max-w-xs outline-none focus:ring-4 focus:ring-gray-300">
+            素材をゲット
+        </button>
+    </main>
+
+    <!-- 獲得時のフルスクリーンエフェクト（初期状態は非表示） -->
+    <div id="effect-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-white hidden">
+        <!-- 集中線レイヤー -->
+        <div class="absolute inset-[-50%] focus-lines-bg"></div>
+        
+        <!-- コンテンツレイヤー -->
+        <div id="effect-content" class="relative z-10 flex flex-col items-center">
+            
+            <!-- SVG画像が表示される領域 -->
+            <div id="material-svg-container" class="w-48 h-48 mb-6 text-gray-900 filter drop-shadow-md">
+                <!-- JSでSVGが挿入されます -->
+            </div>
+
+            <!-- 素材名 -->
+            <h2 id="material-name" class="text-4xl md:text-5xl font-black text-gray-900 bg-white px-6 py-2 border-4 border-gray-900 rounded-lg shadow-[8px_8px_0px_rgba(0,0,0,1)] mb-8">
+                <!-- JSで名前が挿入されます -->
+            </h2>
+
+            <!-- 取得したID (枠線なし、上にテキスト) -->
+            <div class="flex flex-col items-center bg-white/80 px-8 py-4 rounded-xl">
+                <p class="text-gray-700 font-bold mb-2">IDはこちら https://code.keke-dev.net で申請してね</p>
+                <span id="material-code-display" class="text-3xl md:text-4xl font-mono font-bold text-gray-900 select-all cursor-pointer">
+                    <!-- JSでコードが挿入されます -->
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 処理用のJavaScript -->
+    <script>
+        // 素材のデータリスト (JSON形式で定義、SVGを追加しダブルクォーテーションをエスケープ)
+        const materialsJson = `[
+            {
+                "name": "カステラくんを作る素材 x無限",
+                "code": "kasutera",
+                "svg": "<svg viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"1.5\\" class=\\"w-full h-full\\"><path d=\\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\\"></path><polyline points=\\"3.27 6.96 12 12.01 20.73 6.96\\"></polyline><line x1=\\"12\\" y1=\\"22.08\\" x2=\\"12\\" y2=\\"12\\"></line></svg>"
+            }
+        ]`;
+        const materials = JSON.parse(materialsJson);
+
+        // 各要素の取得
+        const actionBtn = document.getElementById('action-btn');
+        const effectOverlay = document.getElementById('effect-overlay');
+        const effectContent = document.getElementById('effect-content');
+        const materialSvgContainer = document.getElementById('material-svg-container');
+        const materialNameDisplay = document.getElementById('material-name');
+        const materialCodeDisplay = document.getElementById('material-code-display');
+
+        // ボタンを無効化する関数
+        function disableButton() {
+            actionBtn.disabled = true;
+            actionBtn.textContent = '取得済み';
+            actionBtn.classList.remove('bg-gray-900', 'hover:bg-gray-700', 'btn-active', 'focus:ring-4');
+            actionBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        }
+
+        // ページ読み込み時にLocalStorageを確認
+        if (localStorage.getItem('materialAcquired') === 'true') {
+            disableButton();
+        }
+
+        // ボタンがクリックされたときの処理
+        actionBtn.addEventListener('click', () => {
+            // すでに取得済みの場合は処理しない（念のため）
+            if (localStorage.getItem('materialAcquired') === 'true') return;
+
+            // ランダムに素材を1つ選ぶ
+            const randomIndex = Math.floor(Math.random() * materials.length);
+            const selectedMaterial = materials[randomIndex];
+
+            // 獲得画面にデータをセット
+            materialSvgContainer.innerHTML = selectedMaterial.svg;
+            materialNameDisplay.textContent = selectedMaterial.name;
+            materialCodeDisplay.textContent = selectedMaterial.code;
+
+            // アニメーションをリセットして再適用
+            effectContent.classList.remove('animate-pop-in');
+            void effectContent.offsetWidth; // リフローを強制してアニメーションを再起動
+            effectContent.classList.add('animate-pop-in');
+
+            // 獲得画面(集中線)を表示
+            effectOverlay.classList.remove('hidden');
+
+            // 取得情報を保存し、ボタンを無効化する
+            localStorage.setItem('materialAcquired', 'true');
+            disableButton();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>譜面作成エディタ - 4-Way Rhythm Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --primary-color: #4CAF50;
+            --record-color: #ff5252;
+            --text-color: #333;
+            --border-color: #ddd;
+            --audio-color: #2196F3;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        h1 { text-align: center; margin-bottom: 30px; }
+
+        .audio-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid var(--audio-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .record-section {
+            background: #fff0f0;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid var(--record-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timer-display {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: monospace;
+            color: var(--record-color);
+        }
+
+        .record-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-layout { grid-template-columns: 1fr; }
+        }
+
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-right: 20px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label { font-weight: bold; font-size: 14px; }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .add-btn { background-color: var(--primary-color); color: white; margin-top: 10px; }
+        .record-btn { background-color: var(--record-color); color: white; }
+        .stop-btn { background-color: #333; color: white; }
+        .download-btn { background-color: var(--audio-color); color: white; }
+        .copy-btn { background-color: #333; color: white; }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .list-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notes-list {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .note-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #eee;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .note-info { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .note-type { font-weight: bold; color: var(--primary-color); min-width: 45px; }
+        .note-time-label { min-width: 60px; font-family: monospace; }
+        .edit-select { padding: 4px; font-size: 12px; border-radius: 4px; }
+        
+        .delete-btn { color: #ff5252; cursor: pointer; font-weight: bold; border: none; background: none; font-size: 16px; }
+
+        .output-section {
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            font-family: monospace;
+            box-sizing: border-box;
+            background: #222;
+            color: #0f0;
+            font-size: 12px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .helper-text { font-size: 12px; color: #888; margin-bottom: 10px; }
+        .record-hint { font-size: 13px; color: #d32f2f; font-weight: bold; }
+        
+        #audio-progress {
+            width: 100%;
+            height: 10px;
+            background: #ccc;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        #audio-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--audio-color);
+        }
+
+        .offset-config {
+            background: #eee;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .offset-config input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>譜面作成エディタ</h1>
+
+    <div class="audio-section">
+        <label>1. オーディオファイルを読み込む</label>
+        <input type="file" id="audio-input" accept="audio/*">
+        <div id="audio-progress">
+            <div id="audio-progress-bar"></div>
+        </div>
+        <audio id="bgm-audio"></audio>
+    </div>
+
+    <div class="record-section">
+        <label>2. 音楽に合わせて録音する</label>
+        <div class="timer-display" id="timer-display">00:00.000</div>
+        
+        <div class="offset-config">
+            <label>判定ズレ補正(ms):</label>
+            <input type="number" id="recording-offset" value="-50" step="10">
+            <span>※聞こえた瞬間に叩くと遅れるため、マイナス値(例:-50)を推奨</span>
+        </div>
+
+        <div class="offset-config" style="margin-top: 5px;">
+            <input type="checkbox" id="sync-dir-checkbox">
+            <label for="sync-dir-checkbox">押した矢印キーの向きを出現方向(dir)にする</label>
+        </div>
+
+        <div class="record-controls" style="margin-top: 15px;">
+            <button class="record-btn" id="start-record-btn" onclick="startRecording()">録音開始</button>
+            <button class="stop-btn" id="stop-record-btn" onclick="stopRecording()" disabled>停止</button>
+        </div>
+        <div class="record-hint" id="record-hint" style="visibility: hidden;">
+            Space: タップ / 矢印キー: フリック
+        </div>
+        <div class="helper-text">※録音中、出現方向(dir)は左側の選択ボックスの設定が適用されます。</div>
+    </div>
+
+    <div class="editor-layout">
+        <div class="form-section">
+            <div class="input-group">
+                <label>出現方向 (dir)</label>
+                <select id="note-dir">
+                    <option value="top">上 (top)</option>
+                    <option value="bottom">下 (bottom)</option>
+                    <option value="left">左 (left)</option>
+                    <option value="right">右 (right)</option>
+                </select>
+            </div>
+
+            <hr style="width:100%; border:0; border-top:1px solid #eee;">
+            <label style="color:#666;">手動追加</label>
+
+            <div class="input-group">
+                <label>タイミング (ミリ秒)</label>
+                <input type="number" id="note-time" placeholder="1000" value="0">
+            </div>
+
+            <div class="input-group">
+                <label>ノーツ種類 (type)</label>
+                <select id="note-type" onchange="toggleFlickDir()">
+                    <option value="tap">通常タップ (tap)</option>
+                    <option value="flick">フリック (flick)</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="flick-dir-group" style="display: none;">
+                <label>フリック方向 (flickDir)</label>
+                <select id="note-flick-dir">
+                    <option value="top">上へ</option>
+                    <option value="bottom">下へ</option>
+                    <option value="left">左へ</option>
+                    <option value="right">右へ</option>
+                </select>
+            </div>
+
+            <button class="add-btn" onclick="addNote()">リストに追加</button>
+        </div>
+
+        <div class="list-section">
+            <label>追加されたノーツ一覧 (時間順)</label>
+            <div class="notes-list" id="notes-list"></div>
+            <button onclick="clearAll()" style="background:#ff5252; color:white; font-size:12px; padding:5px;">すべて削除</button>
+        </div>
+    </div>
+
+    <div class="output-section">
+        <label>生成されたJSONデータ (data.json用)</label>
+        <textarea id="json-output" readonly></textarea>
+        <div class="actions">
+            <button class="copy-btn" onclick="copyJSON()">JSONをコピー</button>
+            <button class="download-btn" onclick="downloadJSON()">data.jsonとして保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let notes = [];
+    let isRecording = false;
+    let timerInterval = null;
+    const audioInput = document.getElementById('audio-input');
+    const audioPlayer = document.getElementById('bgm-audio');
+    const progressBar = document.getElementById('audio-progress-bar');
+    const recordingOffsetInput = document.getElementById('recording-offset');
+
+    audioInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            audioPlayer.src = url;
+            audioPlayer.load();
+        }
+    });
+
+    function toggleFlickDir() {
+        const type = document.getElementById('note-type').value;
+        const group = document.getElementById('flick-dir-group');
+        group.style.display = (type === 'flick') ? 'flex' : 'none';
+    }
+
+    function addNote() {
+        const time = parseInt(document.getElementById('note-time').value);
+        const dir = document.getElementById('note-dir').value;
+        const type = document.getElementById('note-type').value;
+        const flickDir = document.getElementById('note-flick-dir').value;
+
+        const note = { time, dir, type };
+        if (type === 'flick') { note.flickDir = flickDir; }
+
+        notes.push(note);
+        notes.sort((a, b) => a.time - b.time);
+        updateUI();
+        document.getElementById('note-time').value = time + 500;
+    }
+
+    function startRecording() {
+        if (!audioPlayer.src && audioInput.files.length === 0) {
+            alert("先にオーディオファイルを選択してください。");
+            return;
+        }
+        isRecording = true;
+        audioPlayer.currentTime = 0;
+        audioPlayer.play();
+        document.getElementById('start-record-btn').disabled = true;
+        document.getElementById('stop-record-btn').disabled = false;
+        document.getElementById('record-hint').style.visibility = 'visible';
+        timerInterval = setInterval(updateTimer, 16);
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        audioPlayer.pause();
+        clearInterval(timerInterval);
+        document.getElementById('start-record-btn').disabled = false;
+        document.getElementById('stop-record-btn').disabled = true;
+        document.getElementById('record-hint').style.visibility = 'hidden';
+    }
+
+    function updateTimer() {
+        if (!isRecording) return;
+        const elapsed = audioPlayer.currentTime * 1000;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        const ms = Math.floor(elapsed % 1000);
+        document.getElementById('timer-display').innerText = 
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        if (audioPlayer.duration) {
+            const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            progressBar.style.width = percent + "%";
+            if (audioPlayer.ended) { stopRecording(); }
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (!isRecording) return;
+        const offset = parseInt(recordingOffsetInput.value) || 0;
+        const rawTime = Math.floor(audioPlayer.currentTime * 1000);
+        const elapsed = Math.max(0, rawTime + offset);
+        
+        let dir = document.getElementById('note-dir').value;
+        const syncDirCheckbox = document.getElementById('sync-dir-checkbox');
+        const isSyncDir = syncDirCheckbox ? syncDirCheckbox.checked : false;
+
+        let note = null;
+        if (e.code === 'Space') {
+            e.preventDefault(); note = { time: elapsed, dir: dir, type: 'tap' };
+        } else if (e.code === 'ArrowUp') {
+            if (isSyncDir) dir = 'top';
+            e.preventDefault(); note = { time: elapsed, dir: dir, type: 'flick', flickDir: 'top' };
+        } else if (e.code === 'ArrowDown') {
+            if (isSyncDir) dir = 'bottom';
+            e.preventDefault(); note = { time: elapsed, dir: dir, type: 'flick', flickDir: 'bottom' };
+        } else if (e.code === 'ArrowLeft') {
+            if (isSyncDir) dir = 'left';
+            e.preventDefault(); note = { time: elapsed, dir: dir, type: 'flick', flickDir: 'left' };
+        } else if (e.code === 'ArrowRight') {
+            if (isSyncDir) dir = 'right';
+            e.preventDefault(); note = { time: elapsed, dir: dir, type: 'flick', flickDir: 'right' };
+        }
+        
+        if (note) {
+            const exists = notes.some(n => Math.abs(n.time - note.time) < 20 && n.dir === note.dir);
+            if (!exists) {
+                notes.push(note);
+                notes.sort((a, b) => a.time - b.time);
+                updateUI();
+            }
+        }
+    });
+
+    function deleteNote(index) { notes.splice(index, 1); updateUI(); }
+    
+    // リスト内編集用の関数
+    function editNoteDir(index, newDir) {
+        notes[index].dir = newDir;
+        updateUI(false); // UI更新のみ（ソート不要）
+    }
+
+    function editFlickDir(index, newFlickDir) {
+        notes[index].flickDir = newFlickDir;
+        updateUI(false);
+    }
+
+    function clearAll() { if(confirm('本当にすべて削除しますか？')) { notes = []; updateUI(); } }
+
+    function updateUI(reSort = true) {
+        if (reSort) notes.sort((a, b) => a.time - b.time);
+        
+        const listEl = document.getElementById('notes-list');
+        listEl.innerHTML = '';
+        notes.forEach((note, index) => {
+            const div = document.createElement('div');
+            div.className = 'note-item';
+            
+            // 時間とタイプ
+            let html = `
+                <div class="note-info">
+                    <span class="note-time-label">${note.time}ms</span>
+                    <span class="note-type">${note.type.toUpperCase()}</span>
+                    
+                    <select class="edit-select" onchange="editNoteDir(${index}, this.value)">
+                        <option value="top" ${note.dir === 'top' ? 'selected' : ''}>上</option>
+                        <option value="bottom" ${note.dir === 'bottom' ? 'selected' : ''}>下</option>
+                        <option value="left" ${note.dir === 'left' ? 'selected' : ''}>左</option>
+                        <option value="right" ${note.dir === 'right' ? 'selected' : ''}>右</option>
+                    </select>
+            `;
+            
+            // フリック向きの編集
+            if (note.type === 'flick') {
+                html += `
+                    <select class="edit-select" onchange="editFlickDir(${index}, this.value)">
+                        <option value="top" ${note.flickDir === 'top' ? 'selected' : ''}>↑</option>
+                        <option value="bottom" ${note.flickDir === 'bottom' ? 'selected' : ''}>↓</option>
+                        <option value="left" ${note.flickDir === 'left' ? 'selected' : ''}>←</option>
+                        <option value="right" ${note.flickDir === 'right' ? 'selected' : ''}>→</option>
+                    </select>
+                `;
+            }
+            
+            html += `</div><button class="delete-btn" onclick="deleteNote(${index})">✕</button>`;
+            div.innerHTML = html;
+            listEl.appendChild(div);
+        });
+        
+        document.getElementById('json-output').value = JSON.stringify(notes, null, 2);
+        if (reSort) listEl.scrollTop = listEl.scrollHeight;
+    }
+
+    function copyJSON() { const textarea = document.getElementById('json-output'); textarea.select(); document.execCommand('copy'); }
+    function downloadJSON() {
+        if (notes.length === 0) return;
+        const blob = new Blob([document.getElementById('json-output').value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'data.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>

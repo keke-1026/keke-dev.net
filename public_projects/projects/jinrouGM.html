@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>人狼GMツール 完全版</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet" />
+<style>
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: #fafafa;
+    color: #222;
+    margin: 20px;
+  }
+  h1, h2, h3 {
+    text-align: center;
+  }
+  .card {
+    background: #fff;
+    max-width: 900px;
+    margin: 15px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+  }
+  button {
+    padding: 8px 15px;
+    margin: 5px;
+    font-size: 15px;
+    border-radius: 6px;
+    border: none;
+    background: #448aff;
+    color: white;
+    cursor: pointer;
+  }
+  button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  input, select {
+    font-size: 14px;
+    padding: 5px;
+    margin: 5px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    border: 1px solid #bbb;
+    padding: 6px 10px;
+    text-align: center;
+  }
+  th {
+    background: #eee;
+  }
+  .hidden {
+    display: none;
+  }
+  #resetButton {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #e53935;
+  }
+  #discussionTimer, #voteResult, #runoffVoteResult, #nightResult, #morningResult {
+    font-weight: bold;
+    margin-top: 12px;
+    font-size: 1.1em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<button id="resetButton">🔄 ゲーム初期化</button>
+<h1>人狼GMツール 完全版</h1>
+<div id="game"></div>
+
+<script>
+(() => {
+  const ROLE_LIST = ["人狼", "裏切者", "占い師", "狩人", "霊媒師", "村人"];
+  let players = {};
+  let phase = "準備";
+  let dayCount = 1;
+  let useManualRoleSelect = false;
+
+  const gameDiv = document.getElementById("game");
+  const resetBtn = document.getElementById("resetButton");
+
+  // 初期化表示
+  function init() {
+    gameDiv.innerHTML = `
+      <div class="card" id="setupPhase">
+        <h2>プレイヤー設定</h2>
+        <label>人数：
+          <input type="number" id="playerCountInput" min="3" max="15" value="6" />
+        </label>
+        <button id="createNameInputsBtn">名前入力欄を作成</button>
+        <div id="nameInputsArea"></div>
+
+        <h3>役職配布方法を選択</h3>
+        <label><input type="radio" name="roleSelectMethod" value="random" checked> ランダム配布</label>
+        <label><input type="radio" name="roleSelectMethod" value="manual"> 手動設定</label>
+
+        <button id="assignRolesBtn" disabled>役職を配布して開始</button>
+      </div>
+      <div id="manualRoleSelectArea" class="card hidden">
+        <h3>手動で役職を割り当てる</h3>
+        <div id="manualRoleInputs"></div>
+        <button id="startGameBtn" disabled>ゲーム開始</button>
+      </div>
+    `;
+
+    document.getElementById("createNameInputsBtn").onclick = createNameInputs;
+    document.getElementsByName("roleSelectMethod").forEach(radio => {
+      radio.onchange = () => {
+        useManualRoleSelect = document.querySelector('input[name="roleSelectMethod"]:checked').value === "manual";
+        document.getElementById("assignRolesBtn").disabled = false;
+        document.getElementById("manualRoleSelectArea").classList.toggle("hidden", !useManualRoleSelect);
+      };
+    });
+    document.getElementById("assignRolesBtn").onclick = assignRoles;
+  }
+
+  // 名前入力欄作成
+  function createNameInputs() {
+    const count = Number(document.getElementById("playerCountInput").value);
+    if (count < 3 || count > 15) {
+      alert("人数は3〜15人で入力してください。");
+      return;
+    }
+    const area = document.getElementById("nameInputsArea");
+    area.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = `プレイヤー${i + 1}の名前`;
+      input.className = "playerNameInput";
+      input.style.margin = "4px";
+      area.appendChild(input);
+    }
+    document.getElementById("assignRolesBtn").disabled = false;
+  }
+
+  // 役職割り当て
+  function assignRoles() {
+    const inputs = document.querySelectorAll(".playerNameInput");
+    const names = Array.from(inputs).map(i => i.value.trim()).filter(n => n);
+    if (names.length < 3) {
+      alert("3人以上の名前を入力してください。");
+      return;
+    }
+
+    players = {};
+    dayCount = 1;
+    phase = "昼";
+
+    if (!useManualRoleSelect) {
+      // ランダム配布
+      let rolesForGame = [];
+      rolesForGame.push("人狼", "裏切者", "占い師", "狩人", "霊媒師");
+      while (rolesForGame.length < names.length) rolesForGame.push("村人");
+      shuffle(rolesForGame);
+      names.forEach((name, i) => {
+        players[name] = { role: rolesForGame[i], alive: true, protect: false };
+      });
+      startGame();
+    } else {
+      buildManualRoleInputs(names);
+      document.getElementById("assignRolesBtn").disabled = true;
+    }
+  }
+
+  // 手動割当UI作成
+  function buildManualRoleInputs(names) {
+    const container = document.getElementById("manualRoleInputs");
+    container.innerHTML = "";
+    names.forEach(name => {
+      const div = document.createElement("div");
+      div.style.marginBottom = "8px";
+      const labelName = document.createElement("span");
+      labelName.textContent = name + " ： ";
+      div.appendChild(labelName);
+
+      const selectRole = document.createElement("select");
+      ROLE_LIST.forEach(role => {
+        const opt = document.createElement("option");
+        opt.value = role;
+        opt.textContent = role;
+        selectRole.appendChild(opt);
+      });
+      div.appendChild(selectRole);
+      container.appendChild(div);
+    });
+
+    const startBtn = document.getElementById("startGameBtn");
+    startBtn.disabled = false;
+    startBtn.onclick = () => {
+      players = {};
+      const selects = container.querySelectorAll("select");
+      names.forEach((name, i) => {
+        players[name] = { role: selects[i].value, alive: true, protect: false };
+      });
+      phase = "昼";
+      dayCount = 1;
+      document.getElementById("setupPhase").classList.add("hidden");
+      document.getElementById("manualRoleSelectArea").classList.add("hidden");
+      startGame();
+    };
+  }
+
+  // ゲーム開始
+  function startGame() {
+    saveData();
+    showMainUI();
+  }
+
+  // メインUI表示
+  function showMainUI() {
+    gameDiv.innerHTML = `
+      <div class="card" id="statusArea">
+        <h2>フェーズ：<span id="phaseLabel">${phase}</span>　日数：<span id="dayLabel">${dayCount}</span>日目</h2>
+      </div>
+
+      <div class="card" id="playerStatusArea">
+        <h3>生存者一覧</h3>
+        <div id="aliveList"></div>
+        <h3>追放・死亡者一覧</h3>
+        <div id="deadList"></div>
+      </div>
+
+      <div class="card" id="discussionPhase" ${phase !== "昼" ? 'style="display:none;"' : ''}>
+        <h3>議論フェーズ</h3>
+        <label>時間（分）: <input type="number" id="discussionTime" value="3" min="1" max="10" style="width:50px;"></label>
+        <button id="startDiscussionBtn">議論開始</button>
+        <div id="discussionTimer"></div>
+      </div>
+
+      <div class="card" id="votingPhase" style="display:none;">
+        <h3>投票フェーズ</h3>
+        <table id="voteTable">
+          <thead><tr><th>投票者</th><th>投票先</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button id="tallyVotesBtn">投票集計</button>
+        <div id="voteResult"></div>
+      </div>
+
+      <div class="card hidden" id="runoffPhase">
+        <h3>決選投票フェーズ</h3>
+        <p id="runoffCandidates"></p>
+        <table id="runoffVoteTable">
+          <thead><tr><th>投票者</th><th>投票先</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button id="runoffTallyBtn">決選投票集計</button>
+        <div id="runoffVoteResult"></div>
+      </div>
+
+      <div class="card hidden" id="nightPhase">
+        <h3>夜のフェーズ</h3>
+        <p>人狼は襲撃する対象を選んでください。</p>
+        <label>人狼襲撃対象：
+          <select id="werewolfTargetSelect"></select>
+        </label>
+        <p>狩人は守る対象を選んでください。</p>
+        <label>狩人護衛対象：
+          <select id="hunterProtectSelect"></select>
+        </label>
+        <p>占い師は占う対象を選んでください。</p>
+        <label>占い対象：
+          <select id="seerSelect"></select>
+        </label>
+        <button id="submitNightActionBtn">夜の行動決定</button>
+        <div id="nightResult"></div>
+      </div>
+
+      <div class="card hidden" id="morningPhase">
+        <h3>朝の結果発表</h3>
+        <div id="morningResult"></div>
+        <button id="nextDayBtn">次の日へ</button>
+      </div>
+    `;
+
+    updatePlayerLists();
+    setupDiscussionPhase();
+  }
+
+  // 生存者・死亡者一覧更新
+  function updatePlayerLists() {
+    const aliveList = document.getElementById("aliveList");
+    const deadList = document.getElementById("deadList");
+    aliveList.innerHTML = "";
+    deadList.innerHTML = "";
+    Object.entries(players).forEach(([name, p]) => {
+      const text = `${name}（${p.role}）`;
+      if (p.alive) {
+        aliveList.innerHTML += text + "<br>";
+      } else {
+        deadList.innerHTML += text + "<br>";
+      }
+    });
+  }
+
+  // 議論フェーズセットアップ
+  function setupDiscussionPhase() {
+    const startBtn = document.getElementById("startDiscussionBtn");
+    const timerDiv = document.getElementById("discussionTimer");
+    let timerId = null;
+    let timeLeft = 0;
+
+    startBtn.onclick = () => {
+      const time = Number(document.getElementById("discussionTime").value);
+      if (time <= 0) {
+        alert("1分以上で設定してください。");
+        return;
+      }
+      startBtn.disabled = true;
+      timeLeft = time * 60;
+      timerDiv.textContent = formatTime(timeLeft);
+      timerId = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          timerDiv.textContent = "議論終了！";
+          startBtn.disabled = false;
+          showVotingPhase();
+        } else {
+          timerDiv.textContent = formatTime(timeLeft);
+        }
+      }, 1000);
+    };
+  }
+
+  // 時間表示 mm:ss
+  function formatTime(sec) {
+    const m = String(Math.floor(sec / 60)).padStart(2, "0");
+    const s = String(sec % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  // 投票フェーズ表示
+  function showVotingPhase() {
+    document.getElementById("discussionPhase").style.display = "none";
+    document.getElementById("votingPhase").style.display = "block";
+    document.getElementById("runoffPhase").classList.add("hidden");
+    document.getElementById("nightPhase").classList.add("hidden");
+    document.getElementById("morningPhase").classList.add("hidden");
+
+    const tbody = document.querySelector("#voteTable tbody");
+    tbody.innerHTML = "";
+    const alivePlayers = Object.entries(players).filter(([_, p]) => p.alive).map(([name]) => name);
+
+    alivePlayers.forEach(voter => {
+      const tr = document.createElement("tr");
+      const tdVoter = document.createElement("td");
+      tdVoter.textContent = `${voter}（${players[voter].role}）`;
+      const tdVote = document.createElement("td");
+      const select = document.createElement("select");
+      alivePlayers.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = `${name}（${players[name].role}）`;
+        select.appendChild(option);
+      });
+      tdVote.appendChild(select);
+      tr.appendChild(tdVoter);
+      tr.appendChild(tdVote);
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("tallyVotesBtn").onclick = tallyVotes;
+  }
+
+  // 投票集計
+  function tallyVotes() {
+    const tbody = document.querySelector("#voteTable tbody");
+    const votes = {};
+    for (const tr of tbody.querySelectorAll("tr")) {
+      const voteTarget = tr.children[1].querySelector("select").value;
+      votes[voteTarget] = (votes[voteTarget] || 0) + 1;
+    }
+
+    const maxVote = Math.max(...Object.values(votes));
+    const topCandidates = Object.entries(votes).filter(([_, v]) => v === maxVote).map(([n]) => n);
+
+    if (topCandidates.length === 1) {
+      eliminatePlayer(topCandidates[0]);
+      document.getElementById("voteResult").textContent = `${topCandidates[0]} が追放されました。`;
+      phase = "夜";
+      dayCountLabelUpdate();
+      setTimeout(startNightPhase, 2000);
+    } else {
+      document.getElementById("voteResult").textContent = "同票です。決選投票を行います。";
+      startRunoffVote(topCandidates);
+    }
+  }
+
+  // 決選投票フェーズ開始
+  function startRunoffVote(candidates) {
+    document.getElementById("votingPhase").style.display = "none";
+    const runoff = document.getElementById("runoffPhase");
+    runoff.classList.remove("hidden");
+    document.getElementById("nightPhase").classList.add("hidden");
+    document.getElementById("morningPhase").classList.add("hidden");
+
+    document.getElementById("runoffCandidates").textContent = `候補者: ${candidates.map(c => `${c}（${players[c].role}）`).join(", ")}`;
+
+    const tbody = document.querySelector("#runoffVoteTable tbody");
+    tbody.innerHTML = "";
+
+    const runoffVoters = Object.entries(players).filter(([name, p]) => p.alive && !candidates.includes(name)).map(([name]) => name);
+
+    runoffVoters.forEach(voter => {
+      const tr = document.createElement("tr");
+      const tdVoter = document.createElement("td");
+      tdVoter.textContent = `${voter}（${players[voter].role}）`;
+      const tdVote = document.createElement("td");
+      const select = document.createElement("select");
+      candidates.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = `${c}（${players[c].role}）`;
+        select.appendChild(opt);
+      });
+      tdVote.appendChild(select);
+      tr.appendChild(tdVoter);
+      tr.appendChild(tdVote);
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("runoffTallyBtn").onclick = () => {
+      const votes = {};
+      for (const tr of tbody.querySelectorAll("tr")) {
+        const voteTarget = tr.children[1].querySelector("select").value;
+        votes[voteTarget] = (votes[voteTarget] || 0) + 1;
+      }
+      const maxVote = Math.max(...Object.values(votes));
+      const topCandidates = Object.entries(votes).filter(([_, v]) => v === maxVote).map(([n]) => n);
+
+      if (topCandidates.length === 1) {
+        eliminatePlayer(topCandidates[0]);
+        document.getElementById("runoffVoteResult").textContent = `${topCandidates[0]} が追放されました。`;
+        phase = "夜";
+        dayCountLabelUpdate();
+        setTimeout(startNightPhase, 2000);
+      } else {
+        // それでも同票ならルーレット
+        runRoulette(topCandidates);
+      }
+    };
+  }
+
+  // ルーレット決定
+  function runRoulette(candidates) {
+    const resultDiv = document.getElementById("runoffVoteResult");
+    resultDiv.textContent = "ルーレットで決定中...";
+    let idx = 0;
+    const interval = setInterval(() => {
+      resultDiv.textContent = `ルーレット選択中：${candidates[idx]}（${players[candidates[idx]].role}）`;
+      idx = (idx + 1) % candidates.length;
+    }, 150);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      const choice = candidates[Math.floor(Math.random() * candidates.length)];
+      eliminatePlayer(choice);
+      resultDiv.textContent = `ルーレットで ${choice} が追放されました。`;
+      phase = "夜";
+      dayCountLabelUpdate();
+      setTimeout(startNightPhase, 2000);
+    }, 4000);
+  }
+
+  // プレイヤー追放処理
+  function eliminatePlayer(name) {
+    if (!players[name]) return;
+    players[name].alive = false;
+    saveData();
+    updatePlayerLists();
+  }
+
+  // 日数ラベル更新
+  function dayCountLabelUpdate() {
+    document.getElementById("dayLabel").textContent = dayCount;
+    document.getElementById("phaseLabel").textContent = phase;
+  }
+
+  // 夜フェーズ開始
+  function startNightPhase() {
+    phase = "夜";
+    dayCountLabelUpdate();
+
+    document.getElementById("discussionPhase").style.display = "none";
+    document.getElementById("votingPhase").style.display = "none";
+    document.getElementById("runoffPhase").classList.add("hidden");
+    document.getElementById("nightPhase").classList.remove("hidden");
+    document.getElementById("morningPhase").classList.add("hidden");
+
+    // 夜の対象選択肢セット
+    const aliveNames = Object.entries(players).filter(([_, p]) => p.alive).map(([n]) => n);
+    const werewolfTarget = document.getElementById("werewolfTargetSelect");
+    const hunterProtect = document.getElementById("hunterProtectSelect");
+    const seerSelect = document.getElementById("seerSelect");
+
+    werewolfTarget.innerHTML = "";
+    hunterProtect.innerHTML = "";
+    seerSelect.innerHTML = "";
+
+    aliveNames.forEach(name => {
+      const opt1 = document.createElement("option");
+      opt1.value = name;
+      opt1.textContent = `${name}（${players[name].role}）`;
+      werewolfTarget.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = name;
+      opt2.textContent = `${name}（${players[name].role}）`;
+      hunterProtect.appendChild(opt2);
+
+      const opt3 = document.createElement("option");
+      opt3.value = name;
+      opt3.textContent = `${name}（${players[name].role}）`;
+      seerSelect.appendChild(opt3);
+    });
+
+    document.getElementById("submitNightActionBtn").onclick = submitNightActions;
+    document.getElementById("nightResult").textContent = "";
+  }
+
+  // 夜の行動確定処理
+  function submitNightActions() {
+    const werewolfTarget = document.getElementById("werewolfTargetSelect").value;
+    const hunterProtectTarget = document.getElementById("hunterProtectSelect").value;
+    const seerTarget = document.getElementById("seerSelect").value;
+
+    // 襲撃判定
+    let attackedPlayer = werewolfTarget;
+    if (hunterProtectTarget === attackedPlayer) {
+      attackedPlayer = null; // 狩人が守った
+    }
+
+    // 占い結果判定
+    let seerResult = "";
+    if (players[seerTarget].role === "人狼" || players[seerTarget].role === "裏切者") {
+      seerResult = `${seerTarget} は 人狼陣営 です。`;
+    } else {
+      seerResult = `${seerTarget} は 村人陣営 です。`;
+    }
+
+    // 襲撃死亡反映
+    if (attackedPlayer) {
+      players[attackedPlayer].alive = false;
+    }
+
+    saveData();
+    updatePlayerLists();
+
+    // 霊媒師処理：直前に追放された人の役職表示
+    // ここでは追放直前プレイヤーをlocalStorageか変数で管理しているが、今回は直前追放は投票処理時に保存する形で対応
+    let lastExecuted = localStorage.getItem("lastExecuted") || null;
+    let mediumResult = "";
+    if (lastExecuted && players[lastExecuted]) {
+      mediumResult = `${lastExecuted} の役職は ${players[lastExecuted].role} でした。`;
+    } else {
+      mediumResult = "霊媒師情報はありません。";
+    }
+
+    // 夜の結果表示
+    let nightResultText = "";
+    if (attackedPlayer) {
+      nightResultText = `襲撃されたのは ${attackedPlayer} です。<br>`;
+    } else {
+      nightResultText = `襲撃はありませんでした。<br>`;
+    }
+    nightResultText += `${seerResult}<br>${mediumResult}`;
+
+    document.getElementById("nightResult").innerHTML = nightResultText;
+
+    phase = "朝";
+    dayCountLabelUpdate();
+
+    // 夜の表示から朝の表示へ
+    setTimeout(() => {
+      document.getElementById("nightPhase").classList.add("hidden");
+      document.getElementById("morningPhase").classList.remove("hidden");
+      showMorningResult(attackedPlayer);
+    }, 4000);
+  }
+
+  // 朝の結果表示
+  function showMorningResult(killedPlayer) {
+    const morningResult = document.getElementById("morningResult");
+    let text = "";
+    if (killedPlayer) {
+      text += `夜の襲撃で <strong>${killedPlayer}</strong> が死亡しました。<br>`;
+    } else {
+      text += "夜の襲撃はありませんでした。<br>";
+    }
+    morningResult.innerHTML = text;
+
+    // 次の日へボタンの設定
+    document.getElementById("nextDayBtn").onclick = () => {
+      dayCount++;
+      phase = "昼";
+      saveData();
+      updatePlayerLists();
+      dayCountLabelUpdate();
+      showMainUI();
+    };
+  }
+
+  // データ保存
+  function saveData() {
+    localStorage.setItem("players", JSON.stringify(players));
+    localStorage.setItem("phase", phase);
+    localStorage.setItem("dayCount", dayCount);
+  }
+
+  // データ復元
+  function loadData() {
+    const storedPlayers = localStorage.getItem("players");
+    const storedPhase = localStorage.getItem("phase");
+    const storedDayCount = localStorage.getItem("dayCount");
+    if (storedPlayers && storedPhase && storedDayCount) {
+      players = JSON.parse(storedPlayers);
+      phase = storedPhase;
+      dayCount = Number(storedDayCount);
+      return true;
+    }
+    return false;
+  }
+
+  // ランダムシャッフル
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  // 初期化
+  resetBtn.onclick = () => {
+    if (confirm("ゲームを初期化しますか？")) {
+      localStorage.clear();
+      location.reload();
+    }
+  };
+
+  // ページロード時
+  window.onload = () => {
+    if (!loadData()) {
+      init();
+    } else {
+      showMainUI();
+    }
+  };
+})();
+</script>
+</body>
+</html>

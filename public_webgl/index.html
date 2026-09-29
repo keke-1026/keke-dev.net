@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MMD AR Viewer</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Noto Sans JP', sans-serif;
+            touch-action: none;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+            pointer-events: auto;
+        }
+
+        #ui-layer {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        /* フォルダID入力用のテキストボックス */
+        #folder-id-input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-family: 'Noto Sans JP', sans-serif;
+            width: 250px;
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        #folder-id-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .load-btn {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .load-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .load-btn svg {
+            width: 32px;
+            height: 32px;
+            fill: #ffffff;
+        }
+
+        #message-text {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 12px;
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        /* UIの非表示・表示アニメーション用クラス */
+        .ui-hidden {
+            display: none !important;
+        }
+
+        .ui-popup {
+            animation: popupAnim 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popupAnim {
+            0% { transform: translate(-50%, 50px) scale(0.8); opacity: 0; }
+            100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        }
+
+        /* 追記: Readme表示用スタイル */
+        .top-right-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .top-right-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #ffffff;
+        }
+
+        #readme-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 30;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .readme-content-box {
+            background: #222;
+            border: 1px solid #555;
+            border-radius: 12px;
+            padding: 24px;
+            width: 80%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: white;
+        }
+
+        .readme-content-box h2 {
+            margin-top: 0;
+            font-size: 18px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .readme-content-box p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        #readme-close-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        #readme-close-btn:active {
+            background: #555;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.136.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.136.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="webgl-canvas"></div>
+
+    <!-- 追記: 右上Readmeボタン -->
+    <div id="readme-btn" class="top-right-btn">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        </svg>
+    </div>
+
+    <!-- 追記: Readmeモーダル -->
+    <div id="readme-modal" class="ui-hidden">
+        <div class="readme-content-box">
+            <h2 id="readme-title">Loading...</h2>
+            <div id="readme-text-area"></div>
+            <button id="readme-close-btn">閉じる</button>
+        </div>
+    </div>
+
+    <!-- UIレイヤーにidはそのまま、アニメーション対象として扱う -->
+    <div id="ui-layer">
+        <div id="message-text">DriveのフォルダID、またはローカルファイル</div>
+        <!-- フォルダID入力欄 -->
+        <input type="text" id="folder-id-input" placeholder="フォルダID" />
+        
+        <div style="display: flex; gap: 20px; margin-top: 10px;">
+            <!-- API読み込み開始ボタン (クラウドアイコン) -->
+            <div id="drive-load-btn" class="load-btn" style="pointer-events: none; opacity: 0.5;">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                </svg>
+            </div>
+
+            <!-- 追記: ローカルファイル読み込みボタン (フォルダアイコン) -->
+            <label for="local-file-input" class="load-btn">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                </svg>
+            </label>
+            <input type="file" id="local-file-input" multiple accept=".pmx,.png,.jpg,.jpeg,.bmp,.tga,.dds" style="display: none;">
+        </div>
+    </div>
+
+    <!-- 新規追加: 右下の再表示用フォルダボタン (初期は非表示) -->
+    <div id="reopen-btn" class="load-btn ui-hidden" style="position: absolute; bottom: 30px; right: 30px; z-index: 10;">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+        </svg>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { MMDLoader } from 'three/addons/loaders/MMDLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Google Drive API の設定
+        const CLIENT_ID = '131535510066-84ohjunm41d3fshrst1ta6ikdf7e4hnq.apps.googleusercontent.com';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        const uiLayer = document.getElementById('ui-layer');
+        const messageText = document.getElementById('message-text');
+        const folderIdInput = document.getElementById('folder-id-input');
+        const driveLoadBtn = document.getElementById('drive-load-btn');
+        const reopenBtn = document.getElementById('reopen-btn');
+        const localFileInput = document.getElementById('local-file-input');
+
+        // Readme関連の要素
+        const readmeBtn = document.getElementById('readme-btn');
+        const readmeModal = document.getElementById('readme-modal');
+        const readmeCloseBtn = document.getElementById('readme-close-btn');
+        const readmeTitle = document.getElementById('readme-title');
+        const readmeTextArea = document.getElementById('readme-text-area');
+
+        // URLから初期IDを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialFolderId = urlParams.get('id');
+        if (initialFolderId) {
+            folderIdInput.value = initialFolderId;
+        }
+
+        // 追記: ReadmeのJSON読み込みと表示制御
+        async function loadReadme() {
+            try {
+                const res = await fetch('readme.json');
+                const data = await res.json();
+                readmeTitle.textContent = data.title;
+                readmeTextArea.innerHTML = data.content.map(text => {
+                    return text === "" ? "<br>" : `<p>${text}</p>`;
+                }).join('');
+            } catch (e) {
+                console.warn('Readme情報の取得に失敗しました', e);
+                readmeTitle.textContent = 'Readme Error';
+                readmeTextArea.innerHTML = '<p>readme.json の読み込みに失敗しました。</p>';
+            }
+        }
+
+        function showReadme() {
+            readmeModal.classList.remove('ui-hidden');
+        }
+
+        function hideReadme() {
+            readmeModal.classList.add('ui-hidden');
+            localStorage.setItem('readme_shown', 'true');
+        }
+
+        readmeBtn.addEventListener('click', showReadme);
+        readmeCloseBtn.addEventListener('click', hideReadme);
+
+        // 初期化時にReadmeをロードし、初回なら表示
+        loadReadme().then(() => {
+            if (!localStorage.getItem('readme_shown')) {
+                showReadme();
+            }
+        });
+
+        // 動的にGoogle APIスクリプトを読み込み初期化する
+        async function initGoogleApis() {
+            const loadScript = (src) => new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+
+            try {
+                await Promise.all([
+                    loadScript('https://apis.google.com/js/api.js'),
+                    loadScript('https://accounts.google.com/gsi/client')
+                ]);
+
+                gapi.load('client', async () => {
+                    await gapi.client.init({
+                        discoveryDocs: [DISCOVERY_DOC],
+                    });
+                    gapiInited = true;
+                    maybeEnableButtons();
+                });
+
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: '', 
+                });
+                gisInited = true;
+                maybeEnableButtons();
+
+            } catch (error) {
+                console.error("Google APIスクリプトのロードに失敗しました", error);
+                messageText.textContent = "APIの読み込みに失敗しました";
+            }
+        }
+
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                driveLoadBtn.style.pointerEvents = 'auto';
+                driveLoadBtn.style.opacity = '1';
+                messageText.textContent = "IDを入力するか、ローカルファイルを選択";
+                
+                if (initialFolderId && !window.autoLoaded) {
+                    window.autoLoaded = true;
+                    driveLoadBtn.click();
+                }
+            }
+        }
+
+        reopenBtn.addEventListener('click', () => {
+            reopenBtn.classList.add('ui-hidden');
+            uiLayer.classList.remove('ui-hidden');
+            uiLayer.classList.add('ui-popup');
+            
+            setTimeout(() => {
+                uiLayer.classList.remove('ui-popup');
+                messageText.style.display = 'block';
+                messageText.textContent = "新しい設定を入力してください";
+            }, 500);
+        });
+
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        let fileBlobMap = {};
+
+        function init() {
+            const container = document.getElementById('webgl-canvas');
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.set(0, 10, 30); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0); 
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 10, 0); 
+            controls.update();
+
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+            
+            initGoogleApis();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 追記: ローカルファイルの読み込み処理
+        localFileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            // 前回のメモリを解放
+            for (const key in fileBlobMap) {
+                URL.revokeObjectURL(fileBlobMap[key]);
+            }
+            fileBlobMap = {};
+
+            let pmxFile = null;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileName = file.name;
+                const blobUrl = URL.createObjectURL(file);
+                fileBlobMap[fileName] = blobUrl;
+
+                if (fileName.toLowerCase().endsWith('.pmx')) {
+                    pmxFile = file;
+                }
+            }
+
+            if (!pmxFile) {
+                messageText.textContent = "エラー：PMXファイルが含まれていません";
+                return;
+            }
+
+            messageText.textContent = "ローカルモデルを構築中...";
+            loadMMDModel(pmxFile.name);
+        });
+
+        driveLoadBtn.addEventListener('click', () => {
+            const folderId = folderIdInput.value.trim();
+            if (!folderId) {
+                messageText.textContent = "エラー：フォルダIDを入力してください";
+                return;
+            }
+
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                const accessToken = resp.access_token;
+                await fetchFilesFromDrive(folderId, accessToken);
+            };
+
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        });
+
+        async function fetchFilesFromDrive(folderId, accessToken) {
+            try {
+                for (const key in fileBlobMap) {
+                    URL.revokeObjectURL(fileBlobMap[key]);
+                }
+                fileBlobMap = {};
+
+                messageText.textContent = "ファイル構成を取得中...";
+                
+                const allFiles = [];
+                await getAllFilesInFolder(folderId, accessToken, allFiles);
+
+                if (allFiles.length === 0) {
+                    messageText.textContent = "指定されたフォルダにファイルがありません";
+                    return;
+                }
+
+                let pmxFileName = null;
+                const totalFiles = allFiles.length;
+                let downloadedCount = 0;
+
+                for (const file of allFiles) {
+                    downloadedCount++;
+                    messageText.textContent = `ダウンロード中... (${downloadedCount}/${totalFiles})`;
+
+                    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+
+                    if (!res.ok) {
+                        console.error(`ダウンロード失敗: ${file.name}`);
+                        continue;
+                    }
+
+                    const blob = await res.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    fileBlobMap[file.name] = blobUrl;
+
+                    if (file.name.toLowerCase().endsWith('.pmx')) {
+                        pmxFileName = file.name;
+                    }
+                }
+
+                if (!pmxFileName) {
+                    messageText.textContent = "エラー：PMXファイルが見つかりません";
+                    return;
+                }
+
+                messageText.textContent = "モデルを構築中...";
+                loadMMDModel(pmxFileName);
+
+            } catch (err) {
+                console.error("Drive API通信エラー:", err);
+                messageText.textContent = "通信エラーが発生しました";
+            }
+        }
+
+        async function getAllFilesInFolder(folderId, accessToken, allFiles) {
+            let pageToken = null;
+            do {
+                const response = await gapi.client.drive.files.list({
+                    q: `'${folderId}' in parents and trashed = false`,
+                    fields: 'nextPageToken, files(id, name, mimeType)',
+                    pageSize: 1000,
+                    pageToken: pageToken
+                });
+                
+                const files = response.result.files;
+                if (files) {
+                    for (const file of files) {
+                        if (file.mimeType === 'application/vnd.google-apps.folder') {
+                            await getAllFilesInFolder(file.id, accessToken, allFiles);
+                        } else {
+                            allFiles.push(file);
+                        }
+                    }
+                }
+                pageToken = response.result.nextPageToken;
+            } while (pageToken);
+        }
+
+        function loadMMDModel(pmxFileName) {
+            const manager = new THREE.LoadingManager();
+            manager.setURLModifier((url) => {
+                const fileName = url.split('/').pop().split('\\').pop();
+                if (fileBlobMap[fileName]) {
+                    return fileBlobMap[fileName];
+                }
+                return url;
+            });
+
+            const loader = new MMDLoader(manager);
+            const targetUrl = pmxFileName;
+
+            loader.load(
+                targetUrl,
+                (mesh) => {
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                    }
+
+                    currentModel = mesh;
+                    scene.add(mesh);
+                    messageText.textContent = "読み込み完了";
+                    
+                    setTimeout(() => {
+                        uiLayer.classList.add('ui-hidden');
+                        reopenBtn.classList.remove('ui-hidden');
+                    }, 2000);
+                },
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const percentComplete = Math.round((xhr.loaded / xhr.total) * 100);
+                        messageText.textContent = `解析中... ${percentComplete}%`;
+                    }
+                },
+                (error) => {
+                    console.error("MMDロードエラー:", error);
+                    messageText.textContent = "解析エラーが発生しました";
+                }
+            );
+        }
+
+        init();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listen</title>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      background-color: #ffffff;
+      color: #333333;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      font-weight: 300;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 32px;
+    }
+
+    .action-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      color: #333333;
+      font-family: inherit;
+      font-weight: 400;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.6;
+    }
+
+    .btn svg {
+      width: 32px;
+      height: 32px;
+      fill: #333333;
+    }
+
+    .status-msg {
+      font-size: 0.9rem;
+      color: #888888;
+    }
+
+    .vc-info {
+      display: none;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .vc-title {
+      font-size: 1.1rem;
+      color: #555555;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vc-title svg {
+      width: 20px;
+      height: 20px;
+      fill: #555555;
+    }
+
+    .participants {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-size: 1rem;
+    }
+
+    .mic-icon {
+      width: 18px;
+      height: 18px;
+      fill: #dddddd;
+      transition: fill 0.2s;
+    }
+
+    .user-row.speaking .mic-icon {
+      fill: #43b581;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="action-area">
+    <button class="btn" id="startBtn">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      視聴を開始
+    </button>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <div class="vc-info" id="vcInfo">
+    <div class="vc-title">
+      <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/></svg>
+      <span id="vcName"></span>
+    </div>
+    <div class="participants" id="participantList"></div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    // Cloudflare Tunnel等で公開するURL自身を指定（ポート指定は不要）
+    const WS_URL = 'wss://discord-web.ke2.jp'; 
+
+    let ws;
+    let audioCtx;
+    let currentSpeaker = null;
+    let nextPlayTime = 0;
+
+    // TCPの限界突破チューニング
+    const LATENCY_BUFFER = 0.01;
+    const MAX_QUEUE = 0.04;
+
+    const startBtn = document.getElementById('startBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    const vcInfo = document.getElementById('vcInfo');
+    const vcNameEl = document.getElementById('vcName');
+    const participantList = document.getElementById('participantList');
+
+    startBtn.addEventListener('click', () => {
+      if (!token) {
+        statusMsg.innerText = "Error: Invalid token";
+        return;
+      }
+
+      // 遅延を極小化するオプション
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ 
+        sampleRate: 48000,
+        latencyHint: 'interactive'
+      });
+      
+      startBtn.style.display = 'none';
+      statusMsg.innerText = "Connecting...";
+      connectWebSocket();
+    });
+
+    function connectWebSocket() {
+      ws = new WebSocket(WS_URL);
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'auth', token: token }));
+      };
+
+      ws.onmessage = async (event) => {
+        if (typeof event.data === 'string') {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'auth_success') {
+            statusMsg.innerText = "Connected";
+            vcInfo.style.display = 'flex';
+          }
+          
+          if (data.type === 'auth_error') {
+            statusMsg.innerText = "Error: Authentication failed";
+            ws.close();
+          }
+
+          if (data.type === 'room_info') {
+            vcNameEl.innerText = data.vcName;
+            renderParticipants(data.users);
+          }
+
+          if (data.type === 'audio_meta') {
+            currentSpeaker = data.userId;
+            highlightSpeaker(currentSpeaker);
+          }
+        } else {
+          if (audioCtx) {
+            playPCM(event.data);
+          }
+        }
+      };
+
+      ws.onclose = () => {
+        statusMsg.innerText = "Disconnected";
+      };
+    }
+
+    function playPCM(arrayBuffer) {
+      const int16Array = new Int16Array(arrayBuffer);
+      const float32Array = new Float32Array(int16Array.length);
+      
+      for (let i = 0; i < int16Array.length; i++) {
+        float32Array[i] = int16Array[i] / 32768.0;
+      }
+
+      const buffer = audioCtx.createBuffer(1, float32Array.length, 48000);
+      buffer.copyToChannel(float32Array, 0);
+
+      const currentTime = audioCtx.currentTime;
+
+      // 古いデータを捨てる処理
+      if (nextPlayTime > currentTime + MAX_QUEUE) {
+        return;
+      }
+
+      // 途切れた後の再開処理
+      if (nextPlayTime < currentTime) {
+        nextPlayTime = currentTime + LATENCY_BUFFER;
+      }
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(nextPlayTime);
+      
+      nextPlayTime += buffer.duration;
+    }
+
+    function renderParticipants(users) {
+      participantList.innerHTML = '';
+      users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-row';
+        div.id = `user-${user.id}`;
+        
+        const avatarHtml = user.avatar 
+          ? `<img src="${user.avatar}" alt="">` 
+          : '';
+
+        div.innerHTML = `
+          <div class="avatar">${avatarHtml}</div>
+          <div class="user-name">${user.name}</div>
+          <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        `;
+        participantList.appendChild(div);
+      });
+    }
+
+    let speakerTimeout;
+    function highlightSpeaker(userId) {
+      document.querySelectorAll('.user-row').forEach(el => el.classList.remove('speaking'));
+      const speakerEl = document.getElementById(`user-${userId}`);
+      if (speakerEl) {
+        speakerEl.classList.add('speaking');
+        
+        clearTimeout(speakerTimeout);
+        speakerTimeout = setTimeout(() => {
+          speakerEl.classList.remove('speaking');
+        }, 500);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テンポ測定 - keke-dev</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --border: #e5e7eb; --text: #1f2937; --sub-text: #6b7280; --accent: #3b82f6; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: #ffffff; color: var(--text); margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        .container { text-align: center; width: 100%; max-width: 400px; padding: 20px; z-index: 1; }
+        header { margin-bottom: 40px; }
+        h1 { font-size: 1.2rem; color: var(--sub-text); margin: 0; font-weight: 400; }
+
+        .bpm-display { font-size: 8rem; font-weight: 700; line-height: 1; margin: 20px 0; font-variant-numeric: tabular-nums; }
+        .unit { font-size: 1.5rem; color: var(--sub-text); display: block; }
+
+        .tap-area { width: 200px; height: 200px; background: #ffffff; border: 2px solid var(--border); border-radius: 50%; margin: 40px auto; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; transition: transform 0.1s; position: relative; outline: none; }
+        .tap-area:active { transform: scale(0.95); border-color: var(--accent); }
+        
+        .tap-icon { width: 64px; height: 64px; stroke: var(--border); fill: none; stroke-width: 2; transition: stroke 0.2s; }
+        .tap-area:active .tap-icon { stroke: var(--accent); }
+
+        .controls { margin-top: 30px; display: flex; justify-content: center; gap: 20px; }
+        button { background: none; border: 1px solid var(--border); padding: 8px 20px; border-radius: 6px; cursor: pointer; color: var(--sub-text); font-family: inherit; font-size: 0.9rem; transition: 0.2s; }
+        button:hover { background: #f9fafb; color: var(--text); border-color: var(--text); }
+
+        /* 波紋アニメーション用 */
+        .ripple { position: absolute; border: 2px solid var(--accent); border-radius: 50%; pointer-events: none; animation: ripple-effect 0.6s ease-out; opacity: 0; }
+        @keyframes ripple-effect {
+            from { width: 200px; height: 200px; opacity: 0.5; }
+            to { width: 400px; height: 400px; opacity: 0; }
+        }
+
+        .back-link { margin-top: 40px; display: block; color: var(--sub-text); text-decoration: none; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>テンポ測定 (BPM)</h1>
+    </header>
+
+    <div class="bpm-display">
+        <span id="bpm-value">---</span>
+        <span class="unit">BPM</span>
+    </div>
+
+    <div class="tap-area" id="tap-btn" tabindex="0">
+        <svg class="tap-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+        </svg>
+    </div>
+
+    <div class="controls">
+        <button id="reset-btn">リセット</button>
+    </div>
+
+    <p style="font-size: 0.8rem; color: var(--sub-text); margin-top: 20px;">
+        画面をタップするか、スペースキーを叩いてください
+    </p>
+
+    <a href="https://keke-dev.net" class="back-link">← ホームページへ戻る</a>
+</div>
+
+<script>
+    let taps = [];
+    const bpmElement = document.getElementById('bpm-value');
+    const tapBtn = document.getElementById('tap-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    const handleTap = (e) => {
+        if (e.type === 'keydown' && e.code !== 'Space' && e.code !== 'Enter') return;
+        if (e.type === 'keydown') e.preventDefault();
+
+        const now = performance.now();
+        taps.push(now);
+
+        // 直近20回分のみ保持（精度と追従性のバランス）
+        if (taps.length > 20) taps.shift();
+
+        if (taps.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < taps.length; i++) {
+                intervals.push(taps[i] - taps[i - 1]);
+            }
+            const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+            const bpm = Math.round(60000 / avgInterval);
+            
+            bpmElement.innerText = bpm;
+            
+            // BPMに応じて色を変えるロジック（ロマン）
+            let hue = 220 - (bpm - 60); // 60BPMなら青、速くなると赤に近づく
+            if (hue < 0) hue = 0;
+            document.documentElement.style.setProperty('--accent', `hsl(${hue}, 70%, 50%)`);
+        }
+
+        // 波紋エフェクト
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        tapBtn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    };
+
+    const reset = () => {
+        taps = [];
+        bpmElement.innerText = '---';
+        document.documentElement.style.setProperty('--accent', '#3b82f6');
+    };
+
+    tapBtn.addEventListener('mousedown', handleTap);
+    window.addEventListener('keydown', handleTap);
+    resetBtn.addEventListener('click', reset);
+</script>
+
+</body>
+</html>

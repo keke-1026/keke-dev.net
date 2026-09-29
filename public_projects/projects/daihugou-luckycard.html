@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>大富豪 — ラッキーカード特化ルールシート (A4)</title>
+  <style>
+    /* A4 print layout */
+    @page { size: A4; margin: 20mm; }
+    html,body{height:100%;}
+    body{
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, "Yu Gothic", sans-serif;
+      margin:0; padding:0; color:#111; background:#fff; -webkit-print-color-adjust:exact;
+      box-sizing:border-box; font-size:12px; line-height:1.4;
+    }
+    .sheet{width:210mm; min-height:297mm; padding:18mm; box-sizing:border-box;}
+    h1{font-size:18px; margin:0 0 8px 0; text-align:center}
+    .subtitle{font-size:12px; text-align:center; margin-bottom:12px}
+    hr{border:none; border-top:1px solid #ddd; margin:10px 0 14px}
+    .section{margin-bottom:12px}
+    .section h2{font-size:14px; margin:0 0 6px}
+    ul{margin:6px 0 6px 18px}
+    table{width:100%; border-collapse:collapse; font-size:11px}
+    table th, table td{border:1px solid #bbb; padding:6px 8px; vertical-align:top}
+    table th{background:#f3f3f3; text-align:left}
+    .small{font-size:10px; color:#333}
+    .foot{margin-top:12px; font-size:10px; color:#444}
+    .notes{font-size:11px; margin-top:8px}
+    .center{ text-align:center }
+    .muted{ color:#666 }
+    .important{ font-weight:700 }
+    /* Print friendly adjustments */
+    @media print{
+      body{background:#fff}
+      .sheet{box-shadow:none}
+      a.print-hide{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <h1>大富豪 — ラッキーカード特化ルールシート</h1>
+    <div class="subtitle">目的: 通常の大富豪に「ラッキーカード」を導入して、運と戦略の駆け引きを強化する</div>
+    <hr />
+
+    <div class="section">
+      <h2>セットアップ</h2>
+      <ul>
+        <li>使用カード：54枚（ジョーカー1枚推奨）。プレイ人数：3〜6人。</li>
+        <li>各ラウンド開始時に山札から1枚を裏向きに取り、場に伏せておく（これがラッキーカード）。</li>
+        <li>本シートでは <strong>2 / 3 / 5 / Q は効果なし</strong> として扱う。</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>ラッキーカード 効果一覧（A4用表）</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:10%">カード</th>
+            <th style="width:15%">発動タイミング</th>
+            <th style="width:20%">効果（要約）</th>
+            <th style="width:35%">詳細</th>
+            <th style="width:6%">強さ</th>
+            <th style="width:14%">備考</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>K</td>
+            <td>ラッキーカード公開時</td>
+            <td>実行者は即上がり</td>
+            <td>公開時点でそのプレイヤーは上がり扱い（手札0）。上がり処理後に交換等を行う。</td>
+            <td class="center">5</td>
+            <td>即逆転級の強力効果</td>
+          </tr>
+          <tr>
+            <td>Q / 2 / 3 / 5</td>
+            <td>ラッキーカード公開時</td>
+            <td>効果なし</td>
+            <td>このシートでは該当カードはラッキーカードとして効果を持たない扱い。</td>
+            <td class="center">0</td>
+            <td>ユーザー指定に基づく</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>ラッキーカード公開時</td>
+            <td>1ターンスキップ</td>
+            <td>実行者は次の自分の手番を1回休む（トークン使用不可）。</td>
+            <td class="center">2</td>
+            <td>軽いペナルティ</td>
+          </tr>
+          <tr>
+            <td>A</td>
+            <td>ラッキーカード公開時</td>
+            <td>“エース権”取得</td>
+            <td>そのラウンド中、通常の縛りを無視して任意の1枚を場に出して捨てられる（使い切り）。</td>
+            <td class="center">4</td>
+            <td>手札調整に強力</td>
+          </tr>
+          <tr>
+            <td>4 / 6（悪魔）</td>
+            <td>ラッキーカード公開時</td>
+            <td>強制最下位（救済あり）</td>
+            <td>原則最下位に配置。ただし、<strong>即時に手札の中で最も強いカード1枚を場に捨てればペナルティは回避（復活）</strong>。</td>
+            <td class="center">5</td>
+            <td>救済で実質4程度</td>
+          </tr>
+          <tr>
+            <td>7（ラッキーセブン）</td>
+            <td>ラッキーカード公開時</td>
+            <td>左右から最強カード1枚ずつ取得</td>
+            <td>左・右の各プレイヤーは手札で最も強いカード1枚を裏向きで渡す（同値複数時は渡す側が選択）。</td>
+            <td class="center">4</td>
+            <td>近接プレイヤーに負担あり</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>ラッキーカード公開時</td>
+            <td>合計8 または 3を2枚を要求</td>
+            <td>周り（または左右）から『3を2枚』または『合計が8になるカード群』を渡してもらう。未達者は最強カードを渡す。Aは1扱い。</td>
+            <td class="center">3</td>
+            <td>合計ルールは事前に決める</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>ラッキーカード公開時</td>
+            <td>他全員の10を廃棄</td>
+            <td>実行者以外の全員が自分の手札にある10をすべて捨てる。</td>
+            <td class="center">3</td>
+            <td>手札整理効果</td>
+          </tr>
+          <tr>
+            <td>J（ジェット）</td>
+            <td>ラッキーカード公開時</td>
+            <td>『ジェット』発動：3ターン間主導権保持</td>
+            <td>場が流されても、<strong>3回分の新ターン</strong>は必ずJを出した実行者が最初に出す人となる（主導権保持）。</td>
+            <td class="center">4</td>
+            <td>テンポ操作・主導権効果</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>発動フロー（簡略）</h2>
+      <ol>
+        <li>各ラウンド開始時に山札からラッキーカードを裏向きで置く。</li>
+        <li>誰かが（ルールで決めたトリガーのカード、例：A.6）を出したら、伏せ札を公開して効果を適用する。</li>
+        <li>効果適用後、通常の上がり処理や交換処理を行う。</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>注意事項・調整案</h2>
+      <ul>
+        <li><strong>4/6の救済</strong>: 実行者は『即座に手札の最も強いカードを1枚場に捨てる』ことで復活（最下位回避）できる。</li>
+        <li><strong>8の合計計算</strong>: A=1、数字カードはそのまま、J/Q/K = 11/12/13 とするかはテーブルで事前に合意すること。</li>
+        <li>ルールはローカルルール。遊ぶ前に全員で確認しておくこと。</li>
+      </ul>
+    </div>
+
+    <div class="foot">created with keke</div>
+    
+  </div>
+</body>
+</html>
